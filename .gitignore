@@ -1,0 +1,6 @@
+.smart-renew-data/
+.env
+.agents/
+.uploads/
+tmp/
+index.backup.html

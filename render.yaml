@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: smart-renew
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: DASHSCOPE_MODEL
+        value: qwen3-vl-plus
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+      - key: SMART_RENEW_DATA_DIR
+        value: /var/data
+    disk:
+      name: smart-renew-data
+      mountPath: /var/data
+      sizeGB: 1
