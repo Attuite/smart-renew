@@ -429,6 +429,73 @@ body{background:var(--editorial-bg);color:var(--editorial-ink)}
 .project-img>*{position:relative;z-index:1}
 @media (max-width:768px){.hero-title{font-size:2.25rem;line-height:1.08}.hero-desc{font-size:.94rem}.hero-actions{display:grid;grid-template-columns:1fr;gap:10px}.home-hero-panel{margin-top:10px}}
 
+/* Project registry and database */
+.projects-section{padding-top:30px;padding-bottom:88px}
+.project-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--editorial-line);border-left:1px solid var(--editorial-line);margin-bottom:22px}
+.project-summary-grid .dash-stat{min-height:112px;border-right:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);background:var(--editorial-paper);padding:22px;box-shadow:none}
+.project-summary-grid .dash-stat-icon{width:38px;height:38px;background:var(--editorial-soft);font-size:1rem}
+.project-summary-grid .dash-stat-value{font-size:1.85rem}
+.projects-toolbar{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;border-top:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);margin-bottom:24px}
+.projects-toolbar-status{display:flex;align-items:center;gap:10px;min-width:0}
+.projects-toolbar-status::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green-500);box-shadow:0 0 0 4px rgba(26,122,76,.1);flex:0 0 auto}
+.projects-count{font-size:.82rem;color:var(--editorial-muted);margin-bottom:14px;letter-spacing:.2px}
+.project-record-list{display:grid;gap:16px}
+.project-record-card{display:grid;grid-template-columns:240px minmax(0,1fr) 270px;min-height:252px;background:var(--editorial-paper);border:1px solid var(--editorial-line);cursor:pointer;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;overflow:hidden;outline:none}
+.project-record-card:hover,.project-record-card:focus-visible{transform:translateY(-2px);border-color:#9f978b;box-shadow:0 16px 42px rgba(17,17,17,.08)}
+.project-record-card.is-active{border-left:4px solid var(--editorial-accent)}
+.project-record-media{position:relative;min-height:250px;background:#d8d4ca;overflow:hidden;display:grid;place-items:center;color:rgba(17,17,17,.32)}
+.project-record-media::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,17,17,.03),rgba(17,17,17,.32));pointer-events:none}
+.project-record-media img{width:100%;height:100%;object-fit:cover;filter:saturate(.75) contrast(1.02)}
+.project-record-media-placeholder{font-size:3.1rem;filter:grayscale(.2)}
+.project-record-media .project-tag,.project-record-media .project-badge{z-index:2}
+.project-record-content{padding:26px 28px;display:flex;flex-direction:column;min-width:0}
+.project-record-eyebrow{font-size:.7rem;color:var(--editorial-accent);font-weight:700;letter-spacing:1px;margin-bottom:8px}
+.project-record-title{font-size:1.28rem;color:var(--editorial-ink);line-height:1.35;margin-bottom:7px}
+.project-record-location{font-size:.8rem;color:var(--editorial-muted);margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.project-record-description{font-size:.84rem;color:var(--editorial-muted);line-height:1.75;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:18px}
+.project-record-flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}
+.project-record-flow span{font-size:.7rem;padding:5px 8px;border:1px solid var(--editorial-line);color:var(--editorial-muted);background:#fff}
+.project-record-flow span.done{color:var(--green-500);border-color:rgba(26,122,76,.22);background:var(--green-100)}
+.project-record-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.project-record-metrics{padding:24px;border-left:1px solid var(--editorial-line);background:#f4f1ea;display:flex;flex-direction:column}
+.project-record-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--editorial-line);border:1px solid var(--editorial-line)}
+.project-record-data{background:var(--editorial-paper);padding:12px}
+.project-record-data strong{display:block;font-size:1.25rem;color:var(--editorial-ink);line-height:1.15}
+.project-record-data span{display:block;font-size:.68rem;color:var(--editorial-muted);margin-top:4px}
+.project-record-risk{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 12px;font-size:.74rem;font-weight:700}
+.project-record-update{font-size:.7rem;color:var(--editorial-muted);line-height:1.55;margin-top:auto}
+.project-record-open{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--editorial-line);padding-top:13px;margin-top:14px;font-size:.78rem;font-weight:700;color:var(--editorial-ink)}
+.project-record-open span{font-size:1.1rem;transition:transform .2s ease}
+.project-record-card:hover .project-record-open span{transform:translateX(5px)}
+.project-db-heading{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--editorial-line)}
+.detail-grid>*{min-width:0}
+.detail-main{min-width:0}
+.project-db-heading h2{font-size:1.55rem;color:var(--editorial-ink);margin:7px 0 6px}
+.project-db-heading p{font-size:.86rem;color:var(--editorial-muted);line-height:1.7;max-width:700px}
+.project-db-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--editorial-line);border-left:1px solid var(--editorial-line);margin-bottom:18px}
+.project-db-kpi{background:var(--editorial-paper);border-right:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);padding:20px;min-height:112px}
+.project-db-kpi strong{display:block;font-size:1.65rem;color:var(--editorial-ink);line-height:1.1;margin-bottom:7px}
+.project-db-kpi span{display:block;font-size:.74rem;color:var(--editorial-muted)}
+.project-db-kpi small{display:block;font-size:.68rem;color:var(--editorial-muted);margin-top:8px;line-height:1.45}
+.project-db-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:16px;margin-bottom:18px}
+.project-db-panel{background:var(--editorial-paper);border:1px solid var(--editorial-line);padding:22px;min-width:0}
+.project-db-panel h3{font-size:1rem;color:var(--editorial-ink);margin-bottom:15px}
+.project-db-assets{width:100%;border-collapse:collapse;font-size:.8rem}
+.project-db-assets th,.project-db-assets td{padding:10px 12px;border-bottom:1px solid var(--editorial-line);text-align:left}
+.project-db-assets th{color:var(--editorial-muted);font-weight:500;width:46%}
+.project-db-assets td{color:var(--editorial-ink);font-weight:700;text-align:right}
+.project-risk-row{display:grid;grid-template-columns:66px 1fr 34px;gap:10px;align-items:center;margin-bottom:14px;font-size:.76rem;color:var(--editorial-muted)}
+.project-risk-track{height:7px;background:var(--editorial-soft);overflow:hidden}
+.project-risk-track i{display:block;height:100%;min-width:0}
+.project-record-table-wrap{overflow-x:auto;max-width:100%;min-width:0}
+.project-record-table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:650px}
+.project-record-table th,.project-record-table td{padding:11px 12px;border-bottom:1px solid var(--editorial-line);text-align:left}
+.project-record-table th{color:var(--editorial-muted);font-weight:600;background:#f7f5f0}
+.project-record-table td{color:var(--editorial-ink)}
+.detail-sidebar{position:sticky;top:88px}
+@media (max-width:1050px){.project-record-card{grid-template-columns:210px minmax(0,1fr)}.project-record-metrics{grid-column:1/-1;border-left:0;border-top:1px solid var(--editorial-line)}.project-record-data-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.project-db-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-grid{grid-template-columns:1fr}}
+@media (max-width:720px){.project-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.projects-toolbar{align-items:flex-start;flex-direction:column}.project-record-card{grid-template-columns:1fr}.project-record-media{min-height:210px}.project-record-content{padding:22px}.project-record-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-heading{flex-direction:column}.project-db-kpis{grid-template-columns:1fr}.detail-sidebar{position:static}}
+
 /* Connexion-inspired immersive home */
 body.home-mode .header{background:transparent;border-bottom-color:rgba(255,255,255,.08)}
 body.home-mode .header.scrolled{background:rgba(1,18,18,.74);border-bottom-color:rgba(255,255,255,.12)}
@@ -617,16 +684,16 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <!-- PAGE: PROJECTS -->
 <div class="page" id="page-projects">
 <section class="page-hero"><div class="container"><h1 class="page-hero-title">项目汇总</h1><p class="page-hero-desc">这里汇总所有体检项目。请先选择一个当前项目，再进入住区维度、社区/街区维度和诊断报告。</p></div></section>
-<section class="section" style="padding-top:32px;"><div class="container">
-<div class="dashboard-grid" id="projectSummaryStats" style="margin-bottom:24px;">
+<section class="section projects-section"><div class="container">
+<div class="project-summary-grid" id="projectSummaryStats">
 <div class="dash-stat"><div class="dash-stat-icon" style="color:var(--ink-700);">📁</div><div><div class="dash-stat-value">--</div><div class="dash-stat-label">体检项目</div></div></div>
 <div class="dash-stat"><div class="dash-stat-icon" style="color:var(--red-500);">⚠️</div><div><div class="dash-stat-value">--</div><div class="dash-stat-label">高风险问题</div></div></div>
 <div class="dash-stat"><div class="dash-stat-icon" style="color:var(--amber-500);">🟠</div><div><div class="dash-stat-value">--</div><div class="dash-stat-label">中风险问题</div></div></div>
 <div class="dash-stat"><div class="dash-stat-icon" style="color:var(--green-500);">🏘️</div><div><div class="dash-stat-value">待分析</div><div class="dash-stat-label">社区/街区</div></div></div>
 </div>
-<div class="filter-bar" style="justify-content:space-between;margin-bottom:24px;"><div><span class="filter-label">存储状态：</span><span id="projectStorageStatus" style="font-size:.85rem;color:var(--text-muted);">正在连接服务端数据存储...</span></div><a href="#new-project" class="btn btn-primary btn-sm" data-nav="new-project">新建体检项目</a></div>
-<div id="projectCount" style="font-size:.85rem;color:var(--text-muted);margin-bottom:20px;">正在读取项目记录...</div>
-<div class="projects-grid" id="allProjects"></div>
+<div class="projects-toolbar"><div class="projects-toolbar-status"><span class="filter-label">存储状态</span><span id="projectStorageStatus" style="font-size:.82rem;color:var(--green-500);">正在连接服务端数据存储...</span></div><a href="#new-project" class="btn btn-primary btn-sm" data-nav="new-project">新建体检项目</a></div>
+<div class="projects-count" id="projectCount">正在读取项目记录...</div>
+<div class="project-record-list" id="allProjects"></div>
 </div></section>
 </div>
 
@@ -959,9 +1026,14 @@ async function getActiveProjectName(){var id=getActiveProjectId();if(!id)return'
 function createProjectSummaryCard(p,records){
 var high=0,medium=0,low=0,images=0,issuesCount=0,lastRecord=records&&records.length?records[0]:null;
 for(var r=0;r<records.length;r++){var issues=(records[r].result&&records[r].result.issues)?records[r].result.issues:[];images+=records[r].imagesCount||0;issuesCount+=issues.length;for(var i=0;i<issues.length;i++){if(issues[i].severity==='high')high++;else if(issues[i].severity==='medium')medium++;else low++;}}
-var active=getActiveProjectId()===p.id,cover=lastRecord&&lastRecord.annotatedImages&&lastRecord.annotatedImages.length?lastRecord.annotatedImages[0]:(lastRecord&&lastRecord.imagesBase64&&lastRecord.imagesBase64.length?lastRecord.imagesBase64[0]:'');var thumb=cover?'<img src="'+cover+'" alt="项目标注照片" style="width:100%;height:100%;object-fit:cover;">':'<span style="font-size:3rem;">🏘️</span>';
+var active=getActiveProjectId()===p.id,community=p.communityAnalysis||null,communityTotal=getCommunityTotal(community),cover=lastRecord&&lastRecord.annotatedImages&&lastRecord.annotatedImages.length?lastRecord.annotatedImages[0]:(lastRecord&&lastRecord.imagesBase64&&lastRecord.imagesBase64.length?lastRecord.imagesBase64[0]:'');var thumb=cover?'<img src="'+cover+'" alt="项目标注照片">':'<span class="project-record-media-placeholder">🏘️</span>';
 var dateStr=new Date(p.updatedAt||p.createdAt).toLocaleString('zh-CN');
-return'<div class="project-card" style="'+(active?'outline:2px solid var(--spice-500);outline-offset:2px;':'')+'"><div class="project-img">'+thumb+'<span class="project-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="project-badge '+(active?'badge-done':'badge-progress')+'">'+(active?'当前项目':'项目档案')+'</span></div><div class="project-body"><h3>'+escapeHtml(p.name||'未命名体检项目')+'</h3><div class="project-location">📍 '+escapeHtml(p.area||'未填写位置')+'</div><p class="project-desc">'+escapeHtml(p.desc||p.scope||'该项目已建立档案，可继续进行住区维度、社区/街区维度分析和体检报告生成。')+'</p><div class="project-meta"><span>'+images+' 张照片</span><span>'+issuesCount+' 个问题</span><span>'+records.length+' 次AI分析</span></div><div class="project-meta"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-location">社区/街区：'+(p.communityStatus==='done'?'已完成':'待分析')+' · 更新时间：'+dateStr+'</div><div class="project-actions"><button class="btn btn-primary btn-sm" onclick="openProjectHub('+p.id+')">进入中枢</button><button class="btn btn-outline btn-sm" onclick="selectProject('+p.id+')">设为当前</button><button class="btn btn-outline btn-sm" onclick="openProjectAi('+p.id+')">住区</button><button class="btn btn-outline btn-sm" onclick="openProjectCommunity('+p.id+')">社区/街区</button></div></div></div>';
+return'<article class="project-record-card'+(active?' is-active':'')+'" role="button" tabindex="0" aria-label="打开 '+escapeHtml(p.name||'未命名体检项目')+' 项目数据库" onclick="openProjectHub('+p.id+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openProjectHub('+p.id+');}">'
++'<div class="project-record-media">'+thumb+'<span class="project-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="project-badge '+(active?'badge-done':'badge-progress')+'">'+(active?'当前项目':'项目档案')+'</span></div>'
++'<div class="project-record-content"><div class="project-record-eyebrow">PROJECT DATABASE · '+escapeHtml(String(p.id))+'</div><h3 class="project-record-title">'+escapeHtml(p.name||'未命名体检项目')+'</h3><div class="project-record-location">📍 '+escapeHtml(p.area||'未填写位置')+'</div><p class="project-record-description">'+escapeHtml(p.desc||p.scope||'该项目已建立档案，可继续进行住区维度、社区/街区维度分析和体检报告生成。')+'</p>'
++'<div class="project-record-flow"><span class="done">项目档案</span><span class="'+(records.length?'done':'')+'">住区分析</span><span class="'+(community?'done':'')+'">社区/街区</span><span class="'+(records.length&&community?'done':'')+'">体检报告</span></div>'
++'<div class="project-record-actions"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();selectProject('+p.id+')">设为当前</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectAi('+p.id+')">住区分析</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectCommunity('+p.id+')">社区/街区</button></div></div>'
++'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">数据更新时间<br>'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
 }
 async function renderDetailPage(){
 var hash=window.location.hash,pid=hash.split('/')[1],main=document.getElementById('detailMain'),side=document.getElementById('detailSidebar');
@@ -972,20 +1044,29 @@ setActiveProjectId(p.id);
 var allRecords=await getAllRecords();
 var records=allRecords.filter(function(r){return String(r.projectId)===String(p.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
 var stat=collectDiagnosticStats(records),issues=buildDiagnosticIssueRows(records),community=p.communityAnalysis||null,counts=community&&community.counts?community.counts:{cat1:0,cat2:0,cat3:0,cat4:0},communityTotal=getCommunityTotal(community);
-document.getElementById('detailTags').innerHTML='<span class="detail-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="detail-tag">'+escapeHtml(statusMap[p.status]||'项目档案')+'</span><span class="detail-tag">当前项目</span>';
+var categoryCount=community?Object.keys(getCategoriesForDimension(community.dimension)).length:0,dataRecords=1+records.length+(community?1:0),statCount=3+categoryCount,reportReady=records.length>0&&!!community;
+document.getElementById('detailTags').innerHTML='<span class="detail-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="detail-tag">项目数据库</span><span class="detail-tag">当前项目</span>';
 document.getElementById('detailTitle').textContent=p.name||'未命名体检项目';
 document.getElementById('detailLocation').textContent='📍 '+(p.area||'未填写位置');
-if(main)main.innerHTML='<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:22px;"><div><div class="section-tag">项目中枢</div><h2 style="font-size:1.35rem;color:var(--ink-900);margin:8px 0;">'+escapeHtml(p.name||'未命名体检项目')+'</h2><p class="section-desc" style="text-align:left;max-width:760px;">所有数据采集、住区维度识别、社区/街区维度分析、问题清单和体检报告都归集到这个项目档案下。</p></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="openProjectAi('+p.id+')">住区维度</button><button class="btn btn-outline btn-sm" onclick="openProjectCommunity('+p.id+')">社区/街区维度</button><a href="#diagnostic" class="btn btn-outline btn-sm" data-nav="diagnostic">生成报告</a></div></div>'
-+'<div class="dashboard-grid" style="margin-bottom:24px;">'+diagnosticMetricCard('项目档案','已建档',p.scope||p.area||'范围待完善','var(--blue-500)')+diagnosticMetricCard('AI 分析',records.length+' 次',stat.images+' 张照片 · '+stat.total+' 个问题','var(--red-500)')+diagnosticMetricCard('社区/街区',community?communityTotal+' 个设施':'待分析',community?'已保存周边业态结论':'需定位并搜索','var(--green-500)')+diagnosticMetricCard('报告状态',(records.length&&community)?'可生成':'待完善',(records.length&&community)?'基础数据已具备':'需补齐分析结果','var(--amber-500)')+'</div>'
-+'<div style="margin-bottom:20px;">'+projectHubPanel('基础档案',projectBasicsHtml(p))+'</div>'
-+'<div style="margin-bottom:20px;">'+projectHubPanel('四维度体检分类',projectDimensionHtml(p,stat,records,community,counts))+'</div>'
-+'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px;" class="hub-card-grid">'+projectHubPanel('已采集数据',projectDataHtml(stat,records,community,counts))+projectHubPanel('报告生成状态',projectReportStatusHtml(records,community))+'</div>'
-+'<div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:16px;" class="hub-card-grid">'+projectHubPanel('已发现问题',projectIssuePreviewHtml(issues))+projectHubPanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div>';
-if(side)side.innerHTML='<h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;color:var(--ink-900);">项目操作</h3><button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:10px;" onclick="selectProject('+p.id+')">设为当前项目</button><button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:10px;" onclick="openProjectAi('+p.id+')">住区维度</button><button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:10px;" onclick="openProjectCommunity('+p.id+')">社区/街区维度</button><a href="#diagnostic" class="btn btn-outline btn-sm" data-nav="diagnostic" style="width:100%;margin-bottom:18px;">体检报告</a><h3 style="font-size:1rem;font-weight:700;margin-bottom:12px;color:var(--ink-900);">档案信息</h3>'+detailInfoItem('项目类型',typeMap[p.type]||'体检项目')+detailInfoItem('项目位置',p.area||'未填写')+detailInfoItem('创建时间',new Date(p.createdAt||Date.now()).toLocaleString('zh-CN'))+detailInfoItem('更新时间',new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleString('zh-CN'))+detailInfoItem('社区/街区',p.communityStatus==='done'?'已完成':'待分析')+detailInfoItem('报告状态',(records.length&&community)?'可生成':'待完善');
+if(main)main.innerHTML='<div class="project-db-heading"><div><div class="section-tag">PROJECT DATABASE</div><h2>'+escapeHtml(p.name||'未命名体检项目')+' 数据库</h2><p>项目档案、现场照片、AI 分析、问题台账、设施统计和报告状态统一归集在这里，所有数字均来自当前项目已保存记录。</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="openProjectAi('+p.id+')">新增住区分析</button><button class="btn btn-outline btn-sm" onclick="openProjectCommunity('+p.id+')">更新空间分析</button><a href="#diagnostic" class="btn btn-outline btn-sm" data-nav="diagnostic">生成报告</a></div></div>'
++'<div class="project-db-kpis">'+projectDatabaseKpiHtml('数据记录',dataRecords+' 条','项目档案 1 · AI分析 '+records.length+(community?' · 空间分析 1':''))+projectDatabaseKpiHtml('统计指标',statCount+' 项','风险等级 3'+(categoryCount?' · 设施分类 '+categoryCount:''))+projectDatabaseKpiHtml('问题数量',stat.total+' 个','高 '+stat.high+' · 中 '+stat.medium+' · 低 '+stat.low)+projectDatabaseKpiHtml('现场照片',stat.images+' 张','来自已归档住区维度分析')+projectDatabaseKpiHtml('设施空间',communityTotal+' 个',community?'来自'+(community.dimensionLabel||'社区/街区维度'):'尚未保存空间分析')+projectDatabaseKpiHtml('报告状态',reportReady?'可生成':'待完善',reportReady?'项目关键数据已具备':'需补齐住区与空间分析')+'</div>'
++'<div class="project-db-grid">'+projectDatabasePanel('数据资产',projectDatabaseAssetsHtml(p,stat,records,community,categoryCount,dataRecords))+projectDatabasePanel('问题统计',projectRiskOverviewHtml(stat))+'</div>'
++'<div style="margin-bottom:18px;">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div>'
++'<div style="margin-bottom:18px;">'+projectDatabasePanel('问题台账',projectIssueDatabaseHtml(issues))+'</div>'
++'<div style="margin-bottom:18px;">'+projectDatabasePanel('基础档案',projectBasicsHtml(p))+'</div>'
++'<div style="margin-bottom:18px;">'+projectDatabasePanel('四维度体检分类',projectDimensionHtml(p,stat,records,community,counts))+'</div>'
++'<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div>';
+if(side)side.innerHTML='<div class="section-tag" style="margin-bottom:10px;">DATABASE STATUS</div><h3 style="font-size:1.08rem;font-weight:700;margin-bottom:16px;color:var(--ink-900);">项目数据库状态</h3>'+detailInfoItem('数据记录',dataRecords+' 条')+detailInfoItem('统计指标',statCount+' 项')+detailInfoItem('问题数量',stat.total+' 个')+detailInfoItem('现场照片',stat.images+' 张')+detailInfoItem('设施空间',communityTotal+' 个')+detailInfoItem('报告状态',reportReady?'可生成':'待完善')+'<div style="border-top:1px solid var(--border-default);margin:18px 0;"></div><button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:10px;" onclick="selectProject('+p.id+')">设为当前项目</button><button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:10px;" onclick="openProjectAi('+p.id+')">住区维度</button><button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:10px;" onclick="openProjectCommunity('+p.id+')">社区/街区维度</button><a href="#diagnostic" class="btn btn-outline btn-sm" data-nav="diagnostic" style="width:100%;margin-bottom:18px;">体检报告</a><h3 style="font-size:1rem;font-weight:700;margin-bottom:12px;color:var(--ink-900);">档案信息</h3>'+detailInfoItem('项目类型',typeMap[p.type]||'体检项目')+detailInfoItem('项目位置',p.area||'未填写')+detailInfoItem('创建时间',new Date(p.createdAt||Date.now()).toLocaleString('zh-CN'))+detailInfoItem('更新时间',new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleString('zh-CN'));
 }catch(e){if(main)main.innerHTML='<div class="result-empty" style="color:var(--red-500);">项目中枢加载失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
 
-function projectHubPanel(title,body){return'<section style="background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-sm);padding:22px;"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:14px;">'+escapeHtml(title)+'</h3>'+body+'</section>';}
+function projectHubPanel(title,body){return'<section style="background:#fff;border:1px solid var(--border-default);padding:22px;"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:14px;">'+escapeHtml(title)+'</h3>'+body+'</section>';}
+function projectDatabasePanel(title,body){return'<section class="project-db-panel"><h3>'+escapeHtml(title)+'</h3>'+body+'</section>';}
+function projectDatabaseKpiHtml(label,value,meta){return'<div class="project-db-kpi"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span><small>'+escapeHtml(meta||'')+'</small></div>';}
+function projectDatabaseAssetsHtml(project,stat,records,community,categoryCount,dataRecords){var rows=[['项目档案','1 条'],['数据库记录',dataRecords+' 条'],['AI 分析记录',records.length+' 条'],['现场图片',stat.images+' 张'],['问题记录',stat.total+' 条'],['空间分析',community?'1 条':'0 条'],['设施分类',categoryCount+' 项'],['设施空间',getCommunityTotal(community)+' 个']];return'<table class="project-db-assets"><tbody>'+rows.map(function(row){return'<tr><th>'+escapeHtml(row[0])+'</th><td>'+escapeHtml(row[1])+'</td></tr>';}).join('')+'</tbody></table>';}
+function projectRiskOverviewHtml(stat){var max=Math.max(stat.high,stat.medium,stat.low,1),rows=[{label:'高风险',value:stat.high,color:'var(--red-500)'},{label:'中风险',value:stat.medium,color:'var(--amber-500)'},{label:'低风险',value:stat.low,color:'var(--green-500)'}];return'<div style="font-size:.8rem;color:var(--editorial-muted);margin-bottom:16px;">共 '+stat.total+' 个已归档问题，按风险等级统计。</div>'+rows.map(function(row){var width=row.value?Math.max(5,row.value/max*100):0;return'<div class="project-risk-row"><span>'+row.label+'</span><div class="project-risk-track"><i style="width:'+width+'%;background:'+row.color+';"></i></div><strong style="color:'+row.color+';">'+row.value+'</strong></div>';}).join('');}
+function projectAnalysisRecordsHtml(records){if(!records.length)return'<div class="result-empty" style="padding:26px 12px;">暂无住区维度分析记录。</div>';var rows=records.map(function(record,index){var issues=record.result&&record.result.issues?record.result.issues:[],date=record.archivedAt||record.timestamp||record.createdAt,status=record.status==='archived'?'已归档':(record.status==='reviewing'?'待复核':'已保存');return'<tr><td>'+(index+1)+'</td><td>'+escapeHtml(record.analysisType||record.type||'住区隐患分析')+'</td><td>'+escapeHtml(String(record.imagesCount||0))+' 张</td><td>'+issues.length+' 个</td><td>'+escapeHtml(status)+'</td><td>'+escapeHtml(date?new Date(date).toLocaleString('zh-CN'):'未记录')+'</td></tr>';}).join('');return'<div class="project-record-table-wrap"><table class="project-record-table"><thead><tr><th>序号</th><th>分析类型</th><th>照片</th><th>问题</th><th>状态</th><th>保存时间</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}
+function projectIssueDatabaseHtml(issues){if(!issues.length)return'<div class="result-empty" style="padding:26px 12px;">暂无问题记录，请先完成住区维度 AI 分析并归档。</div>';var rows=issues.map(function(issue,index){return'<tr><td>'+(index+1)+'</td><td>'+escapeHtml(issue.title)+'</td><td>'+escapeHtml(issue.severity)+'</td><td>'+escapeHtml(issue.location)+'</td><td>'+escapeHtml(issue.suggestion)+'</td></tr>';}).join('');return'<div class="project-record-table-wrap"><table class="project-record-table"><thead><tr><th>序号</th><th>问题名称</th><th>风险等级</th><th>问题位置</th><th>处置建议</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}
 function detailInfoItem(k,v){return'<div class="detail-info-item"><div class="detail-info-label">'+escapeHtml(k)+'</div><div class="detail-info-val">'+escapeHtml(v)+'</div></div>';}
 function projectBasicsHtml(p){return'<div style="display:grid;gap:10px;font-size:.9rem;color:var(--text-secondary);">'+hubLine('项目名称',p.name||'未命名')+hubLine('项目位置',p.area||'未填写')+hubLine('体检范围',p.scope||'待补充')+hubLine('项目说明',p.desc||'待补充')+'</div>';}
 function projectDimensionHtml(p,stat,records,community,counts){
@@ -993,10 +1074,10 @@ var communityTotal=getCommunityTotal(community);
 var dims=[
 {name:'住房维度',tag:'好房子',status:records.length?'已启动':'待分析',desc:'结构安全、燃气安全、楼道安全、围护安全、管线管道、适老化、节能与数字化。',meta:records.length+' 次AI分析 · '+stat.total+' 个隐患问题',action:'openProjectAi('+p.id+')',btn:'进入AI分析',color:'var(--red-500)'},
 {name:'小区/社区维度',tag:'好小区、好社区',status:community?'已启动':'待分析',desc:'养老、托育、幼儿园、小学、停车充电、公共活动空间、步行道、垃圾分类、物业与智慧社区。',meta:community?'公共服务 '+(counts.cat1||0)+' · 便民商业 '+(counts.cat2||0):'需完成项目周边定位搜索',action:'openProjectCommunity('+p.id+')',btn:'社区分析',color:'var(--green-500)'},
-{name:'街区维度',tag:'活力街区',status:community?'可研判':'待补充',desc:'中学、运动场、文化活动中心、公园绿化、乱停乱放、老旧商业街区、老旧厂区、老旧街区更新。',meta:community?'周边设施空间 '+communityTotal+' 个':'依托社区/街区维度与后续街区指标库',action:'openProjectCommunity('+p.id+')',btn:'查看周边',color:'var(--blue-500)'},
+{name:'街区维度',tag:'活力街区',status:community?'可研判':'待补充',desc:'中学、运动场、文化活动中心、公园绿化、乱停乱放、老旧商业街区、老旧厂区、老旧街区更新。',meta:community?'周边设施空间 '+communityTotal+' 个':'依托社区/街区维度与后续街区指标库',action:'openProjectCommunity('+p.id+')',btn:'查看周边',color:'#2563eb'},
 {name:'城区/城市维度',tag:'好城区',status:'待接入',desc:'生态宜居、历史文化保护、产城融合、职住平衡、安全韧性、智慧高效等城市级指标。',meta:'后续接入城区指标填报与年度对比',action:"showToast('城区/城市维度将在指标库阶段接入','info')",btn:'指标库预留',color:'var(--amber-500)'}
 ];
-return'<p style="font-size:.88rem;color:var(--text-secondary);line-height:1.8;margin-bottom:16px;">基础档案建立后，项目按手册拆分为四个体检维度。每个维度独立采集数据、形成问题，再统一进入问题清单、整治建议清单和体检报告。</p><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;" class="hub-dimension-grid">'+dims.map(function(d){return'<div style="border:1px solid var(--border);background:var(--bg-soft);padding:18px;display:flex;flex-direction:column;gap:12px;min-height:220px;"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;"><div><div style="font-size:.76rem;color:'+d.color+';font-weight:800;margin-bottom:5px;">'+escapeHtml(d.tag)+'</div><h4 style="font-size:1.05rem;color:var(--ink-900);margin:0;">'+escapeHtml(d.name)+'</h4></div><span style="font-size:.72rem;border:1px solid var(--border);background:#fff;padding:4px 8px;color:var(--text-secondary);white-space:nowrap;">'+escapeHtml(d.status)+'</span></div><p style="font-size:.84rem;color:var(--text-secondary);line-height:1.75;margin:0;flex:1;">'+escapeHtml(d.desc)+'</p><div style="font-size:.8rem;color:var(--ink-700);font-weight:600;">'+escapeHtml(d.meta)+'</div><button class="btn btn-outline btn-sm" style="align-self:flex-start;" onclick="'+d.action+'">'+escapeHtml(d.btn)+'</button></div>';}).join('')+'</div>';
+return'<p style="font-size:.88rem;color:var(--text-secondary);line-height:1.8;margin-bottom:16px;">基础档案建立后，项目按手册拆分为四个体检维度。每个维度独立采集数据、形成问题，再统一进入问题清单、整治建议清单和体检报告。</p><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;" class="hub-dimension-grid">'+dims.map(function(d){return'<div style="border:1px solid var(--border-default);background:var(--bg-elevated);padding:18px;display:flex;flex-direction:column;gap:12px;min-height:220px;"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;"><div><div style="font-size:.76rem;color:'+d.color+';font-weight:800;margin-bottom:5px;">'+escapeHtml(d.tag)+'</div><h4 style="font-size:1.05rem;color:var(--ink-900);margin:0;">'+escapeHtml(d.name)+'</h4></div><span style="font-size:.72rem;border:1px solid var(--border-default);background:#fff;padding:4px 8px;color:var(--text-secondary);white-space:nowrap;">'+escapeHtml(d.status)+'</span></div><p style="font-size:.84rem;color:var(--text-secondary);line-height:1.75;margin:0;flex:1;">'+escapeHtml(d.desc)+'</p><div style="font-size:.8rem;color:var(--ink-700);font-weight:600;">'+escapeHtml(d.meta)+'</div><button class="btn btn-outline btn-sm" style="align-self:flex-start;" onclick="'+d.action+'">'+escapeHtml(d.btn)+'</button></div>';}).join('')+'</div>';
 }
 function getCommunityTotal(community){return community?(community.spaceTotal||community.total||community.rawTotal||0):0;}
 function getCategoriesForDimension(dim){return communityCategorySets[dim]||communityCategorySets.community;}
