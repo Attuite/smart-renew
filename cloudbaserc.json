@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "smart-renew-d2gamusvr1b96ce95",
+  "functionRoot": "functions",
+  "functions": [
+    {
+      "name": "api",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 120,
+      "memorySize": 512,
+      "description": "Smart Renew API for projects, analysis records and vision proxy",
+      "envVariables": {
+        "DASHSCOPE_MODEL": "qwen3-vl-plus",
+        "DASHSCOPE_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      }
+    }
+  ]
+}

@@ -4,3 +4,6 @@
 .uploads/
 tmp/
 index.backup.html
+node_modules/
+functions/*/node_modules/
+output/

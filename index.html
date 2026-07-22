@@ -338,6 +338,164 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 .pwd-modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,15,26,.72);z-index:3000;align-items:center;justify-content:center}.pwd-modal-overlay.show{display:flex}.pwd-modal{background:var(--bg-surface);width:360px;padding:36px 32px;text-align:center;box-shadow:var(--shadow-strong)}.pwd-modal h3{font-size:1.1rem;font-weight:700;color:var(--ink-900);margin-bottom:8px}.pwd-modal p{font-size:.82rem;color:var(--text-muted);margin-bottom:20px}.pwd-modal input{padding:12px 16px;border:1px solid var(--border-default);font-size:.9rem;font-family:var(--font-body);width:100%;text-align:center;letter-spacing:4px;transition:border-color var(--transition)}.pwd-modal input:focus{outline:none;border-color:var(--spice-500)}.pwd-modal .pwd-btns{margin-top:18px;display:flex;gap:10px;justify-content:center}.pwd-modal .pwd-err{font-size:.78rem;color:var(--red-500);margin-top:10px;display:none}
 .ai-config-header{display:flex;align-items:center;justify-content:space-between;padding:24px 0;border-bottom:1px solid var(--border-default);margin-bottom:36px}.ai-config-page .page-hero{display:none}.ai-config-page .section{padding-top:32px}
 @media (max-width:900px){.diagnostic-layout,.hub-card-grid,.hub-dimension-grid{grid-template-columns:1fr!important}.diagnostic-layout aside{position:static!important}.diagnostic-layout article{padding:22px!important;overflow-x:auto}}
+
+/* Gooood-inspired editorial UI layer */
+:root{--editorial-bg:#f7f6f2;--editorial-paper:#fffdfa;--editorial-ink:#111111;--editorial-muted:#6d6a64;--editorial-line:#d9d3c8;--editorial-soft:#ebe7df;--editorial-accent:#b8864b}
+body{background:var(--editorial-bg);color:var(--editorial-ink)}
+.container,.header-inner{max-width:1360px}
+.header{background:rgba(255,253,250,.96);border-bottom:1px solid var(--editorial-line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.header-inner{height:64px}
+.logo{font-size:1rem;color:var(--editorial-ink);font-weight:800;letter-spacing:0}
+.logo-icon{width:32px;height:32px;background:var(--editorial-ink);color:#fff;font-size:.82rem}
+.nav-links{gap:0}
+.nav-links a{padding:8px 15px;color:var(--editorial-muted);font-size:.82rem;font-weight:600}
+.nav-links a::after{left:15px;right:15px;bottom:0;height:1px;background:var(--editorial-ink)}
+.nav-links a.active,.nav-links a:hover{color:var(--editorial-ink)}
+.section{padding:82px 0}
+.section-header{text-align:left;margin-bottom:34px;border-top:1px solid var(--editorial-line);padding-top:22px;display:grid;grid-template-columns:minmax(180px,.36fr) 1fr;gap:32px;align-items:start}
+.section-tag{margin:0;color:var(--editorial-accent);letter-spacing:1.5px;font-size:.72rem}
+.section-tag::before{width:18px;background:var(--editorial-accent)}
+.section-title{font-size:1.85rem;color:var(--editorial-ink);letter-spacing:0;font-weight:700;max-width:760px;margin-bottom:10px}
+.section-desc{font-size:.92rem;color:var(--editorial-muted);max-width:720px}
+.hero{padding:112px 0 74px;background:var(--editorial-paper);border-bottom:1px solid var(--editorial-line)}
+.hero::before{background:linear-gradient(90deg,transparent calc(25% - 1px),rgba(17,17,17,.055) calc(25% - 1px),rgba(17,17,17,.055) 25%,transparent 25%,transparent calc(50% - 1px),rgba(17,17,17,.05) calc(50% - 1px),rgba(17,17,17,.05) 50%,transparent 50%,transparent calc(75% - 1px),rgba(17,17,17,.05) calc(75% - 1px),rgba(17,17,17,.05) 75%,transparent 75%)}
+.hero::after{display:none}
+.hero .container{grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:52px;align-items:end}
+.hero-content{max-width:none}
+.hero-tag{color:var(--editorial-accent);margin-bottom:22px;font-size:.76rem;letter-spacing:1.8px}
+.hero-tag::before{background:var(--editorial-accent)}
+.hero-title{color:var(--editorial-ink);font-size:clamp(2.7rem,6.4vw,6.2rem);line-height:.98;letter-spacing:0;font-weight:800;margin-bottom:28px}
+.hero-desc{color:var(--editorial-muted);font-size:1.02rem;line-height:1.95;max-width:620px;margin-bottom:30px}
+.hero-actions .btn-outline{color:var(--editorial-ink)!important;border-color:var(--editorial-line)!important;background:transparent}
+.btn{border-radius:0;box-shadow:none!important;transform:none!important}
+.btn-primary,.btn-white{background:var(--editorial-ink);color:#fff;border:1px solid var(--editorial-ink)}
+.btn-primary:hover,.btn-white:hover{background:#2a2926;color:#fff}
+.btn-outline{border:1px solid var(--editorial-line);color:var(--editorial-ink);background:transparent}
+.btn-outline:hover{background:var(--editorial-soft);border-color:var(--editorial-ink)}
+.home-hero-panel{max-width:none;border:1px solid var(--editorial-line);background:var(--editorial-bg);box-shadow:none;backdrop-filter:none;padding:12px}
+.home-panel-head{color:var(--editorial-muted);border-bottom:1px solid var(--editorial-line);padding:0 0 10px;margin-bottom:12px}
+.home-panel-status{color:var(--editorial-ink)}
+.home-panel-status::before{background:var(--editorial-accent);box-shadow:none}
+.home-city-map{height:360px;background:#e7e3da;border:1px solid var(--editorial-line)}
+.home-city-map::before{background:linear-gradient(90deg,transparent 0 17%,rgba(17,17,17,.08) 17% 18%,transparent 18% 40%,rgba(17,17,17,.08) 40% 41%,transparent 41% 66%,rgba(17,17,17,.08) 66% 67%,transparent 67%),linear-gradient(0deg,transparent 0 22%,rgba(17,17,17,.08) 22% 23%,transparent 23% 48%,rgba(17,17,17,.08) 48% 49%,transparent 49% 76%,rgba(17,17,17,.08) 76% 77%,transparent 77%)}
+.home-city-map::after{border-color:rgba(184,134,75,.62);background:rgba(255,253,250,.28)}
+.home-block{background:rgba(255,253,250,.66);border-color:rgba(17,17,17,.08)}
+.home-score-card{background:var(--editorial-paper);box-shadow:none;border:1px solid var(--editorial-line)}
+.home-score-card div[style]{color:var(--editorial-muted)!important}
+.home-panel-foot{background:var(--editorial-line)}
+.home-panel-foot div{background:var(--editorial-paper);text-align:left;padding:14px 12px}
+.home-panel-foot strong{color:var(--editorial-ink)}
+.home-panel-foot span{color:var(--editorial-muted)}
+.stats-bar{margin-top:0;background:var(--editorial-bg);border-bottom:1px solid var(--editorial-line)}
+.stats-grid{border:0;border-left:1px solid var(--editorial-line);background:transparent}
+.stat-item{background:var(--editorial-paper);border-right:1px solid var(--editorial-line);padding:30px 26px;text-align:left}
+.stat-item+.stat-item{border-left:0}
+.stat-value{color:var(--editorial-ink);font-size:2.15rem}
+.stat-label{color:var(--editorial-muted);font-size:.76rem}
+.features-grid,.home-process-grid,.types-grid,.projects-grid,.tips-grid{gap:0;background:transparent;border:1px solid var(--editorial-line);border-right:0;border-bottom:0}
+.feature-card,.home-process-main,.home-process-side,.type-card,.project-card,.tip-card{border-right:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);background:var(--editorial-paper)}
+.feature-card{padding:28px 24px;min-height:230px}
+.feature-card:hover,.project-card:hover,.tip-card:hover{background:#f1eee7}
+.feature-card::after{left:24px;right:24px;top:auto;bottom:0;width:auto;height:2px;background:var(--editorial-ink);transform:scaleX(0);transform-origin:left}
+.feature-card:hover::after{transform:scaleX(1)}
+.feature-icon{filter:grayscale(1);opacity:.55;font-size:1.3rem}
+.feature-card h3,.project-body h3,.home-process-main h3,.home-process-side h3{color:var(--editorial-ink)}
+.feature-card p,.project-desc,.project-location{color:var(--editorial-muted)}
+.feature-link{color:var(--editorial-ink)}
+.home-process-step,.home-community-matrix div{background:transparent;border:1px solid var(--editorial-line)}
+.home-process-step span{color:var(--editorial-accent)}
+.home-community-matrix div{border-top:1px solid var(--editorial-line)}
+.project-img{height:260px;background:#111;color:rgba(255,255,255,.18);filter:grayscale(.2)}
+.project-img::after{background:linear-gradient(180deg,rgba(17,17,17,.08),rgba(17,17,17,.62))}
+.project-body{padding:24px}
+.project-tag,.project-badge{border-radius:0;background:rgba(255,253,250,.9);color:var(--editorial-ink);border:1px solid rgba(17,17,17,.12)}
+.badge-done{background:var(--editorial-ink);color:#fff}
+.project-actions{flex-wrap:wrap;border-top:1px solid var(--editorial-line);padding-top:18px}
+.page-hero,.detail-hero{padding:104px 0 48px;background:var(--editorial-paper);color:var(--editorial-ink);text-align:left;border-bottom:1px solid var(--editorial-line)}
+.page-hero::before,.detail-hero::before{background:linear-gradient(90deg,transparent calc(33.333% - 1px),rgba(17,17,17,.05) calc(33.333% - 1px),rgba(17,17,17,.05) 33.333%,transparent 33.333%,transparent calc(66.666% - 1px),rgba(17,17,17,.05) calc(66.666% - 1px),rgba(17,17,17,.05) 66.666%,transparent 66.666%)}
+.page-hero .container{max-width:1360px}
+.page-hero-title,.detail-title{color:var(--editorial-ink);font-size:clamp(2.2rem,4.8vw,4.8rem);line-height:1.02;letter-spacing:0}
+.page-hero-desc,.detail-location,.detail-back{color:var(--editorial-muted)}
+.filter-btn,.form-input,.form-select,.form-textarea,.api-config-panel,.detail-sidebar,.result-summary-card,.history-item,.upload-zone{border-radius:0;background:var(--editorial-paper);border-color:var(--editorial-line);box-shadow:none}
+.filter-btn.active{background:var(--editorial-ink);border-color:var(--editorial-ink)}
+.footer{background:#111;color:rgba(255,255,255,.54);padding:30px 0 18px}
+.footer-grid{border-top:1px solid rgba(255,255,255,.12);padding-top:24px}
+.footer-bottom{margin-top:18px;padding-top:14px}
+@media (max-width:1024px){.hero .container{grid-template-columns:1fr}.hero-visual{display:block}.section-header{grid-template-columns:1fr}.home-city-map{height:300px}}
+@media (max-width:768px){.hero-title{font-size:2.6rem}.stats-grid{grid-template-columns:1fr}.section{padding:56px 0}.project-img{height:220px}.page-hero,.detail-hero{padding:96px 0 38px}}
+.hero-title{font-size:clamp(2.7rem,5.35vw,5.15rem);line-height:1.04;font-weight:760;max-width:860px}
+.project-img{background:linear-gradient(135deg,#d8d4ca 0%,#ebe8e0 45%,#cfc8bc 100%);color:rgba(17,17,17,.28)}
+.project-img::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 18%,rgba(17,17,17,.08) 18% 18.6%,transparent 18.6% 44%,rgba(17,17,17,.08) 44% 44.6%,transparent 44.6% 72%,rgba(17,17,17,.08) 72% 72.6%,transparent 72.6%),linear-gradient(0deg,transparent 0 24%,rgba(17,17,17,.08) 24% 24.6%,transparent 24.6% 52%,rgba(17,17,17,.08) 52% 52.6%,transparent 52.6% 78%,rgba(17,17,17,.08) 78% 78.6%,transparent 78.6%);opacity:.75}
+.project-img>*{position:relative;z-index:1}
+@media (max-width:768px){.hero-title{font-size:2.25rem;line-height:1.08}.hero-desc{font-size:.94rem}.hero-actions{display:grid;grid-template-columns:1fr;gap:10px}.home-hero-panel{margin-top:10px}}
+
+/* Connexion-inspired immersive home */
+body.home-mode .header{background:transparent;border-bottom-color:rgba(255,255,255,.08)}
+body.home-mode .header.scrolled{background:rgba(1,18,18,.74);border-bottom-color:rgba(255,255,255,.12)}
+body.home-mode .logo,body.home-mode .nav-links a{color:rgba(255,255,255,.86)}
+body.home-mode .logo-icon{background:rgba(255,255,255,.94);color:#09201f}
+body.home-mode .nav-links a.active,body.home-mode .nav-links a:hover{color:#fff}
+body.home-mode .nav-links a::after{background:#d8fff2}
+.home-cinematic{min-height:100vh;padding:0;background:#001918;color:#fff;display:grid;place-items:center;position:relative;overflow:hidden;border-bottom:0}
+.home-cinematic::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(41,139,126,.42),transparent 34%),radial-gradient(circle at 50% 100%,rgba(158,74,50,.5),transparent 32%),linear-gradient(180deg,rgba(0,17,17,.34),rgba(0,9,10,.96));z-index:2}
+.home-cinematic::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:120px 120px;opacity:.18;z-index:3;mix-blend-mode:screen}
+.home-cinematic-scene{position:absolute;inset:0;overflow:hidden;background:#001918}
+.arch-layer{position:absolute;inset:auto;filter:saturate(.85);opacity:.95}
+.arch-layer-back{left:8%;right:8%;bottom:24%;height:42%;background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),repeating-linear-gradient(90deg,transparent 0 8%,rgba(255,255,255,.09) 8% 8.6%,transparent 8.6% 18%);clip-path:polygon(4% 100%,12% 18%,20% 18%,25% 100%,34% 100%,42% 2%,53% 2%,59% 100%,69% 100%,76% 24%,85% 24%,94% 100%)}
+.arch-layer-mid{left:16%;right:16%;bottom:12%;height:52%;background:linear-gradient(180deg,rgba(230,255,245,.16),rgba(230,255,245,.025));clip-path:polygon(0 100%,9% 34%,21% 34%,28% 100%,40% 100%,47% 8%,58% 8%,66% 100%,78% 100%,84% 30%,96% 30%,100% 100%)}
+.arch-layer-front{left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.22));clip-path:polygon(0 100%,0 54%,12% 54%,18% 100%,28% 100%,33% 34%,44% 34%,50% 100%,61% 100%,66% 22%,78% 22%,84% 100%,100% 100%)}
+.arch-window-grid{position:absolute;left:13%;right:13%;top:13%;height:54%;background:repeating-linear-gradient(90deg,transparent 0 84px,rgba(255,255,255,.13) 84px 87px,transparent 87px 172px),repeating-linear-gradient(0deg,transparent 0 70px,rgba(255,255,255,.09) 70px 72px,transparent 72px 142px);transform:perspective(900px) rotateX(58deg) scaleX(1.25);transform-origin:center bottom;opacity:.28}
+.arch-light-beam{position:absolute;left:50%;top:5%;width:42vw;height:82vh;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(202,255,240,.18),rgba(202,255,240,.04) 38%,transparent 68%);filter:blur(6px);opacity:.9}
+.arch-floor{position:absolute;left:-10%;right:-10%;bottom:-14%;height:44%;background:radial-gradient(ellipse at center,rgba(255,141,101,.24),rgba(3,31,30,.1) 42%,transparent 70%);transform:perspective(800px) rotateX(62deg);transform-origin:center top}
+.home-cinematic-meta{position:absolute;left:42px;top:96px;z-index:5;display:flex;align-items:center;gap:14px;color:#e9fff9;font-size:.84rem;font-weight:700;letter-spacing:.3px}
+.home-cinematic-meta span{width:34px;height:34px;border:1px solid rgba(216,255,242,.55);border-radius:50%;display:grid;place-items:center}
+.home-cinematic-meta i{width:46px;height:1px;background:rgba(216,255,242,.48)}
+.home-cinematic-center{position:relative;z-index:5;width:min(860px,calc(100% - 48px));text-align:center;margin-top:28px}
+.home-cinematic .hero-tag{justify-content:center;color:rgba(216,255,242,.82);margin-bottom:28px}
+.home-cinematic .hero-tag::before{background:rgba(216,255,242,.58)}
+.home-cinematic .hero-title{color:#fff;font-size:clamp(2.8rem,5.25vw,5.35rem);font-weight:760;line-height:1.04;text-shadow:0 18px 80px rgba(0,0,0,.45);margin-left:auto;margin-right:auto;max-width:1120px}
+.home-cinematic .hero-desc{color:rgba(255,255,255,.78);font-size:1.04rem;line-height:2;max-width:760px;margin:28px auto 0}
+.home-cinematic-actions{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);z-index:6}
+.story-advance{display:inline-flex;align-items:center;gap:14px;color:rgba(255,255,255,.82);font-size:.86rem;font-weight:700;letter-spacing:.6px;padding:12px 18px;border:1px solid rgba(255,255,255,.14);background:rgba(0,20,20,.22);backdrop-filter:blur(10px)}
+.story-advance span{font-size:1.2rem;transition:transform .2s ease}
+.story-advance:hover{color:#fff;border-color:rgba(216,255,242,.42)}
+.story-advance:hover span{transform:translateX(6px)}
+.home-cinematic-status{position:absolute;right:34px;bottom:34px;z-index:6;display:flex;gap:12px;color:rgba(255,255,255,.58);font-size:.76rem}
+.home-cinematic-status span{padding:7px 10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,20,20,.24);backdrop-filter:blur(8px)}
+.home-cinematic+.stats-bar{margin-top:0}
+@media (max-width:768px){body.home-mode .nav-links.open{background:rgba(1,18,18,.96)}.home-cinematic{min-height:100svh;padding:96px 20px 120px;place-items:center}.home-cinematic-meta{left:20px;top:86px;font-size:.72rem}.home-cinematic-meta i{width:28px}.home-cinematic-center{width:100%;margin-top:20px}.home-cinematic .hero-title{font-size:2.5rem;line-height:1.1}.home-cinematic .hero-desc{font-size:.9rem;line-height:1.9}.home-cinematic-actions{bottom:54px}.home-cinematic-status{display:none}.arch-window-grid{left:-10%;right:-10%;top:18%;opacity:.2}.arch-layer-back{left:-20%;right:-20%}.arch-layer-mid{left:-28%;right:-28%}}
+body.home-mode{overflow:hidden}
+body.home-mode #page-home{height:100vh;overflow:hidden;position:relative;background:#001918}
+body.home-mode #page-home>.stats-bar,body.home-mode #page-home>.section,body.home-mode #page-home>.cta-section{display:none}
+.home-cinematic,.home-capability-stage{position:absolute;inset:0;min-height:100vh;transition:opacity .8s ease,transform .8s cubic-bezier(.2,0,.2,1);will-change:opacity,transform}
+.home-capability-stage{background:#001918;color:#fff;overflow:hidden;display:grid;place-items:center;opacity:0;pointer-events:none;transform:translateY(24px);z-index:4}
+body.home-step-2 .home-cinematic{opacity:0;pointer-events:none;transform:translateY(-24px)}
+body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:translateY(0)}
+.home-capability-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(31,122,113,.5),transparent 35%),radial-gradient(circle at 52% 100%,rgba(143,61,43,.58),transparent 32%),linear-gradient(180deg,rgba(0,16,17,.2),rgba(0,6,8,.96));z-index:2}
+.home-capability-stage::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:3}
+.capability-photo-field{position:absolute;inset:-8% -22%;z-index:1;perspective:1000px;overflow:hidden;opacity:.88}
+.photo-row{position:absolute;left:0;right:0;overflow:visible;transform-style:preserve-3d}
+.photo-track{display:flex;align-items:center;gap:28px;width:max-content;will-change:transform;animation:photo-track-scroll var(--scroll-speed,22s) linear infinite}
+.photo-row i{display:block;flex:0 0 auto;width:190px;height:116px;border:1px solid rgba(255,255,255,.15);background-color:#c9c3b6;background-image:linear-gradient(135deg,rgba(255,255,255,.48),rgba(17,17,17,.22)),repeating-linear-gradient(90deg,transparent 0 34px,rgba(17,17,17,.24) 34px 36px,transparent 36px 68px),repeating-linear-gradient(0deg,transparent 0 28px,rgba(17,17,17,.18) 28px 30px,transparent 30px 58px);box-shadow:0 18px 52px rgba(0,0,0,.46);opacity:.64;filter:saturate(.62) contrast(1.1)}
+.photo-row i:nth-child(9n+2),.photo-row i:nth-child(9n+6){width:228px;height:132px;background-image:linear-gradient(145deg,rgba(255,255,255,.38),rgba(0,0,0,.32)),linear-gradient(90deg,#77786f 0 34%,#d8d2c7 34% 64%,#545955 64%)}
+.photo-row i:nth-child(9n+3),.photo-row i:nth-child(9n+8){width:152px;height:92px;background-image:linear-gradient(135deg,rgba(255,255,255,.32),rgba(0,0,0,.28)),repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 8px,rgba(0,0,0,.16) 8px 12px)}
+.photo-row i:nth-child(9n+5){width:172px;height:190px}
+.row-a{top:-1%;transform:translateZ(-150px) rotateX(6deg);--scroll-speed:22s}.row-b{top:25%;transform:translateZ(-35px) rotateX(3deg);--scroll-speed:18s}.row-c{top:48%;transform:translateZ(-70px) rotateX(2deg);--scroll-speed:20s}.row-d{top:73%;transform:translateZ(-165px) rotateX(8deg);--scroll-speed:24s}
+.row-b .photo-track,.row-d .photo-track{animation-name:photo-track-scroll-reverse}
+.row-b i,.row-c i{opacity:.58}.row-d i{opacity:.38}
+@keyframes photo-track-scroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(-50% - 14px),0,0)}}
+@keyframes photo-track-scroll-reverse{from{transform:translate3d(calc(-50% - 14px),0,0)}to{transform:translate3d(0,0,0)}}
+.home-capability-meta{position:absolute;left:42px;top:96px;z-index:5;display:flex;align-items:center;gap:14px;color:#e9fff9;font-size:.84rem;font-weight:700}
+.home-capability-meta span{width:34px;height:34px;border:1px solid rgba(216,255,242,.55);border-radius:50%;display:grid;place-items:center}.home-capability-meta i{width:46px;height:1px;background:rgba(216,255,242,.48)}
+.home-capability-content{position:relative;z-index:5;width:min(1080px,calc(100% - 64px));text-align:center}
+.home-capability-content .hero-tag{justify-content:center;color:rgba(216,255,242,.82);margin-bottom:20px}
+.home-capability-content h2{font-size:clamp(2.4rem,5.6vw,5.4rem);line-height:1.06;color:#fff;font-weight:760;margin:0 0 34px;text-shadow:0 18px 70px rgba(0,0,0,.5)}
+.capability-grid-cinematic{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;text-align:left}
+.capability-grid-cinematic article{min-height:210px;padding:22px;border:1px solid rgba(255,255,255,.16);background:rgba(0,22,22,.42);backdrop-filter:blur(10px)}
+.capability-grid-cinematic span{display:block;color:rgba(216,255,242,.7);font-size:.76rem;font-weight:800;margin-bottom:18px}.capability-grid-cinematic h3{font-size:1.35rem;color:#fff;margin-bottom:12px}.capability-grid-cinematic p{font-size:.84rem;color:rgba(255,255,255,.7);line-height:1.8}
+.home-capability-actions{display:flex;gap:12px;justify-content:center;margin-top:28px}.story-advance.ghost{background:rgba(0,20,20,.12);color:rgba(255,255,255,.64)}
+@media (max-width:900px){.capability-grid-cinematic{grid-template-columns:repeat(2,1fr)}.capability-grid-cinematic article{min-height:170px}.cap-photo{width:130px;height:82px}.home-capability-content h2{font-size:2.55rem}}
+@media (max-width:520px){.home-capability-stage{padding:86px 20px 24px;place-items:center;overflow:hidden}.home-capability-meta{left:20px;top:84px;font-size:.72rem}.home-capability-meta i{width:28px}.home-capability-content{width:100%;margin-top:58px}.home-capability-content .hero-tag{margin-bottom:10px;font-size:.68rem}.home-capability-content h2{font-size:1.72rem;line-height:1.12;margin-bottom:14px}.capability-grid-cinematic{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none;overflow:visible;padding-right:0}.capability-grid-cinematic article{min-height:148px;padding:12px}.capability-grid-cinematic span{font-size:.66rem;margin-bottom:8px}.capability-grid-cinematic h3{font-size:1.04rem;margin-bottom:7px}.capability-grid-cinematic p{font-size:.68rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.home-capability-actions{margin-top:14px;display:flex}.home-capability-actions .story-advance{padding:9px 12px;font-size:.76rem}.cap-photo{opacity:.34}.p2,.p4,.p9,.p13{display:none}}
 </style>
 </head>
 <body>
@@ -360,27 +518,40 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 
 <!-- PAGE: HOME -->
 <div class="page active" id="page-home">
-<section class="hero"><div class="container">
-<div class="hero-content">
+<section class="hero home-cinematic"><div class="home-cinematic-scene" aria-hidden="true">
+<div class="arch-layer arch-layer-back"></div><div class="arch-layer arch-layer-mid"></div><div class="arch-layer arch-layer-front"></div>
+<div class="arch-window-grid"></div><div class="arch-light-beam"></div><div class="arch-floor"></div>
+</div>
+<div class="home-cinematic-meta"><span>01</span><i></i><strong>城市更新体检工作台</strong></div>
+<div class="home-cinematic-center">
 <div class="hero-tag">城市更新体检 · 完整社区评估 · AI巡检</div>
 <h1 class="hero-title">让城市更新<br>有依据、有尺度、有温度</h1>
-<p class="hero-desc">智更 Smart Renew 面向城市更新、老旧小区改造与完整社区建设，融合现场巡检、设施覆盖、项目台账和诊断报告，形成从体检到行动的数字化工作台。</p>
-<div class="hero-actions">
-<a href="#new-project" class="btn btn-white btn-lg" data-nav="new-project">新建体检项目</a>
-<a href="#projects" class="btn btn-outline btn-lg" data-nav="projects" style="color:white;border-color:rgba(255,255,255,.25);">查看项目汇总</a>
-</div></div>
-<div class="hero-visual">
-<div class="home-hero-panel">
-<div class="home-panel-head"><span>城市更新项目工作台</span><span class="home-panel-status">真实数据驱动</span></div>
-<div class="home-city-map">
-<i class="home-block b1"></i><i class="home-block b2"></i><i class="home-block b3"></i><i class="home-block b4"></i>
-<i class="home-poi blue"></i><i class="home-poi orange"></i><i class="home-poi green"></i><i class="home-poi purple"></i>
-<div class="home-score-card"><div class="home-score-top"><span>数据展示原则</span><strong>可追溯</strong></div><div style="font-size:.86rem;line-height:1.75;color:rgba(255,255,255,.76);margin-top:14px;">项目档案、人工复核问题和已保存的空间分析结果，统一归集到项目中枢。</div></div>
+<p class="hero-desc">从项目建档、住区隐患识别，到社区/街区设施分析与体检报告生成，所有数据归集到同一个项目中枢，形成可复核、可追踪、可行动的更新依据。</p>
 </div>
-<div class="home-panel-foot"><div><strong>4类</strong><span>完整社区设施</span></div><div><strong>15min</strong><span>生活圈</span></div><div><strong>AI</strong><span>隐患识别</span></div><div><strong>闭环</strong><span>项目台账</span></div></div>
+<div class="home-cinematic-actions"><button class="story-advance" type="button" id="homeForwardBtn">前进 <span>→</span></button></div>
+<div class="home-cinematic-status"><span>项目档案</span><span>AI复核</span><span>空间分析</span><span>体检报告</span></div>
+</section>
+
+<section class="home-capability-stage">
+<div class="capability-photo-field" aria-hidden="true">
+<div class="photo-row row-a"><div class="photo-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<div class="photo-row row-b"><div class="photo-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<div class="photo-row row-c"><div class="photo-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<div class="photo-row row-d"><div class="photo-track"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 </div>
+<div class="home-capability-meta"><span>02</span><i></i><strong>核心能力</strong></div>
+<div class="home-capability-content">
+<div class="hero-tag">体检 · 诊断 · 更新 · 运营</div>
+<h2>从城市问题识别<br>到更新行动闭环</h2>
+<div class="capability-grid-cinematic">
+<article><span>01</span><h3>体检</h3><p>建立项目档案，汇集住区、社区、街区与城市维度的基础信息和现场数据。</p></article>
+<article><span>02</span><h3>诊断</h3><p>通过 AI 图像识别、POI 清洗和指标核验，形成可复核的问题清单。</p></article>
+<article><span>03</span><h3>更新</h3><p>围绕短板设施、安全隐患和公共空间品质，生成项目级更新建议。</p></article>
+<article><span>04</span><h3>运营</h3><p>沉淀项目台账、复核记录和体检报告，持续跟踪整改与后续维护。</p></article>
 </div>
-</div></section>
+<div class="home-capability-actions"><a href="#new-project" class="story-advance" data-nav="new-project">新建项目 <span>→</span></a><button class="story-advance ghost" type="button" id="homeBackBtn">返回 <span>↩</span></button></div>
+</div>
+</section>
 <section class="stats-bar"><div class="container"><div class="stats-grid">
 <div class="stat-item"><div class="stat-value">4类</div><div class="stat-label">完整社区设施体系</div></div>
 <div class="stat-item"><div class="stat-value">1-10km</div><div class="stat-label">社区服务覆盖分析</div></div>
@@ -536,11 +707,16 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 <div class="section-header" style="text-align:left;margin-bottom:24px;">
 <div class="section-tag">API 配置</div>
 <h2 class="section-title" style="font-size:1.4rem;margin-bottom:8px;">千问模型密钥</h2>
-<p class="section-desc" style="max-width:none;">在 <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" style="color:var(--spice-500);text-decoration:underline;">阿里云 DashScope</a> 获取 API Key，保存后密钥只载入本机代理进程内存。</p>
+<p class="section-desc" style="max-width:none;">在 <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" style="color:var(--spice-500);text-decoration:underline;">阿里云 DashScope</a> 获取 API Key。保存后由服务端加密保存，前端不会展示明文密钥。</p>
+</div>
+<div class="form-grid" style="margin-bottom:14px;">
+<div class="form-group"><label>已保存用户</label><select class="form-select" id="apiKeyUserSelect"><option value="">新用户 / 选择用户</option></select></div>
+<div class="form-group"><label>用户名</label><input type="text" class="form-input" id="apiKeyUsername" placeholder="如：项目负责人A"></div>
+<div class="form-group"><label>密码</label><input type="password" class="form-input" id="apiKeyPassword" placeholder="输入该用户密码"></div>
 </div>
 <div class="api-key-row">
-<div class="form-group"><label>API Key</label><input type="password" class="form-input" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"></div>
-<button class="btn btn-primary" id="saveApiKeyBtn">保存密钥</button>
+<div class="form-group"><label>API Key</label><input type="password" class="form-input" id="apiKeyInput" placeholder="首次保存或更新时填写；仅启用已有用户可留空"></div>
+<button class="btn btn-primary" id="saveApiKeyBtn">保存/启用</button>
 <button class="btn btn-outline btn-sm" id="toggleApiKeyBtn" style="white-space:nowrap;">显示</button>
 </div>
 <div id="apiKeyStatus" class="api-key-status"></div>
@@ -647,11 +823,16 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 <div class="section-header" style="text-align:left;margin-bottom:24px;">
 <div class="section-tag">模型密钥</div>
 <h2 class="section-title" style="font-size:1.4rem;margin-bottom:8px;">千问 API Key</h2>
-<p class="section-desc" style="max-width:none;">在 <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" style="color:var(--spice-500);text-decoration:underline;">阿里云 DashScope</a> 获取 API Key。保存后仅载入本机代理进程内存，服务重启后需重新配置。</p>
+<p class="section-desc" style="max-width:none;">在 <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" style="color:var(--spice-500);text-decoration:underline;">阿里云 DashScope</a> 获取 API Key。保存后由 CloudBase 云函数加密保存，后续识别统一走服务端代理。</p>
+</div>
+<div class="form-grid" style="margin-bottom:14px;">
+<div class="form-group"><label>已保存用户</label><select class="form-select" id="cfgApiKeyUserSelect"><option value="">新用户 / 选择用户</option></select></div>
+<div class="form-group"><label>用户名</label><input type="text" class="form-input" id="cfgApiKeyUsername" placeholder="如：项目负责人A"></div>
+<div class="form-group"><label>密码</label><input type="password" class="form-input" id="cfgApiKeyPassword" placeholder="输入该用户密码"></div>
 </div>
 <div class="api-key-row">
-<div class="form-group"><label>API Key</label><input type="password" class="form-input" id="cfgApiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"></div>
-<button class="btn btn-primary" id="cfgSaveApiKeyBtn">保存密钥</button>
+<div class="form-group"><label>API Key</label><input type="password" class="form-input" id="cfgApiKeyInput" placeholder="首次保存或更新时填写；仅启用已有用户可留空"></div>
+<button class="btn btn-primary" id="cfgSaveApiKeyBtn">保存/启用</button>
 <button class="btn btn-outline btn-sm" id="cfgToggleApiKeyBtn" style="white-space:nowrap;">显示</button>
 </div>
 <div id="cfgApiKeyStatus" class="api-key-status" style="margin-top:8px;"></div>
@@ -724,7 +905,7 @@ function renderFeaturedProjects(){}
 function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var raw=hash.replace('#',''),page=raw.includes('/')?'detail':raw;showPage(page);window.location.hash=hash;window.scrollTo(0,0);}
 function showPage(page){
 if((page==='analysis'||page==='diagnostic')&&!getActiveProjectId()){showToast('请先在项目汇总中选择当前项目','info');page='projects';if(window.location.hash!=='#projects')history.replaceState(null,'','#projects');}
-currentPage=page;var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
+currentPage=page;document.body.classList.toggle('home-mode',page==='home');if(page!=='home')document.body.classList.remove('home-step-2');var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
 var target=document.getElementById('page-'+page);if(target)target.classList.add('active');
 var navs=document.querySelectorAll('.nav-links a');for(var j=0;j<navs.length;j++)navs[j].classList.remove('active');
 var navActive=document.querySelector('[data-nav="'+page+'"]');if(navActive)navActive.classList.add('active');
@@ -947,12 +1128,15 @@ document.addEventListener('click',function(e){var link=e.target.closest('[data-n
 var typeFilters=document.getElementById('typeFilters');if(typeFilters){typeFilters.addEventListener('click',function(e){if(!e.target.classList.contains('filter-btn'))return;var btns=this.querySelectorAll('.filter-btn');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');e.target.classList.add('active');currentFilters.type=e.target.dataset.filter;renderProjectsPage();});}
 var statusFilters=document.getElementById('statusFilters');if(statusFilters){statusFilters.addEventListener('click',function(e){if(!e.target.classList.contains('filter-btn'))return;var btns=this.querySelectorAll('.filter-btn');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');e.target.classList.add('active');currentFilters.status=e.target.dataset.filter;renderProjectsPage();});}
 document.getElementById('mobileMenuBtn').addEventListener('click',function(){document.getElementById('navLinks').classList.toggle('open');});
+var homeForwardBtn=document.getElementById('homeForwardBtn');if(homeForwardBtn){homeForwardBtn.addEventListener('click',function(){document.body.classList.add('home-step-2');});}
+var homeBackBtn=document.getElementById('homeBackBtn');if(homeBackBtn){homeBackBtn.addEventListener('click',function(){document.body.classList.remove('home-step-2');});}
 window.addEventListener('hashchange',function(){var hash=window.location.hash||'#home',page=hash.replace('#','').split('/')[0];showPage(hash.includes('/')?'detail':(page||'home'));});
 window.addEventListener('scroll',function(){var h=document.getElementById('header');if(window.scrollY>50)h.classList.add('scrolled');else h.classList.remove('scrolled');});
 
 /* ===== AI ANALYSIS ENGINE ===== */
 var API_BASE='https://dashscope.aliyuncs.com/compatible-mode/v1';
 var AI_PROXY_ORIGIN='http://127.0.0.1:4173';
+var CLOUDBASE_API_ORIGIN='https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com';
 var analysisUploadedFiles=[];
 var aiServiceMode='checking';
 var proxyKeyConfigured=false;
@@ -965,24 +1149,38 @@ function showToast(msg,type){type=type||'info';var t=document.createElement('div
 function getApiKey(){return localStorage.getItem('smart_renew_api_key')||'';}
 function setApiKey(key){localStorage.setItem('smart_renew_api_key',key);}
 function clearApiKey(){localStorage.removeItem('smart_renew_api_key');}
+function getKeySessionToken(){return localStorage.getItem('smart_renew_key_session_token')||'';}
+function getSelectedKeyUser(){return localStorage.getItem('smart_renew_key_user')||'';}
+function setKeySession(username,token,expiresAt){if(username)localStorage.setItem('smart_renew_key_user',username);if(token)localStorage.setItem('smart_renew_key_session_token',token);if(expiresAt)localStorage.setItem('smart_renew_key_session_expires',expiresAt);}
+function clearKeySession(){localStorage.removeItem('smart_renew_key_session_token');localStorage.removeItem('smart_renew_key_session_expires');}
+function getApiKeyForm(scope){var p=scope==='cfg'?'cfgApiKey':'apiKey';return{username:(document.getElementById(p+'Username')||{}).value?.trim()||'',password:(document.getElementById(p+'Password')||{}).value||'',apiKey:(document.getElementById(p+'Input')||{}).value?.trim()||''};}
+function syncApiKeyUserInputs(username){var ids=['apiKeyUsername','cfgApiKeyUsername'];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&username)el.value=username;}var sels=['apiKeyUserSelect','cfgApiKeyUserSelect'];for(var j=0;j<sels.length;j++){var s=document.getElementById(sels[j]);if(s)s.value=username||'';}}
+function populateApiKeyUsers(items){var ids=['apiKeyUserSelect','cfgApiKeyUserSelect'],selected=getSelectedKeyUser();for(var i=0;i<ids.length;i++){var sel=document.getElementById(ids[i]);if(!sel)continue;var html='<option value="">新用户 / 选择用户</option>';for(var j=0;j<(items||[]).length;j++){html+='<option value="'+escapeHtml(items[j].username)+'">'+escapeHtml(items[j].username)+'</option>';}sel.innerHTML=html;sel.value=selected||'';}syncApiKeyUserInputs(selected);}
+async function loadApiKeyUsers(){try{var resp=await fetch(getProxyApiUrl('/api/config/users'),{cache:'no-store'});var data=await resp.json().catch(function(){return{};});if(resp.ok)populateApiKeyUsers(data.items||[]);}catch(e){}}
 
-function getProxyApiUrl(path){return location.protocol==='file:'?AI_PROXY_ORIGIN+path:path;}
-async function configureProxyKey(key,silent){
-try{var resp=await fetch(getProxyApiUrl('/api/config/key'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(key?{apiKey:key}:{clear:true})});var data=await resp.json().catch(function(){return{};});if(!resp.ok)throw new Error(data.message||'服务端密钥配置失败');proxyKeyConfigured=!!data.ready;clearApiKey();updateApiKeyUI();updateCfgApiKeyStatus();if(!silent)showToast(key?'密钥已安全载入本地代理':'代理密钥已清除',key?'success':'info');return true;}catch(e){if(!silent)showToast('密钥配置失败：'+e.message,'error');return false;}
+function getProxyApiUrl(path){
+if(location.protocol==='file:')return AI_PROXY_ORIGIN+path;
+if(location.hostname.indexOf('tcloudbaseapp.com')>-1)return CLOUDBASE_API_ORIGIN+path;
+return path;
+}
+async function configureProxyKey(key,silent,scope){
+try{var form=getApiKeyForm(scope),username=form.username,password=form.password,nextKey=key||form.apiKey;if(!username||!password){if(!silent)showToast('请先填写用户名和密码','error');return false;}var body=nextKey?{username:username,password:password,apiKey:nextKey}:{username:username,password:password,select:true};var resp=await fetch(getProxyApiUrl('/api/config/key'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});var data=await resp.json().catch(function(){return{};});if(!resp.ok)throw new Error(data.message||'服务端密钥配置失败');proxyKeyConfigured=!!data.ready;clearApiKey();if(data.token)setKeySession(data.username||username,data.token,data.expiresAt);syncApiKeyUserInputs(data.username||username);await loadApiKeyUsers();updateApiKeyUI();updateCfgApiKeyStatus();if(!silent)showToast(nextKey?'该用户密钥已加密保存并启用':'已启用用户 '+(data.username||username),'success');return true;}catch(e){if(!silent)showToast('密钥配置失败：'+e.message,'error');return false;}
 }
 
 function updateApiKeyUI(){
-var key=getApiKey(),input=document.getElementById('apiKeyInput'),status=document.getElementById('apiKeyStatus');
+var key=getApiKey(),input=document.getElementById('apiKeyInput'),status=document.getElementById('apiKeyStatus'),user=getSelectedKeyUser();
 if(input)input.value=key;
+syncApiKeyUserInputs(user);
 if(status){
-if(proxyKeyConfigured){status.innerHTML='<span class="status-ok">✅ 密钥已安全载入本机代理</span>';}
+if(proxyKeyConfigured&&user){status.innerHTML='<span class="status-ok">✅ 已启用用户：'+escapeHtml(user)+'，密钥由服务端加密托管</span>';}
+else if(proxyKeyConfigured){status.innerHTML='<span class="status-ok">✅ 密钥已加密保存到服务端</span>';}
 else if(key){status.innerHTML='<span class="status-ok">✅ 浏览器密钥待迁移</span>';}
-else{status.innerHTML='<span class="status-missing">⚠️ 尚未配置 API Key，请先填写密钥</span>';}
+else{status.innerHTML='<span class="status-missing">⚠️ 请选择用户并输入密码；首次使用需同时填写 API Key</span>';}
 }
 }
 
 function initAiAnalysisPage(){
-updateApiKeyUI();renderActiveProjectPanel();initAnalysisTabs();initUploadZone();initAnalysisButtons();renderHistoryList();updateUploadGuidance();checkAiService();setAnalysisWorkflowStep(1);
+updateApiKeyUI();loadApiKeyUsers();renderActiveProjectPanel();initAnalysisTabs();initUploadZone();initAnalysisButtons();renderHistoryList();updateUploadGuidance();checkAiService();setAnalysisWorkflowStep(1);
 }
 
 function updateUploadGuidance(){var hint=document.getElementById('analysisUploadHint'),maxImages=getConfigMaxImages();if(hint)hint.textContent='建议至少上传 '+Math.min(3,maxImages)+' 张清晰现场照片，当前单次上限 '+maxImages+' 张，单张不超过 10MB';}
@@ -991,14 +1189,15 @@ function setAnalysisWorkflowStep(step){var nodes=document.querySelectorAll('#ana
 
 async function checkAiService(showMessage){
 var el=document.getElementById('aiConnectionStatus');if(!el)return false;
-var healthUrl=location.protocol==='file:'?AI_PROXY_ORIGIN+'/api/health':'/api/health';
-try{var resp=await fetch(healthUrl,{cache:'no-store'});var data=await resp.json();proxyKeyConfigured=!!data.ready;if(!data.ready&&getApiKey()){var migrated=await configureProxyKey(getApiKey(),true);if(migrated){data.ready=true;data.model=getConfigModel();}}if(data.ready){proxyKeyConfigured=true;aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent='视觉模型安全代理已连接';el.querySelector('.ai-connection-meta').textContent='密钥已载入本机服务内存 · '+(data.model||getConfigModel());if(showMessage)showToast('模型服务连接正常','success');return true;}if(location.protocol!=='file:'||!getApiKey()){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='视觉模型代理缺少服务端密钥';el.querySelector('.ai-connection-meta').textContent='请在 AI 后台配置页保存密钥';if(showMessage)showToast('模型代理尚未配置密钥','error');return false;}}catch(e){}
+var healthUrl=getProxyApiUrl('/api/config/session/health');
+try{var resp=await fetch(healthUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keySessionToken:getKeySessionToken()})});var data=await resp.json();proxyKeyConfigured=!!data.ready;if(!data.ready&&getApiKey()){var migrated=await configureProxyKey(getApiKey(),true,'main');if(migrated){data.ready=true;data.model=getConfigModel();data.username=getSelectedKeyUser();}}if(data.ready){proxyKeyConfigured=true;if(data.username)setKeySession(data.username,getKeySessionToken(),localStorage.getItem('smart_renew_key_session_expires')||'');aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent='视觉模型安全代理已连接';el.querySelector('.ai-connection-meta').textContent=(data.username?'当前用户：'+data.username+' · ':'')+'密钥已加密保存到服务端 · '+(data.model||getConfigModel());if(showMessage)showToast('模型服务连接正常','success');return true;}if(location.protocol!=='file:'||!getApiKey()){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='尚未启用用户密钥';el.querySelector('.ai-connection-meta').textContent='请选择用户名并输入密码；首次使用需同时保存 API Key';if(showMessage)showToast('请先启用用户密钥','error');return false;}}catch(e){}
 if(location.protocol==='file:'){aiServiceMode='direct';var hasKey=!!getApiKey();el.className='ai-connection '+(hasKey?'ready':'error');el.querySelector('.ai-connection-title').textContent=hasKey?'兼容模式：浏览器直连千问':'视觉模型服务不可用';el.querySelector('.ai-connection-meta').textContent=hasKey?'本地代理未配置，暂时使用浏览器密钥':'请启动安全代理并配置服务端密钥';if(showMessage)showToast(hasKey?'当前为浏览器兼容模式':'尚未配置模型服务',hasKey?'info':'error');return hasKey;}
 aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='视觉模型服务不可用';el.querySelector('.ai-connection-meta').textContent='请确认本地服务已正常启动';if(showMessage)showToast('无法连接视觉模型服务','error');return false;
 }
 
 function initAiConfigPage(){
 var key=getApiKey();var inp=document.getElementById('cfgApiKeyInput');if(inp)inp.value=key;
+syncApiKeyUserInputs(getSelectedKeyUser());loadApiKeyUsers();
 updateCfgApiKeyStatus();
 checkAiService().then(updateCfgApiKeyStatus);
 var model=getConfigModel();var sel=document.getElementById('cfgModelSelect');if(sel)sel.value=model;
@@ -1009,12 +1208,12 @@ var mi=document.getElementById('cfgMaxImages');if(mi)mi.value=getConfigMaxImages
 }
 
 function updateCfgApiKeyStatus(){
-var key=getApiKey(),status=document.getElementById('cfgApiKeyStatus');
-if(status){status.innerHTML=proxyKeyConfigured?'<span class="status-ok">✅ 密钥已安全载入本机代理</span>':(key?'<span class="status-ok">✅ 浏览器密钥待迁移</span>':'<span class="status-missing">⚠️ 尚未配置 API Key</span>');}
+var key=getApiKey(),status=document.getElementById('cfgApiKeyStatus'),user=getSelectedKeyUser();
+if(status){status.innerHTML=proxyKeyConfigured&&user?'<span class="status-ok">✅ 已启用用户：'+escapeHtml(user)+'，该用户 Key 独立加密保存</span>':(proxyKeyConfigured?'<span class="status-ok">✅ 密钥已加密保存到服务端</span>':(key?'<span class="status-ok">✅ 浏览器密钥待迁移</span>':'<span class="status-missing">⚠️ 请选择用户并输入密码；首次使用需同时填写 API Key</span>'));}
 }
 
 var cfgSaveApiKeyBtn=document.getElementById('cfgSaveApiKeyBtn');
-if(cfgSaveApiKeyBtn){cfgSaveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('cfgApiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false);document.getElementById('cfgApiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
+if(cfgSaveApiKeyBtn){cfgSaveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('cfgApiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false,'cfg');document.getElementById('cfgApiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
 var cfgToggleApiKeyBtn=document.getElementById('cfgToggleApiKeyBtn');
 if(cfgToggleApiKeyBtn){cfgToggleApiKeyBtn.addEventListener('click',function(){var inp=document.getElementById('cfgApiKeyInput');if(inp.type==='password'){inp.type='text';this.textContent='隐藏';}else{inp.type='password';this.textContent='显示';}});}
 var cfgSaveModelBtn=document.getElementById('cfgSaveModelBtn');
@@ -1038,7 +1237,9 @@ if(tabName==='history')renderHistoryList();
 }
 
 var saveApiKeyBtn=document.getElementById('saveApiKeyBtn');
-if(saveApiKeyBtn){saveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('apiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false);document.getElementById('apiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
+if(saveApiKeyBtn){saveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('apiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false,'main');document.getElementById('apiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
+
+['apiKeyUserSelect','cfgApiKeyUserSelect'].forEach(function(id){var sel=document.getElementById(id);if(sel){sel.addEventListener('change',function(){syncApiKeyUserInputs(this.value);clearKeySession();proxyKeyConfigured=false;updateApiKeyUI();updateCfgApiKeyStatus();});}});
 
 var _uploadZoneInited=false;
 
@@ -1191,7 +1392,7 @@ function normalizeAnalysisResult(result,imageCount){var raw=result&&Array.isArra
 async function callQwenAPI(imagesBase64,prompt){
 var model=getConfigModel(),temperature=getConfigTemperature(),maxTokens=getConfigMaxTokens(),topP=getConfigTopP();
 if(aiServiceMode==='proxy'){
-var proxyUrl=location.protocol==='file:'?AI_PROXY_ORIGIN+'/api/vision/analyze':'/api/vision/analyze';var proxyResp=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imagesBase64,prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP})});
+var proxyUrl=getProxyApiUrl('/api/vision/analyze');var proxyResp=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imagesBase64,prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP,keySessionToken:getKeySessionToken()})});
 if(!proxyResp.ok){var proxyError=await proxyResp.json().catch(function(){return{};});throw new Error(proxyError.message||('模型代理请求失败: HTTP '+proxyResp.status));}
 return await proxyResp.json();
 }
@@ -1302,8 +1503,7 @@ function getActiveProjectId(){var id=localStorage.getItem('smart_renew_active_pr
 function setActiveProjectId(id){localStorage.setItem('smart_renew_active_project_id',String(id));}
 
 async function saveProject(project){
-await ensureServerStorage();
-try{await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
+try{await ensureServerStorage();await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
 await saveProjectLocal(project);return project;
 }
 
@@ -1321,12 +1521,11 @@ if(!name){showToast('请输入项目名称','error');document.getElementById('pr
 if(!area){showToast('请输入项目位置','error');document.getElementById('projectCreateArea').focus();return;}
 var now=new Date().toISOString();
 var project={id:Date.now(),createdAt:now,updatedAt:now,name:name,area:area,type:document.getElementById('projectCreateType').value,scope:document.getElementById('projectCreateScope').value.trim(),desc:document.getElementById('projectCreateDesc').value.trim(),status:'created',analysisIds:[],communityStatus:'pending',reportStatus:'pending'};
-await saveProject(project);setActiveProjectId(project.id);showToast('项目已创建，并设为当前项目','success');navigateTo('#projects');
+try{await saveProject(project);setActiveProjectId(project.id);showToast('项目已创建，并设为当前项目','success');navigateTo('#projects');}catch(e){showToast('项目创建失败：'+e.message,'error');console.error(e);}
 }
 
 async function saveRecord(record){
-await ensureServerStorage();
-try{await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
+try{await ensureServerStorage();await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
 return saveRecordLocal(record);
 }
 
@@ -1343,7 +1542,7 @@ try{await storageApi('/api/analysis-records',{method:'DELETE'});}catch(e){consol
 }
 
 var serverStorageMigration=null;
-async function storageApi(url,options){var opts=options||{},headers=Object.assign({'Content-Type':'application/json'},opts.headers||{}),response=await fetch(url,Object.assign({},opts,{headers:headers})),payload=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(payload.message||('数据服务请求失败：HTTP '+response.status));return payload;}
+async function storageApi(url,options){var opts=options||{},headers=Object.assign({'Content-Type':'application/json'},opts.headers||{}),response=await fetch(getProxyApiUrl(url),Object.assign({},opts,{headers:headers})),payload=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(payload.message||('数据服务请求失败：HTTP '+response.status));return payload;}
 function setStorageStatus(ready,text){var el=document.getElementById('projectStorageStatus');if(!el)return;el.textContent=text;el.style.color=ready?'var(--green-500)':'var(--amber-500)';}
 async function ensureServerStorage(){if(serverStorageMigration)return serverStorageMigration;serverStorageMigration=(async function(){var remoteProjects=(await storageApi('/api/projects')).items||[],remoteRecords=(await storageApi('/api/analysis-records')).items||[],localProjects=await getAllProjectsLocal(),localRecords=await getAllRecordsLocal(),projectMap={},recordMap={};for(var i=0;i<remoteProjects.length;i++)projectMap[String(remoteProjects[i].id)]=remoteProjects[i];for(var j=0;j<localProjects.length;j++){var localProject=localProjects[j],remoteProject=projectMap[String(localProject.id)],localTime=new Date(localProject.updatedAt||localProject.createdAt||0).getTime(),remoteTime=remoteProject?new Date(remoteProject.updatedAt||remoteProject.createdAt||0).getTime():0;if(!remoteProject||localTime>remoteTime)await storageApi('/api/projects/'+localProject.id,{method:'PUT',body:JSON.stringify(localProject)});}for(var k=0;k<remoteRecords.length;k++)recordMap[String(remoteRecords[k].id)]=remoteRecords[k];for(var m=0;m<localRecords.length;m++){var localRecord=localRecords[m],remoteRecord=recordMap[String(localRecord.id)],localRecordTime=new Date(localRecord.archivedAt||localRecord.timestamp||0).getTime(),remoteRecordTime=remoteRecord?new Date(remoteRecord.archivedAt||remoteRecord.timestamp||0).getTime():0;if(!remoteRecord||localRecordTime>remoteRecordTime)await storageApi('/api/analysis-records/'+localRecord.id,{method:'PUT',body:JSON.stringify(localRecord)});}setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return true;})().catch(function(error){serverStorageMigration=null;throw error;});return serverStorageMigration;}
 async function saveProjectLocal(project){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readwrite'),req=tx.objectStore('projectRecords').put(project);req.onsuccess=function(){resolve(project);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
@@ -1760,7 +1959,7 @@ function haversineKm(lat1,lng1,lat2,lng2){var R=6371,dLat=(lat2-lat1)*Math.PI/18
 
 document.addEventListener('DOMContentLoaded',function(){var pills=document.querySelectorAll('.csb-pill');for(var i=0;i<pills.length;i++){pills[i].addEventListener('click',function(){var km=this.getAttribute('data-km');if(!km)return;var sel=document.getElementById('communityRadius');if(sel)sel.value=km;for(var j=0;j<pills.length;j++)pills[j].classList.remove('active');this.classList.add('active');updateCommunityRadius();});}});
 
-var initialHash=window.location.hash||'#home',initialPage=initialHash.replace('#','').split('/')[0];showPage(initialHash.includes('/')?'detail':(initialPage||'home'));
+var initialHash=window.location.hash||'#home',initialPage=initialHash.replace('#','').split('/')[0];showPage(initialHash.includes('/')?'detail':(initialPage||'home'));if((initialPage||'home')==='home'&&location.search.indexOf('homeStep=2')>-1)document.body.classList.add('home-step-2');
 </script>
 </body>
 </html>

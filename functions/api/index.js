@@ -1,0 +1,471 @@
+import http from 'node:http';
+import crypto from 'node:crypto';
+import cloudbase from '@cloudbase/node-sdk';
+
+const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
+const app = cloudbase.init({ env: envId });
+const db = app.database();
+const projectCollection = db.collection('projects');
+const analysisCollection = db.collection('analysisRecords');
+const settingsCollection = db.collection('settings');
+const apiKeyUsersCollection = db.collection('apiKeyUsers');
+
+const appUsername = process.env.APP_USERNAME || 'admin';
+const appPassword = process.env.APP_PASSWORD || '';
+const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
+const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
+let apiKey = process.env.DASHSCOPE_API_KEY || '';
+let apiKeyLoaded = Boolean(apiKey);
+const keyEncryptionSecret = process.env.KEY_ENCRYPTION_SECRET || `${envId}:smart-renew-default-key`;
+const sessionTtlMs = 12 * 60 * 60 * 1000;
+const allowedModels = new Set([
+  'qwen3-vl-plus',
+  'qwen3-vl-flash',
+  'qwen-vl-plus',
+  'qwen-vl-max',
+  'qwen2.5-vl-72b-instruct'
+]);
+
+function writeJson(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+  res.end(JSON.stringify(body));
+}
+
+function secureEqual(left, right) {
+  const a = Buffer.from(String(left));
+  const b = Buffer.from(String(right));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function authorize(req, res, url) {
+  if (!appPassword || url.pathname === '/api/health' || url.pathname === '/health') return true;
+  const header = req.headers.authorization || '';
+  if (header.startsWith('Basic ')) {
+    try {
+      const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+      const splitAt = decoded.indexOf(':');
+      const username = splitAt >= 0 ? decoded.slice(0, splitAt) : '';
+      const password = splitAt >= 0 ? decoded.slice(splitAt + 1) : '';
+      if (secureEqual(username, appUsername) && secureEqual(password, appPassword)) return true;
+    } catch {}
+  }
+  res.writeHead(401, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'WWW-Authenticate': 'Basic realm="Smart Renew", charset="UTF-8"',
+    'Cache-Control': 'no-store'
+  });
+  res.end('需要登录后访问');
+  return false;
+}
+
+async function readJson(req, maxBytes = 120 * 1024 * 1024) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new Error('REQUEST_TOO_LARGE');
+    chunks.push(chunk);
+  }
+  const text = Buffer.concat(chunks).toString('utf8') || '{}';
+  return JSON.parse(text);
+}
+
+function safeId(value) {
+  const id = String(value || '');
+  return /^\d+$/.test(id) ? id : '';
+}
+
+function normalizePath(pathname) {
+  if (pathname === '/api') return '/';
+  return pathname.startsWith('/api/') ? pathname.slice(4) : pathname;
+}
+
+function stripCloudId(item) {
+  if (!item || typeof item !== 'object') return item;
+  const { _id, ...rest } = item;
+  return rest.id ? rest : { id: _id, ...rest };
+}
+
+async function listCollection(collection) {
+  const result = await collection.limit(1000).get();
+  return (result.data || []).map(stripCloudId);
+}
+
+async function getDocument(collection, id) {
+  const result = await collection.doc(id).get();
+  const data = Array.isArray(result.data) ? result.data[0] : result.data;
+  return data ? stripCloudId(data) : null;
+}
+
+async function putDocument(collection, id, body) {
+  const updateData = { ...body };
+  delete updateData._id;
+  const existing = await getDocument(collection, id).catch(() => null);
+  if (existing) await collection.doc(id).update(updateData);
+  else await collection.add({ ...updateData, _id: id });
+  return body;
+}
+
+async function clearCollection(collection) {
+  const items = await listCollection(collection);
+  await Promise.all(items.map((item) => collection.doc(String(item.id)).remove().catch(() => null)));
+}
+
+function normalizeApiKey(value) {
+  let nextKey = String(value || '').trim();
+  if (/^DASHSCOPE_API_KEY\s*=/.test(nextKey)) nextKey = nextKey.replace(/^DASHSCOPE_API_KEY\s*=\s*/, '').trim();
+  if ((nextKey.startsWith('"') && nextKey.endsWith('"')) || (nextKey.startsWith("'") && nextKey.endsWith("'"))) nextKey = nextKey.slice(1, -1).trim();
+  if (nextKey.length < 10 || nextKey.length > 512 || /\s/.test(nextKey)) throw new Error('API Key 内容无效，请检查是否复制完整或包含空格');
+  return nextKey;
+}
+
+function getEncryptionKey() {
+  return crypto.createHash('sha256').update(String(keyEncryptionSecret)).digest();
+}
+
+function encryptText(text) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(String(text), 'utf8'), cipher.final()]);
+  return {
+    iv: iv.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    value: encrypted.toString('base64')
+  };
+}
+
+function decryptText(payload) {
+  if (!payload || !payload.iv || !payload.tag || !payload.value) return '';
+  const decipher = crypto.createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(payload.iv, 'base64'));
+  decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(payload.value, 'base64')), decipher.final()]).toString('utf8');
+}
+
+function isCollectionMissingError(error) {
+  return /not exist|Db or Table not exist|COLLECTION_NOT_EXIST|DATABASE_COLLECTION_NOT_EXIST/i.test(String(error?.message || error));
+}
+
+async function ensureSettingsCollection() {
+  try {
+    await settingsCollection.limit(1).get();
+  } catch (error) {
+    if (!isCollectionMissingError(error)) throw error;
+    await settingsCollection.add({ _id: '__init__', createdAt: new Date().toISOString() });
+    await settingsCollection.doc('__init__').remove().catch(() => null);
+  }
+}
+
+async function ensureApiKeyUsersCollection() {
+  try {
+    await apiKeyUsersCollection.limit(1).get();
+  } catch (error) {
+    if (isCollectionMissingError(error)) {
+      throw new Error('CloudBase 数据库缺少 apiKeyUsers 集合，请先创建后再保存用户密钥');
+    }
+    throw error;
+  }
+}
+
+function normalizeUsername(value) {
+  const username = String(value || '').trim();
+  if (username.length < 2 || username.length > 40) throw new Error('用户名需为 2-40 个字符');
+  if (/[\r\n\t]/.test(username)) throw new Error('用户名不能包含换行或制表符');
+  return username;
+}
+
+function normalizePassword(value) {
+  const password = String(value || '');
+  if (password.length < 6 || password.length > 128) throw new Error('密码需为 6-128 个字符');
+  return password;
+}
+
+function userIdFromName(username) {
+  return crypto.createHash('sha256').update(normalizeUsername(username)).digest('hex').slice(0, 40);
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('base64')) {
+  const hash = crypto.pbkdf2Sync(normalizePassword(password), salt, 120000, 32, 'sha256').toString('base64');
+  return { salt, hash, iterations: 120000, digest: 'sha256' };
+}
+
+function verifyPassword(password, stored) {
+  if (!stored?.salt || !stored?.hash) return false;
+  const next = crypto.pbkdf2Sync(normalizePassword(password), stored.salt, Number(stored.iterations) || 120000, 32, stored.digest || 'sha256').toString('base64');
+  return secureEqual(next, stored.hash);
+}
+
+function createSessionToken(userId, username) {
+  const payload = {
+    userId,
+    username,
+    exp: Date.now() + sessionTtlMs
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', getEncryptionKey()).update(encoded).digest('base64url');
+  return { token: `${encoded}.${signature}`, expiresAt: new Date(payload.exp).toISOString() };
+}
+
+function verifySessionToken(token) {
+  const [encoded, signature] = String(token || '').split('.');
+  if (!encoded || !signature) return null;
+  const expected = crypto.createHmac('sha256', getEncryptionKey()).update(encoded).digest('base64url');
+  if (!secureEqual(signature, expected)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    if (!payload.userId || !payload.username || !payload.exp || Date.now() > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function getUserApiKeyByToken(token) {
+  const session = verifySessionToken(token);
+  if (!session) return { key: '', session: null };
+  await ensureApiKeyUsersCollection();
+  const user = await getDocument(apiKeyUsersCollection, session.userId).catch(() => null);
+  if (!user?.encrypted) return { key: '', session: null };
+  return { key: decryptText(user.encrypted), session };
+}
+
+async function getApiKeyFromRequest(req, tokenFromBody = '') {
+  const token = tokenFromBody || String(req.headers['x-smart-renew-key-session'] || '').trim();
+  const userKey = await getUserApiKeyByToken(token);
+  if (userKey.key) return userKey;
+  return { key: '', session: null };
+}
+
+async function getStoredApiKey() {
+  if (apiKeyLoaded) return apiKey;
+  if (apiKey) {
+    apiKeyLoaded = true;
+    return apiKey;
+  }
+  await ensureSettingsCollection();
+  const setting = await getDocument(settingsCollection, 'dashscopeApiKey').catch(() => null);
+  if (setting?.encrypted) {
+    apiKey = decryptText(setting.encrypted);
+    apiKeyLoaded = Boolean(apiKey);
+  }
+  return apiKey;
+}
+
+async function saveStoredApiKey(nextKey) {
+  await ensureSettingsCollection();
+  apiKey = nextKey;
+  apiKeyLoaded = Boolean(nextKey);
+  await putDocument(settingsCollection, 'dashscopeApiKey', {
+    id: 'dashscopeApiKey',
+    encrypted: encryptText(nextKey),
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function clearStoredApiKey() {
+  await ensureSettingsCollection();
+  apiKey = '';
+  apiKeyLoaded = false;
+  await settingsCollection.doc('dashscopeApiKey').remove().catch(() => null);
+}
+
+async function listApiKeyUsers(req, res) {
+  try {
+    await ensureApiKeyUsersCollection();
+    const items = await listCollection(apiKeyUsersCollection);
+    return writeJson(res, 200, {
+      items: items
+        .filter((item) => item.username)
+        .map((item) => ({ username: item.username, updatedAt: item.updatedAt || '', configured: Boolean(item.encrypted) }))
+        .sort((a, b) => String(a.username).localeCompare(String(b.username), 'zh-Hans-CN')),
+      storage: 'cloudbase-user-encrypted'
+    });
+  } catch (error) {
+    return writeJson(res, isCollectionMissingError(error) ? 503 : 500, { message: error.message || '读取用户列表失败' });
+  }
+}
+
+async function configureUserKey(body) {
+  await ensureApiKeyUsersCollection();
+  const username = normalizeUsername(body.username);
+  const password = normalizePassword(body.password);
+  const id = userIdFromName(username);
+  const existing = await getDocument(apiKeyUsersCollection, id).catch(() => null);
+
+  if (body.clear === true) {
+    if (!existing || !verifyPassword(password, existing.password)) throw new Error('用户名或密码不正确');
+    await apiKeyUsersCollection.doc(id).remove();
+    return { ready: false, username, model: defaultModel, storage: 'cloudbase-user-encrypted' };
+  }
+
+  if (body.select === true && !body.apiKey) {
+    if (!existing || !verifyPassword(password, existing.password)) throw new Error('用户名或密码不正确');
+    const session = createSessionToken(id, existing.username || username);
+    return { ready: true, username: existing.username || username, model: defaultModel, storage: 'cloudbase-user-encrypted', ...session };
+  }
+
+  const nextKey = normalizeApiKey(body.apiKey);
+  const passwordMeta = existing?.password && verifyPassword(password, existing.password) ? existing.password : hashPassword(password);
+  if (existing?.password && !verifyPassword(password, existing.password)) throw new Error('该用户名已存在，密码不正确');
+
+  await putDocument(apiKeyUsersCollection, id, {
+    id,
+    username,
+    password: passwordMeta,
+    encrypted: encryptText(nextKey),
+    updatedAt: new Date().toISOString()
+  });
+  const session = createSessionToken(id, username);
+  return { ready: true, username, model: defaultModel, storage: 'cloudbase-user-encrypted', ...session };
+}
+
+async function handleStorageApi(req, res, url, pathname) {
+  try {
+    const projectMatch = pathname.match(/^\/projects\/(\d+)$/);
+    const recordMatch = pathname.match(/^\/analysis-records\/(\d+)$/);
+    if (req.method === 'GET' && pathname === '/projects') {
+      return writeJson(res, 200, { items: await listCollection(projectCollection), storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && projectMatch) {
+      const item = await getDocument(projectCollection, projectMatch[1]);
+      return item ? writeJson(res, 200, item) : writeJson(res, 404, { message: '项目不存在' });
+    }
+    if (req.method === 'PUT' && projectMatch) {
+      const body = await readJson(req);
+      const id = safeId(body.id);
+      if (!id || id !== projectMatch[1]) return writeJson(res, 400, { message: '项目 ID 无效' });
+      return writeJson(res, 200, await putDocument(projectCollection, id, body));
+    }
+    if (req.method === 'GET' && pathname === '/analysis-records') {
+      let items = await listCollection(analysisCollection);
+      const projectId = safeId(url.searchParams.get('projectId'));
+      if (projectId) items = items.filter((item) => String(item.projectId) === projectId);
+      return writeJson(res, 200, { items, storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && recordMatch) {
+      const item = await getDocument(analysisCollection, recordMatch[1]);
+      return item ? writeJson(res, 200, item) : writeJson(res, 404, { message: '分析记录不存在' });
+    }
+    if (req.method === 'PUT' && recordMatch) {
+      const body = await readJson(req);
+      const id = safeId(body.id);
+      if (!id || id !== recordMatch[1]) return writeJson(res, 400, { message: '分析记录 ID 无效' });
+      return writeJson(res, 200, await putDocument(analysisCollection, id, body));
+    }
+    if (req.method === 'DELETE' && pathname === '/analysis-records') {
+      await clearCollection(analysisCollection);
+      return writeJson(res, 200, { deleted: true });
+    }
+    return writeJson(res, 404, { message: '数据接口不存在' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '保存数据过大，请减少单次上传图片数量' });
+    return writeJson(res, 500, { message: error.message || 'CloudBase 数据库存储失败' });
+  }
+}
+
+async function configureKey(req, res) {
+  try {
+    const body = await readJson(req, 16 * 1024);
+    if (body.username || body.password) {
+      return writeJson(res, 200, await configureUserKey(body));
+    }
+    if (body.clear === true) {
+      await clearStoredApiKey();
+      return writeJson(res, 200, { ready: false, model: defaultModel, storage: 'cloudbase-encrypted' });
+    }
+    const nextKey = normalizeApiKey(body.apiKey);
+    await saveStoredApiKey(nextKey);
+    return writeJson(res, 200, { ready: true, model: defaultModel, storage: 'cloudbase-encrypted' });
+  } catch (error) {
+    return writeJson(res, 400, { message: error.message || '密钥配置失败' });
+  }
+}
+
+async function sessionHealth(req, res) {
+  try {
+    const body = await readJson(req);
+    const active = await getApiKeyFromRequest(req, body.keySessionToken);
+    return writeJson(res, 200, {
+      ready: Boolean(active.key),
+      username: active.session?.username || '',
+      model: defaultModel,
+      storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase')
+    });
+  } catch (error) {
+    return writeJson(res, 200, { ready: false, model: defaultModel, storage: 'cloudbase', message: error.message || '密钥未启用' });
+  }
+}
+
+async function analyze(req, res) {
+  try {
+    const body = await readJson(req);
+    const active = await getApiKeyFromRequest(req, body.keySessionToken);
+    const activeApiKey = active.key;
+    if (!activeApiKey) return writeJson(res, 503, { message: '请先选择用户并输入密码启用 API Key' });
+    const images = Array.isArray(body.images) ? body.images : [];
+    if (!images.length || images.length > 20) return writeJson(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return writeJson(res, 400, { message: '图片格式无效' });
+    const requestedModel = String(body.model || defaultModel);
+    const model = allowedModels.has(requestedModel) ? requestedModel : defaultModel;
+    const content = [{ type: 'text', text: String(body.prompt || '') }];
+    for (const image of images) content.push({ type: 'image_url', image_url: { url: image } });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120000);
+    let upstream;
+    try {
+      upstream = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: '你是一位专业的住区安全体检专家。只输出符合要求的 JSON。' },
+            { role: 'user', content }
+          ],
+          max_tokens: Math.max(500, Math.min(8000, Number(body.maxTokens) || 3000)),
+          temperature: Math.max(0, Math.min(1, Number(body.temperature) || 0.2)),
+          top_p: Math.max(0.1, Math.min(1, Number(body.topP) || 0.9)),
+          response_format: { type: 'json_object' }
+        })
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) return writeJson(res, upstream.status, { message: data.message || data.code || `模型请求失败: HTTP ${upstream.status}` });
+    const answer = data.choices?.[0]?.message?.content;
+    if (!answer) return writeJson(res, 502, { message: '模型没有返回可解析内容' });
+    return writeJson(res, 200, { content: answer, requestId: data.request_id || data.id || '', model: data.model || model, usage: data.usage || null });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '本次图片数据过大，请减少图片数量' });
+    if (error.name === 'AbortError') return writeJson(res, 504, { message: '模型响应超时，请稍后重试' });
+    return writeJson(res, 500, { message: error.message || '服务端分析失败' });
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = normalizePath(url.pathname);
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
+  if (!authorize(req, res, url)) return;
+  if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health')) {
+    const active = await getApiKeyFromRequest(req).catch(() => ({ key: '' }));
+    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
+  }
+  if (req.method === 'GET' && pathname === '/config/users') return listApiKeyUsers(req, res);
+  if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);
+  if (req.method === 'POST' && pathname === '/config/session/health') return sessionHealth(req, res);
+  if (req.method === 'POST' && pathname === '/vision/analyze') return analyze(req, res);
+  if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
+  return writeJson(res, 404, { message: '接口不存在' });
+});
+
+server.listen(9000, '0.0.0.0', () => {
+  console.log(`Smart Renew CloudBase API is running in ${envId}`);
+});
