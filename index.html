@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>智更Smart Renew · 城市更新</title>
+<link rel="stylesheet" href="assets/project-data.css">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏙️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script>window._AMapSecurityConfig={securityJsCode:'9689b4495737e07fa6956d2e09601cc9'};</script>
@@ -1032,6 +1033,8 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 </div><div class="footer-bottom">智更 Smart Renew · 城市更新体检工作台</div></div></footer>
 
 <script src="https://webapi.amap.com/maps?v=2.0&key=5b4f587b19bf8292d7618f66f38a4765&plugin=AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.Scale,AMap.ToolBar,AMap.ControlBar,AMap.HawkEye,AMap.MouseTool,AMap.GeometryUtil"></script>
+<script src="assets/data/city-health-standard-library-v1.js"></script>
+<script src="assets/project-data.js"></script>
 <script>
 /* ===== DATA ===== */
 var statusMap={'planning':'规划中','in-progress':'进行中','completed':'已完成','created':'已建档','ai-analyzed':'已分析'};
@@ -1043,7 +1046,7 @@ medium:{label:'中风险',className:'severity-medium',icon:'🟠',statColor:'var
 low:{label:'低风险',className:'severity-low',icon:'🟢',statColor:'var(--green-500)'}
 };
 
-var currentPage='home',currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
+var currentPage='home',currentFilters={type:'all',status:'all'},projectDatabaseView=window.location.hash.indexOf('/data/')>=0?'data':'overview';
 function renderFeaturedProjects(){}
 function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash,raw=targetHash.replace('#',''),page=raw.includes('/')?'detail':raw;if(window.location.hash===targetHash)showPage(page);else window.location.hash=targetHash;window.scrollTo(0,0);}
 function showPage(page){
@@ -1094,6 +1097,7 @@ if(countEl)countEl.textContent='共 '+projectList.length+' 个体检项目 · �
 if(projectList.length===0){listEl.innerHTML='<div class="result-empty" style="grid-column:1/-1;"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:8px;">暂无项目档案</h3><p>请先新建体检项目，再进入各类分析。</p><div style="margin-top:18px;"><a href="#new-project" class="btn btn-primary" data-nav="new-project">新建体检项目</a></div></div>';return;}
 projectList.sort(function(a,b){return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt);});
 listEl.innerHTML=projectList.map(function(p){return createProjectSummaryCard(p,recordsByProject[p.id]||[]);}).join('');
+if(window.hydrateProjectDataSummary)window.hydrateProjectDataSummary(projectList);
 }catch(e){if(countEl)countEl.textContent='项目记录读取失败';listEl.innerHTML='<div class="result-empty" style="grid-column:1/-1;color:var(--red-500);">读取项目失败：'+e.message+'</div>';}
 }
 
@@ -1109,7 +1113,7 @@ return'<article class="project-record-card'+(active?' is-active':'')+'" role="bu
 +'<div class="project-record-content"><div class="project-record-eyebrow">PROJECT DATABASE · '+escapeHtml(String(p.id))+'</div><h3 class="project-record-title">'+escapeHtml(p.name||'未命名体检项目')+'</h3><div class="project-record-location">📍 '+escapeHtml(p.area||'未填写位置')+'</div><p class="project-record-description">'+escapeHtml(p.desc||p.scope||'该项目已建立档案，可继续进行住区维度、社区/街区维度分析和体检报告生成。')+'</p>'
 +'<div class="project-record-flow"><span class="done">项目档案</span><span class="'+(records.length?'done':'')+'">住区分析</span><span class="'+(community?'done':'')+'">社区/街区</span><span class="'+(records.length&&community?'done':'')+'">体检报告</span></div>'
 +'<div class="project-record-actions"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();selectProject('+p.id+')">设为当前</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectAi('+p.id+')">住区分析</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectCommunity('+p.id+')">社区/街区</button></div></div>'
-+'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">数据更新时间<br>'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
++'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">索引数据：<strong id="project-index-count-'+p.id+'">读取中</strong><br>数据更新时间：'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
 }
 async function renderDetailPage(){
 var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=document.getElementById('detailMain');
@@ -1131,17 +1135,19 @@ if(main)main.innerHTML='<div class="project-db-heading"><div><div class="section
 +projectDatabaseTabPanel('overview','<div class="project-db-overview-grid">'+projectDatabasePanel('项目档案',projectBasicsHtml(p))+projectDatabasePanel('风险概览',projectRiskOverviewHtml(stat))+'</div><div class="project-db-overview-grid">'+projectDatabasePanel('数据概览',projectDatabaseFactsHtml(dataRecords,records.length,stat.images,communityTotal,p))+projectDatabasePanel('工作进度',projectDatabaseWorkflowHtml(p,records,community,scopeStats))+'</div>')
 +projectDatabaseTabPanel('ledger','<div class="project-db-tab-section">'+projectDatabasePanel('项目范围与住宅台账',projectScopeDatabaseHtml(p,scopeStats))+'</div>')
 +projectDatabaseTabPanel('analysis','<div class="project-db-tab-section">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div><div class="project-db-tab-section">'+projectDatabasePanel('问题台账',projectIssueDatabaseHtml(issues))+'</div>')
++projectDatabaseTabPanel('data','<div class="project-db-tab-section">'+projectDatabasePanel('统一数据管理',projectDataIndexPanelHtml(p.id))+'</div>')
 +projectDatabaseTabPanel('indicators','<div class="project-db-tab-section">'+projectDatabasePanel('住房安全指标目录',projectHousingIndicatorHtml())+'</div>')
 +projectDatabaseTabPanel('report','<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div>');
+if(projectDatabaseView==='data'&&window.loadProjectDataIndex)setTimeout(function(){window.loadProjectDataIndex(p.id);},0);
 }catch(e){if(main)main.innerHTML='<div class="result-empty" style="color:var(--red-500);">项目中枢加载失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
 
 function projectHubPanel(title,body){return'<section style="background:#fff;border:1px solid var(--border-default);padding:22px;"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:14px;">'+escapeHtml(title)+'</h3>'+body+'</section>';}
 function projectDatabasePanel(title,body){return'<section class="project-db-panel"><h3>'+escapeHtml(title)+'</h3>'+body+'</section>';}
 function projectDatabaseKpiHtml(label,value,meta){return'<div class="project-db-kpi"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span><small>'+escapeHtml(meta||'')+'</small></div>';}
-function projectDatabaseTabsHtml(){var tabs=[['overview','总览'],['ledger','住宅台账'],['analysis','问题分析'],['indicators','指标库'],['report','报告建议']];return'<nav class="project-db-tabs" aria-label="项目数据库栏目">'+tabs.map(function(tab){return'<button type="button" class="project-db-tab'+(projectDatabaseView===tab[0]?' active':'')+'" data-project-db-tab="'+tab[0]+'" onclick="setProjectDatabaseView(\''+tab[0]+'\')">'+tab[1]+'</button>';}).join('')+'</nav>';}
+function projectDatabaseTabsHtml(){var tabs=[['overview','总览'],['ledger','住宅台账'],['analysis','问题分析'],['data','数据索引'],['indicators','指标库'],['report','报告建议']];return'<nav class="project-db-tabs" aria-label="项目数据库栏目">'+tabs.map(function(tab){return'<button type="button" class="project-db-tab'+(projectDatabaseView===tab[0]?' active':'')+'" data-project-db-tab="'+tab[0]+'" onclick="setProjectDatabaseView(\''+tab[0]+'\')">'+tab[1]+'</button>';}).join('')+'</nav>';}
 function projectDatabaseTabPanel(view,body){return'<div class="project-db-tab-panel'+(projectDatabaseView===view?' active':'')+'" data-project-db-panel="'+view+'">'+body+'</div>';}
-function setProjectDatabaseView(view){var allowed=['overview','ledger','analysis','indicators','report'];if(allowed.indexOf(view)<0)view='overview';projectDatabaseView=view;var tabs=document.querySelectorAll('[data-project-db-tab]'),panels=document.querySelectorAll('[data-project-db-panel]');for(var i=0;i<tabs.length;i++){var active=tabs[i].getAttribute('data-project-db-tab')===view;tabs[i].classList.toggle('active',active);tabs[i].setAttribute('aria-selected',active?'true':'false');}for(var j=0;j<panels.length;j++)panels[j].classList.toggle('active',panels[j].getAttribute('data-project-db-panel')===view);}
+function setProjectDatabaseView(view){var allowed=['overview','ledger','analysis','data','indicators','report'];if(allowed.indexOf(view)<0)view='overview';projectDatabaseView=view;var tabs=document.querySelectorAll('[data-project-db-tab]'),panels=document.querySelectorAll('[data-project-db-panel]');for(var i=0;i<tabs.length;i++){var active=tabs[i].getAttribute('data-project-db-tab')===view;tabs[i].classList.toggle('active',active);tabs[i].setAttribute('aria-selected',active?'true':'false');}for(var j=0;j<panels.length;j++)panels[j].classList.toggle('active',panels[j].getAttribute('data-project-db-panel')===view);if(view==='data'&&window.loadProjectDataIndex)window.loadProjectDataIndex(String(window.location.hash.split('/')[1]||''));}
 function projectDatabaseFactsHtml(dataRecords,analysisCount,imageCount,communityTotal,project){var updated=new Date(project.updatedAt||project.createdAt||Date.now()).toLocaleDateString('zh-CN');var facts=[[dataRecords+' 条','数据库记录'],[analysisCount+' 次','AI 分析批次'],[imageCount+' 张','现场照片'],[communityTotal+' 个','设施空间'],[updated,'最近更新'],[project.residentialInventory?'已建立':'待建立','住宅台账']];return'<div class="project-db-facts">'+facts.map(function(fact){return'<div class="project-db-fact"><strong>'+escapeHtml(fact[0])+'</strong><span>'+escapeHtml(fact[1])+'</span></div>';}).join('')+'</div>';}
 function projectDatabaseWorkflowHtml(project,records,community,scopeStats){var steps=[['01','项目档案',true,'基础信息已建立'],['02','范围与住宅台账',scopeStats.hasBoundary&&scopeStats.hasInventory,scopeStats.hasBoundary?'范围已框选':'等待地图框选'],['03','住区问题分析',records.length>0,records.length?'已有 '+records.length+' 个批次':'等待上传分析'],['04','社区／街区分析',!!community,community?'空间数据已保存':'等待空间分析'],['05','体检报告',records.length>0&&!!community,(records.length>0&&community)?'具备生成条件':'等待关键数据']];return'<div class="project-db-workflow">'+steps.map(function(step){return'<div class="project-db-workflow-row'+(step[2]?' done':'')+'"><span class="project-db-workflow-index">'+step[0]+'</span><div class="project-db-workflow-copy"><strong>'+escapeHtml(step[1])+'</strong><span>'+escapeHtml(step[3])+'</span></div><span class="project-db-status'+(step[2]?' done':'')+'">'+(step[2]?'已完成':'待处理')+'</span></div>';}).join('')+'</div>';}
 function projectDatabaseAssetsHtml(project,stat,records,community,categoryCount,dataRecords){var scopeStats=getProjectScopeStats(project),rows=[['项目档案','1 条'],['数据库记录',dataRecords+' 条'],['地图范围',scopeStats.hasBoundary?'1 条':'0 条'],['住宅小区台账',scopeStats.communityCount+' 条'],['AI 分析记录',records.length+' 条'],['现场图片',stat.images+' 张'],['问题记录',stat.total+' 条'],['空间分析',community?'1 条':'0 条'],['设施分类',categoryCount+' 项'],['设施空间',getCommunityTotal(community)+' 个']];return'<table class="project-db-assets"><tbody>'+rows.map(function(row){return'<tr><th>'+escapeHtml(row[0])+'</th><td>'+escapeHtml(row[1])+'</td></tr>';}).join('')+'</tbody></table>';}
@@ -1713,7 +1719,7 @@ function setActiveProjectId(id){localStorage.setItem('smart_renew_active_project
 
 async function saveProject(project){
 try{await ensureServerStorage();await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
-await saveProjectLocal(project);return project;
+await saveProjectLocal(project);if(window.scheduleProjectDataIndexSync)window.scheduleProjectDataIndexSync(project.id);return project;
 }
 
 async function getAllProjects(){
@@ -1808,7 +1814,7 @@ try{var wasEditing=!!projectScopeEditingProjectId;await saveProject(project);set
 
 async function saveRecord(record){
 try{await ensureServerStorage();await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
-return saveRecordLocal(record);
+var saved=await saveRecordLocal(record);if(window.scheduleProjectDataIndexSync&&record.projectId)window.scheduleProjectDataIndexSync(record.projectId);return saved;
 }
 
 async function getAllRecords(){

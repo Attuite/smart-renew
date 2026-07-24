@@ -9,7 +9,7 @@
       "handler": "index.main",
       "timeout": 120,
       "memorySize": 512,
-      "description": "Smart Renew API for projects, analysis records and vision proxy",
+      "description": "Smart Renew API for projects, indexed project data, analysis records and vision proxy",
       "envVariables": {
         "DASHSCOPE_MODEL": "qwen3-vl-plus",
         "DASHSCOPE_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1"

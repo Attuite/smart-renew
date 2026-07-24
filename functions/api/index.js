@@ -1,12 +1,18 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
 import cloudbase from '@cloudbase/node-sdk';
+import {
+  buildNativeProjectIndex,
+  normalizeProjectDataRecord,
+  projectDataStats
+} from './project-data-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
 const db = app.database();
 const projectCollection = db.collection('projects');
 const analysisCollection = db.collection('analysisRecords');
+const projectDataCollection = db.collection('projectDataRecords');
 const settingsCollection = db.collection('settings');
 const apiKeyUsersCollection = db.collection('apiKeyUsers');
 
@@ -78,6 +84,11 @@ function safeId(value) {
   return /^\d+$/.test(id) ? id : '';
 }
 
+function safeDataId(value) {
+  const id = String(value || '');
+  return /^[A-Za-z0-9][A-Za-z0-9_.-]{2,159}$/.test(id) ? id : '';
+}
+
 function normalizePath(pathname) {
   if (pathname === '/api') return '/';
   return pathname.startsWith('/api/') ? pathname.slice(4) : pathname;
@@ -90,8 +101,15 @@ function stripCloudId(item) {
 }
 
 async function listCollection(collection) {
-  const result = await collection.limit(1000).get();
-  return (result.data || []).map(stripCloudId);
+  const items = [];
+  const pageSize = 100;
+  for (let offset = 0; offset < 10000; offset += pageSize) {
+    const result = await collection.skip(offset).limit(pageSize).get();
+    const page = (result.data || []).map(stripCloudId);
+    items.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return items;
 }
 
 async function getDocument(collection, id) {
@@ -112,6 +130,110 @@ async function putDocument(collection, id, body) {
 async function clearCollection(collection) {
   const items = await listCollection(collection);
   await Promise.all(items.map((item) => collection.doc(String(item.id)).remove().catch(() => null)));
+}
+
+async function putDocuments(collection, records, batchSize = 20) {
+  for (let index = 0; index < records.length; index += batchSize) {
+    const batch = records.slice(index, index + batchSize);
+    await Promise.all(batch.map((record) => putDocument(collection, record.id, record)));
+  }
+}
+
+async function listProjectData(projectId) {
+  const items = await listCollection(projectDataCollection);
+  return items.filter((item) => String(item.projectId) === String(projectId));
+}
+
+async function replaceNativeProjectIndex(projectId) {
+  const project = await getDocument(projectCollection, projectId);
+  if (!project) throw new Error('项目不存在');
+  const analyses = (await listCollection(analysisCollection))
+    .filter((item) => String(item.projectId) === String(projectId));
+  const existing = await listProjectData(projectId);
+  const nativeItems = existing.filter((item) => item.source === 'smart-renew');
+  await Promise.all(nativeItems.map((item) => projectDataCollection.doc(String(item.id)).remove().catch(() => null)));
+  const records = buildNativeProjectIndex(project, analyses);
+  await putDocuments(projectDataCollection, records);
+  const combined = existing.filter((item) => item.source !== 'smart-renew').concat(records);
+  return { records, stats: projectDataStats(combined) };
+}
+
+async function handleProjectDataApi(req, res, url, pathname) {
+  try {
+    const recordMatch = pathname.match(/^\/project-data\/([A-Za-z0-9][A-Za-z0-9_.-]{2,159})$/);
+    const rebuildMatch = pathname.match(/^\/projects\/(\d+)\/data-index\/rebuild$/);
+    const statsMatch = pathname.match(/^\/projects\/(\d+)\/data-index\/stats$/);
+    const exportMatch = pathname.match(/^\/projects\/(\d+)\/data-export$/);
+    if (req.method === 'GET' && pathname === '/project-data') {
+      const projectId = safeId(url.searchParams.get('projectId'));
+      if (!projectId) return writeJson(res, 400, { message: '项目 ID 无效' });
+      let items = await listProjectData(projectId);
+      const type = String(url.searchParams.get('type') || '');
+      const tag = String(url.searchParams.get('tag') || '');
+      const query = String(url.searchParams.get('q') || '').trim().toLowerCase();
+      if (type) items = items.filter((item) => item.dataType === type);
+      if (tag) items = items.filter((item) => (item.tags || []).includes(tag));
+      if (query) items = items.filter((item) => JSON.stringify([item.id, item.code, item.title, item.tags, item.sourceId]).toLowerCase().includes(query));
+      items.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+      return writeJson(res, 200, { items, stats: projectDataStats(items), storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && recordMatch) {
+      const item = await getDocument(projectDataCollection, recordMatch[1]);
+      return item ? writeJson(res, 200, item) : writeJson(res, 404, { message: '索引数据不存在' });
+    }
+    if (req.method === 'PUT' && recordMatch) {
+      const body = await readJson(req);
+      const id = safeDataId(body.id);
+      const projectId = safeId(body.projectId);
+      if (!id || id !== recordMatch[1] || !projectId) return writeJson(res, 400, { message: '索引数据编号无效' });
+      const normalized = normalizeProjectDataRecord(body, projectId);
+      return writeJson(res, 200, await putDocument(projectDataCollection, id, normalized));
+    }
+    if (req.method === 'DELETE' && recordMatch) {
+      await projectDataCollection.doc(recordMatch[1]).remove();
+      return writeJson(res, 200, { deleted: true, id: recordMatch[1] });
+    }
+    if (req.method === 'POST' && pathname === '/project-data/import') {
+      const body = await readJson(req);
+      const projectId = safeId(body.projectId);
+      const inputs = Array.isArray(body.records) ? body.records : [];
+      if (!projectId || !inputs.length) return writeJson(res, 400, { message: '请选择项目并提供需要导入的数据' });
+      if (inputs.length > 3000) return writeJson(res, 400, { message: '单次最多导入 3000 条数据' });
+      if (body.mode === 'replace') {
+        const existing = await listProjectData(projectId);
+        const imported = existing.filter((item) => item.source !== 'smart-renew');
+        await Promise.all(imported.map((item) => projectDataCollection.doc(String(item.id)).remove().catch(() => null)));
+      }
+      const records = inputs.map((item) => normalizeProjectDataRecord(item, projectId));
+      await putDocuments(projectDataCollection, records);
+      return writeJson(res, 200, { imported: records.length, stats: projectDataStats(await listProjectData(projectId)) });
+    }
+    if (req.method === 'POST' && rebuildMatch) {
+      const result = await replaceNativeProjectIndex(rebuildMatch[1]);
+      return writeJson(res, 200, { rebuilt: result.records.length, stats: result.stats });
+    }
+    if (req.method === 'GET' && statsMatch) {
+      const records = await listProjectData(statsMatch[1]);
+      return writeJson(res, 200, projectDataStats(records));
+    }
+    if (req.method === 'GET' && exportMatch) {
+      const project = await getDocument(projectCollection, exportMatch[1]);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      const records = await listProjectData(exportMatch[1]);
+      return writeJson(res, 200, {
+        format: 'smart-renew-project-data',
+        schemaVersion: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        project: { id: String(project.id), name: project.name || '', area: project.area || '' },
+        records
+      });
+    }
+    return writeJson(res, 404, { message: '项目数据索引接口不存在' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '导入数据过大，请拆分后重试' });
+    if (isCollectionMissingError(error)) return writeJson(res, 503, { message: 'CloudBase 缺少 projectDataRecords 集合，请创建后重试' });
+    return writeJson(res, 500, { message: error.message || '项目数据索引操作失败' });
+  }
 }
 
 function normalizeApiKey(value) {
@@ -462,6 +584,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);
   if (req.method === 'POST' && pathname === '/config/session/health') return sessionHealth(req, res);
   if (req.method === 'POST' && pathname === '/vision/analyze') return analyze(req, res);
+  if (pathname.startsWith('/project-data') || /^\/projects\/\d+\/data-/.test(pathname)) return handleProjectDataApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });

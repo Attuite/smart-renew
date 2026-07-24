@@ -3,11 +3,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import {
+  buildNativeProjectIndex,
+  normalizeProjectDataRecord,
+  projectDataStats
+} from './functions/api/project-data-core.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const storageRoot = path.resolve(process.env.SMART_RENEW_DATA_DIR || path.join(root, '.smart-renew-data'));
 const projectStorage = path.join(storageRoot, 'projects');
 const analysisStorage = path.join(storageRoot, 'analysis-records');
+const projectDataStorage = path.join(storageRoot, 'project-data');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -145,11 +151,17 @@ async function configureKey(req, res) {
 async function ensureStorage() {
   await fs.mkdir(projectStorage, { recursive: true });
   await fs.mkdir(analysisStorage, { recursive: true });
+  await fs.mkdir(projectDataStorage, { recursive: true });
 }
 
 function safeId(value) {
   const id = String(value || '');
   return /^\d+$/.test(id) ? id : '';
+}
+
+function safeDataId(value) {
+  const id = String(value || '');
+  return /^[A-Za-z0-9][A-Za-z0-9_.-]{2,159}$/.test(id) ? id : '';
 }
 
 async function readStoredJson(filePath) {
@@ -176,6 +188,104 @@ async function listStoredJson(directory) {
     if (value) rows.push(value);
   }
   return rows;
+}
+
+async function listLocalProjectData(projectId) {
+  return (await listStoredJson(projectDataStorage))
+    .filter((item) => String(item.projectId) === String(projectId));
+}
+
+async function saveLocalProjectData(record) {
+  const id = safeDataId(record.id);
+  if (!id) throw new Error('索引数据编号无效');
+  await writeStoredJson(path.join(projectDataStorage, `${id}.json`), record);
+  return record;
+}
+
+async function rebuildLocalProjectIndex(projectId) {
+  const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+  if (!project) throw new Error('项目不存在');
+  const analyses = (await listStoredJson(analysisStorage))
+    .filter((item) => String(item.projectId) === String(projectId));
+  const existing = await listLocalProjectData(projectId);
+  const nativeItems = existing.filter((item) => item.source === 'smart-renew');
+  await Promise.all(nativeItems.map((item) => fs.unlink(path.join(projectDataStorage, `${item.id}.json`)).catch(() => null)));
+  const records = buildNativeProjectIndex(project, analyses);
+  for (const record of records) await saveLocalProjectData(record);
+  return { records, stats: projectDataStats(existing.filter((item) => item.source !== 'smart-renew').concat(records)) };
+}
+
+async function handleProjectDataApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const pathname = url.pathname;
+    const recordMatch = pathname.match(/^\/api\/project-data\/([A-Za-z0-9][A-Za-z0-9_.-]{2,159})$/);
+    const rebuildMatch = pathname.match(/^\/api\/projects\/(\d+)\/data-index\/rebuild$/);
+    const statsMatch = pathname.match(/^\/api\/projects\/(\d+)\/data-index\/stats$/);
+    const exportMatch = pathname.match(/^\/api\/projects\/(\d+)\/data-export$/);
+    if (req.method === 'GET' && pathname === '/api/project-data') {
+      const projectId = safeId(url.searchParams.get('projectId'));
+      if (!projectId) return json(res, 400, { message: '项目 ID 无效' });
+      let items = await listLocalProjectData(projectId);
+      const type = String(url.searchParams.get('type') || '');
+      const tag = String(url.searchParams.get('tag') || '');
+      const query = String(url.searchParams.get('q') || '').trim().toLowerCase();
+      if (type) items = items.filter((item) => item.dataType === type);
+      if (tag) items = items.filter((item) => (item.tags || []).includes(tag));
+      if (query) items = items.filter((item) => JSON.stringify([item.id, item.code, item.title, item.tags, item.sourceId]).toLowerCase().includes(query));
+      items.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+      return json(res, 200, { items, stats: projectDataStats(items), storage: 'server' });
+    }
+    if (req.method === 'GET' && recordMatch) {
+      const item = await readStoredJson(path.join(projectDataStorage, `${recordMatch[1]}.json`));
+      return item ? json(res, 200, item) : json(res, 404, { message: '索引数据不存在' });
+    }
+    if (req.method === 'PUT' && recordMatch) {
+      const body = await readJson(req);
+      const id = safeDataId(body.id);
+      const projectId = safeId(body.projectId);
+      if (!id || id !== recordMatch[1] || !projectId) return json(res, 400, { message: '索引数据编号无效' });
+      return json(res, 200, await saveLocalProjectData(normalizeProjectDataRecord(body, projectId)));
+    }
+    if (req.method === 'DELETE' && recordMatch) {
+      await fs.unlink(path.join(projectDataStorage, `${recordMatch[1]}.json`)).catch(() => null);
+      return json(res, 200, { deleted: true, id: recordMatch[1] });
+    }
+    if (req.method === 'POST' && pathname === '/api/project-data/import') {
+      const body = await readJson(req);
+      const projectId = safeId(body.projectId);
+      const inputs = Array.isArray(body.records) ? body.records : [];
+      if (!projectId || !inputs.length) return json(res, 400, { message: '请选择项目并提供需要导入的数据' });
+      if (inputs.length > 3000) return json(res, 400, { message: '单次最多导入 3000 条数据' });
+      if (body.mode === 'replace') {
+        const imported = (await listLocalProjectData(projectId)).filter((item) => item.source !== 'smart-renew');
+        await Promise.all(imported.map((item) => fs.unlink(path.join(projectDataStorage, `${item.id}.json`)).catch(() => null)));
+      }
+      const records = inputs.map((item) => normalizeProjectDataRecord(item, projectId));
+      for (const record of records) await saveLocalProjectData(record);
+      return json(res, 200, { imported: records.length, stats: projectDataStats(await listLocalProjectData(projectId)) });
+    }
+    if (req.method === 'POST' && rebuildMatch) {
+      const result = await rebuildLocalProjectIndex(rebuildMatch[1]);
+      return json(res, 200, { rebuilt: result.records.length, stats: result.stats });
+    }
+    if (req.method === 'GET' && statsMatch) return json(res, 200, projectDataStats(await listLocalProjectData(statsMatch[1])));
+    if (req.method === 'GET' && exportMatch) {
+      const project = await readStoredJson(path.join(projectStorage, `${exportMatch[1]}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      return json(res, 200, {
+        format: 'smart-renew-project-data',
+        schemaVersion: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        project: { id: String(project.id), name: project.name || '', area: project.area || '' },
+        records: await listLocalProjectData(exportMatch[1])
+      });
+    }
+    return json(res, 404, { message: '项目数据索引接口不存在' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '导入数据过大，请拆分后重试' });
+    return json(res, 500, { message: error.message || '项目数据索引操作失败' });
+  }
 }
 
 async function handleStorageApi(req, res, url) {
@@ -256,6 +366,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url.startsWith('/api/health')) return json(res, 200, { ready: Boolean(apiKey), model: defaultModel });
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
+  if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
   if (url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/analysis-records')) return handleStorageApi(req, res, url);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   json(res, 405, { message: '不支持的请求方法' });
