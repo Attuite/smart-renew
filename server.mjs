@@ -19,6 +19,10 @@ import {
   filterPhotoRecords,
   normalizePhotoUpload
 } from './functions/api/photo-storage-core.js';
+import {
+  filterOfficialIssues,
+  normalizeOfficialIssue
+} from './functions/api/official-issue-core.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const storageRoot = path.resolve(process.env.SMART_RENEW_DATA_DIR || path.join(root, '.smart-renew-data'));
@@ -28,6 +32,7 @@ const projectDataStorage = path.join(storageRoot, 'project-data');
 const fieldTaskStorage = path.join(storageRoot, 'field-collection-tasks');
 const photoRecordStorage = path.join(storageRoot, 'photo-records');
 const photoFileStorage = path.join(storageRoot, 'photo-files');
+const officialIssueStorage = path.join(storageRoot, 'official-issues');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -169,6 +174,7 @@ async function ensureStorage() {
   await fs.mkdir(fieldTaskStorage, { recursive: true });
   await fs.mkdir(photoRecordStorage, { recursive: true });
   await fs.mkdir(photoFileStorage, { recursive: true });
+  await fs.mkdir(officialIssueStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -453,6 +459,30 @@ async function handlePhotoApi(req, res, url) {
   }
 }
 
+async function handleOfficialIssueApi(req, res, url) {
+  try {
+    await ensureStorage();
+    if (req.method === 'GET' && url.pathname === '/api/issues') {
+      return json(res, 200, { items: filterOfficialIssues(await listStoredJson(officialIssueStorage), url.searchParams), storage: 'server' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/issues/finalize') {
+      const body = await readJson(req, 2 * 1024 * 1024);
+      const analysisId = safeId(body.analysisId);
+      if (!analysisId) return json(res, 400, { message: '分析批次编号无效' });
+      const analysis = await readStoredJson(path.join(analysisStorage, `${analysisId}.json`));
+      if (!analysis) return json(res, 404, { message: '分析批次不存在' });
+      const issues = Array.isArray(body.issues) ? body.issues : [];
+      if (!issues.length) return json(res, 400, { message: '没有可写入的正式问题' });
+      const records = issues.map((issue) => normalizeOfficialIssue(issue, analysis, body.reviewerName));
+      for (const record of records) await writeStoredJson(path.join(officialIssueStorage, `${record.id}.json`), record);
+      return json(res, 200, { items: records, finalized: records.length, storage: 'server' });
+    }
+    return json(res, 404, { message: '正式问题接口不存在' });
+  } catch (error) {
+    return json(res, 400, { message: error.message || '正式问题写入失败' });
+  }
+}
+
 async function serveStatic(req, res) {
   const pathname = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -486,6 +516,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
   if (url.pathname.startsWith('/api/field/')) return handleFieldCollectionApi(req, res, url);
   if (url.pathname.startsWith('/api/photos')) return handlePhotoApi(req, res, url);
+  if (url.pathname.startsWith('/api/issues')) return handleOfficialIssueApi(req, res, url);
   if (url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/analysis-records')) return handleStorageApi(req, res, url);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   json(res, 405, { message: '不支持的请求方法' });

@@ -17,6 +17,10 @@ import {
   filterPhotoRecords,
   normalizePhotoUpload
 } from './photo-storage-core.js';
+import {
+  filterOfficialIssues,
+  normalizeOfficialIssue
+} from './official-issue-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
@@ -28,6 +32,7 @@ const settingsCollection = db.collection('settings');
 const apiKeyUsersCollection = db.collection('apiKeyUsers');
 const fieldTaskCollection = db.collection('fieldCollectionTasks');
 const photoRecordCollection = db.collection('photoRecords');
+const officialIssueCollection = db.collection('officialIssues');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -602,6 +607,29 @@ async function handlePhotoApi(req, res, url, pathname) {
   }
 }
 
+async function handleOfficialIssueApi(req, res, url, pathname) {
+  try {
+    if (req.method === 'GET' && pathname === '/issues') {
+      return writeJson(res, 200, { items: filterOfficialIssues(await listCollection(officialIssueCollection), url.searchParams), storage: 'cloudbase' });
+    }
+    if (req.method === 'POST' && pathname === '/issues/finalize') {
+      const body = await readJson(req, 2 * 1024 * 1024);
+      const analysisId = safeId(body.analysisId);
+      if (!analysisId) return writeJson(res, 400, { message: '分析批次编号无效' });
+      const analysis = await getDocument(analysisCollection, analysisId);
+      if (!analysis) return writeJson(res, 404, { message: '分析批次不存在' });
+      const issues = Array.isArray(body.issues) ? body.issues : [];
+      if (!issues.length) return writeJson(res, 400, { message: '没有可写入的正式问题' });
+      const records = issues.map((issue) => normalizeOfficialIssue(issue, analysis, body.reviewerName));
+      await putDocuments(officialIssueCollection, records);
+      return writeJson(res, 200, { items: records, finalized: records.length, storage: 'cloudbase' });
+    }
+    return writeJson(res, 404, { message: '正式问题接口不存在' });
+  } catch (error) {
+    return writeJson(res, 400, { message: error.message || '正式问题写入失败' });
+  }
+}
+
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -702,6 +730,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/project-data') || /^\/projects\/\d+\/data-/.test(pathname)) return handleProjectDataApi(req, res, url, pathname);
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
   if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
+  if (pathname.startsWith('/issues')) return handleOfficialIssueApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });
