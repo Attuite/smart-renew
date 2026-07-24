@@ -2,6 +2,7 @@ const DATA_TYPE_LABELS = {
   project: '项目档案',
   scope: '项目范围',
   residentialUnit: '住宅台账',
+  building: '楼栋档案',
   geoNode: '地理单元',
   photo: '照片',
   analysisRecord: '分析批次',
@@ -104,7 +105,12 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
   ];
   residentialItems.forEach((item, index) => {
     const sourceId = String(item.id || `${item.name || 'community'}-${index}`);
+    const communityDataId = makeProjectDataId(projectId, 'residentialUnit', `:${sourceId}`);
+    const buildings = Array.isArray(item.buildings) ? item.buildings : [];
+    const activeBuildings = buildings.filter((building) => building.status !== 'deleted');
+    const buildingIds = activeBuildings.map((building, buildingIndex) => String(building.id || `${sourceId}-building-${buildingIndex}`));
     add({
+      id: communityDataId,
       dataType: 'residentialUnit',
       sourceId,
       code: `RES-${stableDataHash(sourceId)}`,
@@ -118,10 +124,38 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
         latitude: item.lat ?? null,
         buildingCount: item.buildingCount ?? null,
         householdCount: item.householdCount ?? null,
+        buildingDetailCount: activeBuildings.length,
+        buildingIds,
         members: item.members || [],
         dataSource: item.dataSource || inventory.dataSource || '',
         deletedAt: item.deletedAt || ''
       }
+    });
+    buildings.forEach((building, buildingIndex) => {
+      const buildingSourceId = String(building.id || `${sourceId}-building-${buildingIndex}`);
+      add({
+        dataType: 'building',
+        sourceId: buildingSourceId,
+        code: building.code || `BLD-${stableDataHash(buildingSourceId)}`,
+        title: building.name || `未命名楼栋 ${buildingIndex + 1}`,
+        status: building.status || 'active',
+        tags: [item.name || '所属小区未命名', building.status === 'deleted' ? '已删除' : '楼栋档案'],
+        references: [
+          { targetId: communityDataId, relation: '所属小区' },
+          { targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }
+        ],
+        payload: {
+          communityId: sourceId,
+          communityName: item.name || '',
+          name: building.name || '',
+          householdCount: building.householdCount ?? null,
+          unitCount: building.unitCount ?? null,
+          floorCount: building.floorCount ?? null,
+          address: building.address || item.address || '',
+          dataSource: building.source || 'manual',
+          deletedAt: building.deletedAt || ''
+        }
+      });
     });
   });
   analysisRecords.forEach((analysis, analysisIndex) => {
@@ -129,6 +163,11 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
     const analysisDataId = makeProjectDataId(projectId, 'analysisRecord', `:${analysisId}`);
     const issues = Array.isArray(analysis.result?.issues) ? analysis.result.issues : [];
     const imageCount = analysis.imagesCount || analysis.imagesBase64?.length || analysis.annotatedImages?.length || 0;
+    const analysisCommunityId = String(analysis.communityId || '');
+    const analysisBuildingId = String(analysis.buildingId || '');
+    const analysisReferences = [{ targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }];
+    if (analysisCommunityId) analysisReferences.push({ targetId: makeProjectDataId(projectId, 'residentialUnit', `:${analysisCommunityId}`), relation: '所属小区' });
+    if (analysisBuildingId) analysisReferences.push({ targetId: makeProjectDataId(projectId, 'building', `:${analysisBuildingId}`), relation: '所属楼栋' });
     add({
       id: analysisDataId,
       dataType: 'analysisRecord',
@@ -136,29 +175,39 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
       code: `ANA-${analysisId}`,
       title: `住区分析批次 ${analysisIndex + 1}`,
       tags: ['AI分析', analysis.status || '已归档'],
-      references: [{ targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }],
+      references: analysisReferences,
       payload: {
         timestamp: analysis.timestamp || '',
         archivedAt: analysis.archivedAt || '',
         imagesCount: imageCount,
         issueCount: issues.length,
+        communityId: analysisCommunityId,
+        buildingId: analysisBuildingId,
         model: analysis.model || ''
       }
     });
     for (let imageIndex = 0; imageIndex < imageCount; imageIndex += 1) {
       const photoSourceId = `${analysisId}-image-${imageIndex + 1}`;
+      const imageMeta = analysis.imageMeta?.[imageIndex] || {};
+      const communityId = String(imageMeta.communityId || analysis.communityId || '');
+      const buildingId = String(imageMeta.buildingId || analysis.buildingId || '');
+      const photoReferences = [
+        { targetId: analysisDataId, relation: '所属分析批次' },
+        { targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }
+      ];
+      if (communityId) photoReferences.push({ targetId: makeProjectDataId(projectId, 'residentialUnit', `:${communityId}`), relation: '所属小区' });
+      if (buildingId) photoReferences.push({ targetId: makeProjectDataId(projectId, 'building', `:${buildingId}`), relation: '所属楼栋' });
       add({
         dataType: 'photo',
         sourceId: photoSourceId,
         code: `PHOTO-${stableDataHash(photoSourceId)}`,
         title: `现场照片 ${imageIndex + 1}`,
         tags: ['现场照片', analysis.annotatedImages?.[imageIndex] ? '已标注' : '原始影像'],
-        references: [
-          { targetId: analysisDataId, relation: '所属分析批次' },
-          { targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }
-        ],
+        references: photoReferences,
         payload: {
           imageIndex: imageIndex + 1,
+          communityId,
+          buildingId,
           storage: 'analysis-record-embedded',
           hasOriginal: Boolean(analysis.imagesBase64?.[imageIndex]),
           hasAnnotated: Boolean(analysis.annotatedImages?.[imageIndex])
@@ -171,6 +220,10 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
         { targetId: analysisDataId, relation: '来源分析批次' },
         { targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }
       ];
+      const communityId = String(issue.communityId || analysis.communityId || '');
+      const buildingId = String(issue.buildingId || analysis.buildingId || '');
+      if (communityId) references.push({ targetId: makeProjectDataId(projectId, 'residentialUnit', `:${communityId}`), relation: '所属小区' });
+      if (buildingId) references.push({ targetId: makeProjectDataId(projectId, 'building', `:${buildingId}`), relation: '所属楼栋' });
       if (Number(issue.imageIndex) > 0 && Number(issue.imageIndex) <= imageCount) {
         references.push({
           targetId: makeProjectDataId(projectId, 'photo', `:${analysisId}-image-${Number(issue.imageIndex)}`),
@@ -194,6 +247,8 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
           bbox: issue.bbox || null,
           imageIndex: issue.imageIndex ?? null,
           categoryCode: issue.categoryCode || '',
+          communityId,
+          buildingId,
           reviewStatus: issue.reviewStatus || ''
         }
       });

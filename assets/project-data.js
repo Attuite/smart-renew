@@ -5,6 +5,7 @@
     project: '项目档案',
     scope: '项目范围',
     residentialUnit: '住宅台账',
+    building: '楼栋档案',
     geoNode: '地理单元',
     photo: '照片',
     analysisRecord: '分析批次',

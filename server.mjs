@@ -229,9 +229,15 @@ async function handleProjectDataApi(req, res, url) {
       let items = await listLocalProjectData(projectId);
       const type = String(url.searchParams.get('type') || '');
       const tag = String(url.searchParams.get('tag') || '');
+      const communityId = String(url.searchParams.get('communityId') || '');
+      const buildingId = String(url.searchParams.get('buildingId') || '');
+      const referenceId = String(url.searchParams.get('referenceId') || '');
       const query = String(url.searchParams.get('q') || '').trim().toLowerCase();
       if (type) items = items.filter((item) => item.dataType === type);
       if (tag) items = items.filter((item) => (item.tags || []).includes(tag));
+      if (communityId) items = items.filter((item) => String(item.payload?.communityId || item.sourceId || '') === communityId);
+      if (buildingId) items = items.filter((item) => String(item.payload?.buildingId || item.sourceId || '') === buildingId);
+      if (referenceId) items = items.filter((item) => (item.references || []).some((reference) => String(reference.targetId) === referenceId));
       if (query) items = items.filter((item) => JSON.stringify([item.id, item.code, item.title, item.tags, item.sourceId]).toLowerCase().includes(query));
       items.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
       return json(res, 200, { items, stats: projectDataStats(items), storage: 'server' });

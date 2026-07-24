@@ -37,9 +37,9 @@
 
 ### 查询指标库数据
 
-`GET /api/project-data?projectId={项目ID}&type={数据类型}&tag={标签}&q={关键词}`
+`GET /api/project-data?projectId={项目ID}&type={数据类型}&tag={标签}&communityId={小区编号}&buildingId={楼栋编号}&referenceId={关联数据编号}&q={关键词}`
 
-可按项目、类型、标签、编号、名称和编码检索。
+可按项目、类型、标签、小区、楼栋、关联数据编号、名称和业务编码检索。例如使用 `type=building&communityId=C-1` 查询某小区下的全部楼栋。
 
 ### 读取单条数据
 

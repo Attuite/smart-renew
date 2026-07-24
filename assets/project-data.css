@@ -22,6 +22,15 @@
 .indicator-community-value:last-child{border-right:0}
 .indicator-community-name strong,.indicator-community-value strong{display:block;color:var(--editorial-ink);font-size:.88rem;margin-bottom:4px}
 .indicator-community-name span,.indicator-community-value span{display:block;color:var(--editorial-muted);font-size:.7rem}
+.scope-building-details{margin-top:10px;border-left:2px solid var(--spice-300);padding-left:10px}
+.scope-building-details summary{cursor:pointer;color:var(--editorial-ink);font-size:.72rem;font-weight:600}
+.scope-building-detail-list{display:grid;gap:7px;margin-top:8px;padding:9px;background:var(--editorial-soft)}
+.scope-building-detail-row{display:grid;grid-template-columns:minmax(150px,1fr) 100px auto;gap:7px;align-items:center}
+.scope-building-detail-row input{width:100%;height:34px;border:1px solid var(--editorial-line);background:#fff;padding:0 9px;color:var(--editorial-ink);font:inherit;font-size:.72rem}
+.scope-building-detail-row button,.scope-building-add{border:1px solid var(--editorial-line);background:#fff;padding:7px 9px;color:var(--editorial-ink);font:inherit;font-size:.68rem;cursor:pointer}
+.scope-building-detail-row button{color:var(--red-500)}
+.scope-building-add{justify-self:start}
+.scope-building-detail-empty{font-size:.68rem;color:var(--editorial-muted);line-height:1.55}
 .project-data-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--editorial-line);border-left:1px solid var(--editorial-line)}
 .project-data-stat{padding:16px;border-right:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);background:#fff}
 .project-data-stat strong{display:block;font-size:1.45rem;color:var(--editorial-ink);margin-bottom:5px}
@@ -57,6 +66,7 @@
   .indicator-community-detail{grid-template-columns:1fr}
   .indicator-community-name,.indicator-community-value{border-right:0;border-bottom:1px solid var(--editorial-line)}
   .indicator-community-value:last-child{border-bottom:0}
+  .scope-building-detail-row{grid-template-columns:1fr}
   .project-data-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .project-data-filter{grid-template-columns:1fr}
   .project-data-row{grid-template-columns:1fr}
