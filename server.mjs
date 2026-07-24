@@ -8,12 +8,19 @@ import {
   normalizeProjectDataRecord,
   projectDataStats
 } from './functions/api/project-data-core.js';
+import {
+  fieldProjectSummary,
+  listFieldBuildings,
+  listFieldCommunities,
+  normalizeCollectionTask
+} from './functions/api/field-collection-core.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const storageRoot = path.resolve(process.env.SMART_RENEW_DATA_DIR || path.join(root, '.smart-renew-data'));
 const projectStorage = path.join(storageRoot, 'projects');
 const analysisStorage = path.join(storageRoot, 'analysis-records');
 const projectDataStorage = path.join(storageRoot, 'project-data');
+const fieldTaskStorage = path.join(storageRoot, 'field-collection-tasks');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -152,6 +159,7 @@ async function ensureStorage() {
   await fs.mkdir(projectStorage, { recursive: true });
   await fs.mkdir(analysisStorage, { recursive: true });
   await fs.mkdir(projectDataStorage, { recursive: true });
+  await fs.mkdir(fieldTaskStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -342,6 +350,49 @@ async function handleStorageApi(req, res, url) {
   }
 }
 
+async function handleFieldCollectionApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const projectCommunitiesMatch = url.pathname.match(/^\/api\/field\/projects\/(\d+)\/communities$/);
+    const communityBuildingsMatch = url.pathname.match(/^\/api\/field\/projects\/(\d+)\/communities\/([A-Za-z0-9_.-]+)\/buildings$/);
+    const taskMatch = url.pathname.match(/^\/api\/field\/collection-tasks\/([A-Za-z0-9_.-]+)$/);
+    if (req.method === 'GET' && url.pathname === '/api/field/projects') {
+      const projects = (await listStoredJson(projectStorage)).map(fieldProjectSummary);
+      return json(res, 200, { items: projects, storage: 'server' });
+    }
+    if (req.method === 'GET' && projectCommunitiesMatch) {
+      const project = await readStoredJson(path.join(projectStorage, `${projectCommunitiesMatch[1]}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      return json(res, 200, { items: listFieldCommunities(project), storage: 'server' });
+    }
+    if (req.method === 'GET' && communityBuildingsMatch) {
+      const project = await readStoredJson(path.join(projectStorage, `${communityBuildingsMatch[1]}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      const items = listFieldBuildings(project, communityBuildingsMatch[2]);
+      return items ? json(res, 200, { items, storage: 'server' }) : json(res, 404, { message: '小区不存在' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/field/collection-tasks') {
+      const body = await readJson(req, 256 * 1024);
+      const projectId = safeId(body.projectId);
+      if (!projectId) return json(res, 400, { message: '项目编号无效' });
+      const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      const candidate = normalizeCollectionTask(body, project);
+      const existing = await readStoredJson(path.join(fieldTaskStorage, `${candidate.id}.json`));
+      if (existing) return json(res, 200, { item: existing, duplicated: true, storage: 'server' });
+      await writeStoredJson(path.join(fieldTaskStorage, `${candidate.id}.json`), candidate);
+      return json(res, 201, { item: candidate, duplicated: false, storage: 'server' });
+    }
+    if (req.method === 'GET' && taskMatch) {
+      const task = await readStoredJson(path.join(fieldTaskStorage, `${taskMatch[1]}.json`));
+      return task ? json(res, 200, { item: task, storage: 'server' }) : json(res, 404, { message: '现场任务不存在' });
+    }
+    return json(res, 404, { message: '现场采集接口不存在' });
+  } catch (error) {
+    return json(res, 400, { message: error.message || '现场采集数据无效' });
+  }
+}
+
 async function serveStatic(req, res) {
   const pathname = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -373,6 +424,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
+  if (url.pathname.startsWith('/api/field/')) return handleFieldCollectionApi(req, res, url);
   if (url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/analysis-records')) return handleStorageApi(req, res, url);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   json(res, 405, { message: '不支持的请求方法' });

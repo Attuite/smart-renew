@@ -6,6 +6,12 @@ import {
   normalizeProjectDataRecord,
   projectDataStats
 } from './project-data-core.js';
+import {
+  fieldProjectSummary,
+  listFieldBuildings,
+  listFieldCommunities,
+  normalizeCollectionTask
+} from './field-collection-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
@@ -15,6 +21,7 @@ const analysisCollection = db.collection('analysisRecords');
 const projectDataCollection = db.collection('projectDataRecords');
 const settingsCollection = db.collection('settings');
 const apiKeyUsersCollection = db.collection('apiKeyUsers');
+const fieldTaskCollection = db.collection('fieldCollectionTasks');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -493,6 +500,48 @@ async function handleStorageApi(req, res, url, pathname) {
   }
 }
 
+async function handleFieldCollectionApi(req, res, pathname) {
+  try {
+    const projectCommunitiesMatch = pathname.match(/^\/field\/projects\/(\d+)\/communities$/);
+    const communityBuildingsMatch = pathname.match(/^\/field\/projects\/(\d+)\/communities\/([A-Za-z0-9_.-]+)\/buildings$/);
+    const taskMatch = pathname.match(/^\/field\/collection-tasks\/([A-Za-z0-9_.-]+)$/);
+    if (req.method === 'GET' && pathname === '/field/projects') {
+      const projects = (await listCollection(projectCollection)).map(fieldProjectSummary);
+      return writeJson(res, 200, { items: projects, storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && projectCommunitiesMatch) {
+      const project = await getDocument(projectCollection, projectCommunitiesMatch[1]);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      return writeJson(res, 200, { items: listFieldCommunities(project), storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && communityBuildingsMatch) {
+      const project = await getDocument(projectCollection, communityBuildingsMatch[1]);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      const items = listFieldBuildings(project, communityBuildingsMatch[2]);
+      return items ? writeJson(res, 200, { items, storage: 'cloudbase' }) : writeJson(res, 404, { message: '小区不存在' });
+    }
+    if (req.method === 'POST' && pathname === '/field/collection-tasks') {
+      const body = await readJson(req, 256 * 1024);
+      const projectId = safeId(body.projectId);
+      if (!projectId) return writeJson(res, 400, { message: '项目编号无效' });
+      const project = await getDocument(projectCollection, projectId);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      const candidate = normalizeCollectionTask(body, project);
+      const existing = await getDocument(fieldTaskCollection, candidate.id).catch(() => null);
+      if (existing) return writeJson(res, 200, { item: existing, duplicated: true, storage: 'cloudbase' });
+      await putDocument(fieldTaskCollection, candidate.id, candidate);
+      return writeJson(res, 201, { item: candidate, duplicated: false, storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && taskMatch) {
+      const task = await getDocument(fieldTaskCollection, taskMatch[1]);
+      return task ? writeJson(res, 200, { item: task, storage: 'cloudbase' }) : writeJson(res, 404, { message: '现场任务不存在' });
+    }
+    return writeJson(res, 404, { message: '现场采集接口不存在' });
+  } catch (error) {
+    return writeJson(res, 400, { message: error.message || '现场采集数据无效' });
+  }
+}
+
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -591,6 +640,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/config/session/health') return sessionHealth(req, res);
   if (req.method === 'POST' && pathname === '/vision/analyze') return analyze(req, res);
   if (pathname.startsWith('/project-data') || /^\/projects\/\d+\/data-/.test(pathname)) return handleProjectDataApi(req, res, url, pathname);
+  if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });
