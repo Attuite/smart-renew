@@ -107,6 +107,7 @@ CloudBase 数据库使用的关键集合包括：
 - 全流程实施依据见 `SMART_RENEW_WORKFLOW_IMPLEMENTATION.md`。第1步“小区—楼栋统一数据关系”和第3步“照片归档与住区维度导入”已完成：住宅台账可维护具体楼栋，新增照片使用独立档案与稳定编号，不再长期嵌入分析记录。照片接口见 `docs/PHOTO_ARCHIVE_API.md`。
 - 第4步“AI复核与正式问题入库”已完成，候选问题不会直接计入统计；正式问题接口见 `docs/OFFICIAL_ISSUE_API.md`。
 - 第5步“报告统一查询与版本快照”已完成，动态报告只读取正式问题；版本接口见 `docs/REPORT_SNAPSHOT_API.md`。
+- 第6步迁移工具和全流程联调已完成，实际项目数据未自动迁移；使用前先阅读 `docs/LEGACY_MIGRATION.md`。
 - 支持导入同事提供的 SQLite 城市体检数据库或智更 JSON 数据包，支持导出版本化 JSON 和通用 SQLite 索引库。
 - 已从同事数据库整理出 412 条城市体检标准库数据，其中包含 4 个维度、14 个要素、61 项指标、35 个问题大类、124 个问题小类、124 条整改建议及相关规则字典，可按项目载入。
 - 指标库索引接口说明见 `docs/PROJECT_DATA_API.md`；本地和 CloudBase 接口保持一致。

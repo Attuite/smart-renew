@@ -26,6 +26,10 @@ import {
 import {
   buildReportSnapshot
 } from './functions/api/report-snapshot-core.js';
+import {
+  auditLegacyData,
+  inferLegacyProblemCode
+} from './functions/api/legacy-migration-core.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const storageRoot = path.resolve(process.env.SMART_RENEW_DATA_DIR || path.join(root, '.smart-renew-data'));
@@ -524,6 +528,93 @@ async function handleReportSnapshotApi(req, res, url) {
   }
 }
 
+async function storeMigratedLocalPhoto(project, analysis, dataUrl, meta, imageIndex, variant) {
+  const decoded = decodePhotoDataUrl(dataUrl);
+  const record = normalizePhotoUpload({
+    photoId: `PHOTO-${analysis.id}-${variant.toUpperCase()}-${imageIndex}`,
+    projectId: String(project.id),
+    communityId: meta.communityId || analysis.communityId,
+    buildingId: meta.buildingId || analysis.buildingId || '',
+    analysisId: String(analysis.id),
+    imageIndex,
+    name: `${variant === 'annotated' ? '历史标注图' : '历史原图'}-${imageIndex}.${decoded.extension}`,
+    description: '由旧版分析记录迁移',
+    capturedAt: analysis.timestamp || analysis.archivedAt || new Date().toISOString(),
+    width: meta.width || 0,
+    height: meta.height || 0
+  }, project, decoded);
+  const existing = await readStoredJson(path.join(photoRecordStorage, `${record.id}.json`));
+  if (existing) return existing;
+  const relativePath = record.cloudPath.replace(/^projects\/[^/]+\/photos\//, '');
+  const filePath = path.resolve(photoFileStorage, String(project.id), relativePath);
+  const allowedRoot = path.resolve(photoFileStorage, String(project.id)) + path.sep;
+  if (!filePath.startsWith(allowedRoot)) throw new Error('迁移照片路径无效');
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, decoded.buffer);
+  record.storage = 'server-filesystem';
+  record.filePath = path.relative(photoFileStorage, filePath).split(path.sep).join('/');
+  await writeStoredJson(path.join(photoRecordStorage, `${record.id}.json`), record);
+  return record;
+}
+
+async function handleLegacyMigrationApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const body = req.method === 'POST' ? await readJson(req, 64 * 1024) : {};
+    const projectId = safeId(body.projectId || url.searchParams.get('projectId'));
+    if (!projectId) return json(res, 400, { message: '项目编号无效' });
+    const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+    if (!project) return json(res, 404, { message: '项目不存在' });
+    const analyses = await listStoredJson(analysisStorage);
+    const photos = await listStoredJson(photoRecordStorage);
+    const issues = await listStoredJson(officialIssueStorage);
+    const before = auditLegacyData(projectId, analyses, photos, issues);
+    if (req.method === 'GET' || body.apply !== true) return json(res, 200, { audit: before, applied: false });
+    let migratedPhotos = 0;
+    let migratedIssues = 0;
+    for (const analysis of analyses.filter((item) => String(item.projectId) === projectId)) {
+      const meta = Array.isArray(analysis.imageMeta) ? analysis.imageMeta : [];
+      if (Array.isArray(analysis.imagesBase64) && analysis.imagesBase64.length) {
+        analysis.photoIds = [];
+        for (let index = 0; index < analysis.imagesBase64.length; index += 1) {
+          const photo = await storeMigratedLocalPhoto(project, analysis, analysis.imagesBase64[index], meta[index] || {}, index + 1, 'original');
+          analysis.photoIds.push(photo.id);
+          meta[index] = { ...(meta[index] || {}), photoId: photo.id, communityId: photo.communityId, buildingId: photo.buildingId, storage: photo.storage, fileId: photo.fileId, cloudPath: photo.cloudPath };
+          migratedPhotos += 1;
+        }
+        delete analysis.imagesBase64;
+      }
+      if (Array.isArray(analysis.annotatedImages) && analysis.annotatedImages.length) {
+        analysis.annotatedPhotoIds = [];
+        for (let index = 0; index < analysis.annotatedImages.length; index += 1) {
+          const photo = await storeMigratedLocalPhoto(project, analysis, analysis.annotatedImages[index], meta[index] || {}, index + 1, 'annotated');
+          analysis.annotatedPhotoIds.push(photo.id);
+          migratedPhotos += 1;
+        }
+        delete analysis.annotatedImages;
+      }
+      analysis.imageMeta = meta;
+      await writeStoredJson(path.join(analysisStorage, `${analysis.id}.json`), analysis);
+      if (analysis.status === 'archived' && Array.isArray(analysis.result?.issues)) {
+        for (const candidate of analysis.result.issues) {
+          const official = normalizeOfficialIssue({
+            ...candidate,
+            problemCode: inferLegacyProblemCode(candidate),
+            reviewStatus: candidate.reviewStatus === 'modified' ? 'modified' : 'accepted'
+          }, analysis, analysis.reviewerName || body.reviewerName || '历史数据迁移');
+          await writeStoredJson(path.join(officialIssueStorage, `${official.id}.json`), official);
+          migratedIssues += 1;
+        }
+      }
+    }
+    await rebuildLocalProjectIndex(projectId);
+    const after = auditLegacyData(projectId, await listStoredJson(analysisStorage), await listStoredJson(photoRecordStorage), await listStoredJson(officialIssueStorage));
+    return json(res, 200, { applied: true, migratedPhotos, migratedIssues, before, after });
+  } catch (error) {
+    return json(res, 400, { message: error.message || '旧数据迁移失败' });
+  }
+}
+
 async function serveStatic(req, res) {
   const pathname = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -559,6 +650,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/photos')) return handlePhotoApi(req, res, url);
   if (url.pathname.startsWith('/api/issues')) return handleOfficialIssueApi(req, res, url);
   if (url.pathname.startsWith('/api/reports')) return handleReportSnapshotApi(req, res, url);
+  if (url.pathname === '/api/migrations/legacy') return handleLegacyMigrationApi(req, res, url);
   if (url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/analysis-records')) return handleStorageApi(req, res, url);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   json(res, 405, { message: '不支持的请求方法' });

@@ -27,8 +27,10 @@ export function normalizeOfficialIssue(issue, analysis, reviewerName) {
   const annotatedPhotoId = clean(analysis?.annotatedPhotoIds?.[imageIndex - 1], 120);
   if (!originalPhotoId) throw new Error('正式问题缺少原始照片编号');
   const now = new Date().toISOString();
+  const rawId = clean(issue?.id || `ISS-${analysis.id}-${imageIndex}`, 120);
+  const safeId = rawId.replace(/[^A-Za-z0-9_.-]/g, '_');
   return {
-    id: clean(issue?.id || `ISS-${analysis.id}-${imageIndex}`, 120),
+    id: /^[A-Za-z0-9][A-Za-z0-9_.-]{2,119}$/.test(safeId) ? safeId : `ISS-${analysis.id}-${imageIndex}`,
     projectId: String(analysis.projectId),
     communityId: clean(issue?.communityId || analysis.communityId, 120),
     buildingId: clean(issue?.buildingId || analysis.buildingId, 120),

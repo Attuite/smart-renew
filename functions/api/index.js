@@ -24,6 +24,10 @@ import {
 import {
   buildReportSnapshot
 } from './report-snapshot-core.js';
+import {
+  auditLegacyData,
+  inferLegacyProblemCode
+} from './legacy-migration-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
@@ -669,6 +673,87 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
   }
 }
 
+async function storeMigratedCloudPhoto(project, analysis, dataUrl, meta, imageIndex, variant) {
+  const decoded = decodePhotoDataUrl(dataUrl);
+  const record = normalizePhotoUpload({
+    photoId: `PHOTO-${analysis.id}-${variant.toUpperCase()}-${imageIndex}`,
+    projectId: String(project.id),
+    communityId: meta.communityId || analysis.communityId,
+    buildingId: meta.buildingId || analysis.buildingId || '',
+    analysisId: String(analysis.id),
+    imageIndex,
+    name: `${variant === 'annotated' ? '历史标注图' : '历史原图'}-${imageIndex}.${decoded.extension}`,
+    description: '由旧版分析记录迁移',
+    capturedAt: analysis.timestamp || analysis.archivedAt || new Date().toISOString(),
+    width: meta.width || 0,
+    height: meta.height || 0
+  }, project, decoded);
+  const existing = await getDocument(photoRecordCollection, record.id).catch(() => null);
+  if (existing) return existing;
+  const uploaded = await app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer });
+  record.storage = 'cloudbase-storage';
+  record.fileId = uploaded.fileID || '';
+  await putDocument(photoRecordCollection, record.id, record);
+  return record;
+}
+
+async function handleLegacyMigrationApi(req, res, url, pathname) {
+  try {
+    const body = req.method === 'POST' ? await readJson(req, 64 * 1024) : {};
+    const projectId = safeId(body.projectId || url.searchParams.get('projectId'));
+    if (!projectId) return writeJson(res, 400, { message: '项目编号无效' });
+    const project = await getDocument(projectCollection, projectId);
+    if (!project) return writeJson(res, 404, { message: '项目不存在' });
+    const analyses = await listCollection(analysisCollection);
+    const photos = await listCollection(photoRecordCollection);
+    const issues = await listCollection(officialIssueCollection);
+    const before = auditLegacyData(projectId, analyses, photos, issues);
+    if (req.method === 'GET' || body.apply !== true) return writeJson(res, 200, { audit: before, applied: false });
+    let migratedPhotos = 0;
+    let migratedIssues = 0;
+    for (const analysis of analyses.filter((item) => String(item.projectId) === projectId)) {
+      const meta = Array.isArray(analysis.imageMeta) ? analysis.imageMeta : [];
+      if (Array.isArray(analysis.imagesBase64) && analysis.imagesBase64.length) {
+        analysis.photoIds = [];
+        for (let index = 0; index < analysis.imagesBase64.length; index += 1) {
+          const photo = await storeMigratedCloudPhoto(project, analysis, analysis.imagesBase64[index], meta[index] || {}, index + 1, 'original');
+          analysis.photoIds.push(photo.id);
+          meta[index] = { ...(meta[index] || {}), photoId: photo.id, communityId: photo.communityId, buildingId: photo.buildingId, storage: photo.storage, fileId: photo.fileId, cloudPath: photo.cloudPath };
+          migratedPhotos += 1;
+        }
+        delete analysis.imagesBase64;
+      }
+      if (Array.isArray(analysis.annotatedImages) && analysis.annotatedImages.length) {
+        analysis.annotatedPhotoIds = [];
+        for (let index = 0; index < analysis.annotatedImages.length; index += 1) {
+          const photo = await storeMigratedCloudPhoto(project, analysis, analysis.annotatedImages[index], meta[index] || {}, index + 1, 'annotated');
+          analysis.annotatedPhotoIds.push(photo.id);
+          migratedPhotos += 1;
+        }
+        delete analysis.annotatedImages;
+      }
+      analysis.imageMeta = meta;
+      await putDocument(analysisCollection, String(analysis.id), analysis);
+      if (analysis.status === 'archived' && Array.isArray(analysis.result?.issues)) {
+        for (const candidate of analysis.result.issues) {
+          const official = normalizeOfficialIssue({
+            ...candidate,
+            problemCode: inferLegacyProblemCode(candidate),
+            reviewStatus: candidate.reviewStatus === 'modified' ? 'modified' : 'accepted'
+          }, analysis, analysis.reviewerName || body.reviewerName || '历史数据迁移');
+          await putDocument(officialIssueCollection, official.id, official);
+          migratedIssues += 1;
+        }
+      }
+    }
+    await replaceNativeProjectIndex(projectId);
+    const after = auditLegacyData(projectId, await listCollection(analysisCollection), await listCollection(photoRecordCollection), await listCollection(officialIssueCollection));
+    return writeJson(res, 200, { applied: true, migratedPhotos, migratedIssues, before, after });
+  } catch (error) {
+    return writeJson(res, 400, { message: error.message || '旧数据迁移失败' });
+  }
+}
+
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -771,6 +856,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
   if (pathname.startsWith('/issues')) return handleOfficialIssueApi(req, res, url, pathname);
   if (pathname.startsWith('/reports')) return handleReportSnapshotApi(req, res, url, pathname);
+  if (pathname === '/migrations/legacy') return handleLegacyMigrationApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });
