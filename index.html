@@ -253,10 +253,9 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 .detail-back:hover{color:var(--spice-400)}.detail-tags{display:flex;gap:8px;margin-bottom:16px}
 .detail-tag{padding:5px 14px;font-size:.72rem;font-weight:500;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);letter-spacing:.3px}
 .detail-title{font-family:var(--font-display);font-size:2.4rem;font-weight:700;margin-bottom:8px;letter-spacing:-1px}
-.detail-location{font-size:.9rem;color:rgba(255,255,255,.45)}.detail-grid{display:grid;grid-template-columns:2fr 1fr;gap:32px}
+.detail-location{font-size:.9rem;color:rgba(255,255,255,.45)}.detail-grid{display:block}
 .detail-main h2{font-size:1.2rem;font-weight:700;color:var(--ink-900);margin-bottom:18px}
 .detail-main p{font-size:.9rem;color:var(--text-secondary);line-height:1.9;margin-bottom:24px}
-.detail-sidebar{background:var(--bg-surface);padding:28px;border:1px solid var(--border-default);height:fit-content}
 .detail-info-item{margin-bottom:18px}.detail-info-label{font-size:.75rem;color:var(--text-muted);margin-bottom:3px;letter-spacing:.3px}
 .detail-info-val{font-size:.95rem;font-weight:600;color:var(--ink-900)}
 #page-community .page-hero{display:none}#page-community .section{padding:0}
@@ -317,7 +316,7 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 .community-empty-note{margin:8px 0 10px;padding:14px;border:1px dashed var(--border-default);background:var(--bg-elevated);color:var(--text-muted);font-size:13px;line-height:1.7;text-align:center}
 @media (max-width:1024px){.community-sidebar{width:360px}}
 @media (max-width:768px){.community-shell{flex-direction:column;height:auto}.community-map-wrap{height:50vh}.community-sidebar{width:100%;flex:1;max-height:none;border-left:none;border-top:1px solid var(--border-default)}}
-@media (max-width:1024px){.hero .container{grid-template-columns:1fr;gap:40px}.hero-visual{display:none}.features-grid,.types-grid,.capability-grid{grid-template-columns:repeat(2,1fr)}.projects-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}.tips-grid{grid-template-columns:repeat(2,1fr)}.template-grid{grid-template-columns:repeat(2,1fr)}.diag-step-row{grid-template-columns:1fr}}
+@media (max-width:1024px){.hero .container{grid-template-columns:1fr;gap:40px}.hero-visual{display:none}.features-grid,.types-grid,.capability-grid{grid-template-columns:repeat(2,1fr)}.projects-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.tips-grid{grid-template-columns:repeat(2,1fr)}.template-grid{grid-template-columns:repeat(2,1fr)}.diag-step-row{grid-template-columns:1fr}}
 @media (max-width:1024px){.home-process-grid{grid-template-columns:1fr}.home-process-steps{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:768px){.home-process-steps,.home-community-matrix{grid-template-columns:1fr}.home-process-main,.home-process-side{padding:24px}.home-panel-foot{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:768px){.nav-links{display:none}.mobile-menu-btn{display:block}.nav-links.open{display:flex;flex-direction:column;position:absolute;top:68px;left:0;right:0;background:var(--bg-surface);border-bottom:1px solid var(--border-default);padding:16px 24px;box-shadow:var(--shadow-strong)}.hero{padding:120px 0 64px}.hero-title{font-size:2.2rem}.stats-grid{grid-template-columns:repeat(3,1fr)}.stat-item{padding:24px 16px}.stat-value{font-size:1.8rem}.features-grid,.types-grid,.capability-grid{grid-template-columns:1fr}.projects-grid{grid-template-columns:1fr}.dashboard-grid{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1fr}.diag-stats{gap:24px;flex-wrap:wrap}.pie-chart{flex-direction:column;align-items:flex-start}.tips-grid{grid-template-columns:1fr}.template-grid{grid-template-columns:1fr}.section-title{font-size:1.6rem}.container{padding:0 20px}.hero .container{padding:0 20px}}
@@ -416,7 +415,7 @@ body{background:var(--editorial-bg);color:var(--editorial-ink)}
 .page-hero .container{max-width:1360px}
 .page-hero-title,.detail-title{color:var(--editorial-ink);font-size:clamp(2.2rem,4.8vw,4.8rem);line-height:1.02;letter-spacing:0}
 .page-hero-desc,.detail-location,.detail-back{color:var(--editorial-muted)}
-.filter-btn,.form-input,.form-select,.form-textarea,.api-config-panel,.detail-sidebar,.result-summary-card,.history-item,.upload-zone{border-radius:0;background:var(--editorial-paper);border-color:var(--editorial-line);box-shadow:none}
+.filter-btn,.form-input,.form-select,.form-textarea,.api-config-panel,.result-summary-card,.history-item,.upload-zone{border-radius:0;background:var(--editorial-paper);border-color:var(--editorial-line);box-shadow:none}
 .filter-btn.active{background:var(--editorial-ink);border-color:var(--editorial-ink)}
 .footer{background:#111;color:rgba(255,255,255,.54);padding:30px 0 18px}
 .footer-grid{border-top:1px solid rgba(255,255,255,.12);padding-top:24px}
@@ -498,10 +497,6 @@ body{background:var(--editorial-bg);color:var(--editorial-ink)}
 .project-db-status{font-size:.67rem;font-weight:700;padding:5px 8px;background:#f3eee3;color:var(--amber-600);white-space:nowrap}
 .project-db-status.done{background:var(--green-100);color:var(--green-600)}
 .project-db-tab-section{margin-bottom:18px}
-.project-db-sidebar-title{font-size:1.08rem;font-weight:700;margin-bottom:16px;color:var(--ink-900)}
-.project-db-sidebar-actions{display:grid;gap:9px}
-.project-db-sidebar-actions .btn{width:100%;justify-content:center}
-.project-db-sidebar-note{padding:13px 0;border-top:1px solid var(--editorial-line);border-bottom:1px solid var(--editorial-line);margin:18px 0;font-size:.75rem;line-height:1.7;color:var(--editorial-muted)}
 .project-db-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:16px;margin-bottom:18px}
 .project-db-panel{background:var(--editorial-paper);border:1px solid var(--editorial-line);padding:22px;min-width:0}
 .project-db-panel h3{font-size:1rem;color:var(--editorial-ink);margin-bottom:15px}
@@ -561,9 +556,8 @@ body{background:var(--editorial-bg);color:var(--editorial-ink)}
 .housing-indicator-item{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:start;line-height:1.55}
 .housing-indicator-code{display:inline-block;background:#f3f2ef;color:#555;padding:2px 7px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap}
 .housing-indicator-name{color:var(--editorial-ink)}
-.detail-sidebar{position:sticky;top:88px}
 @media (max-width:1050px){.project-record-card{grid-template-columns:210px minmax(0,1fr)}.project-record-metrics{grid-column:1/-1;border-left:0;border-top:1px solid var(--editorial-line)}.project-record-data-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.project-db-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-grid,.project-db-overview-grid{grid-template-columns:1fr}}
-@media (max-width:720px){.project-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.projects-toolbar{align-items:flex-start;flex-direction:column}.project-record-card{grid-template-columns:1fr}.project-record-media{min-height:210px}.project-record-content{padding:22px}.project-record-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-heading{flex-direction:column}.project-db-kpis{grid-template-columns:1fr}.project-db-tabs{top:64px}.project-db-tab{padding:12px 14px}.project-db-facts{grid-template-columns:1fr}.detail-sidebar{position:static}.project-scope-toolbar{grid-template-columns:1fr}.project-scope-map{height:360px}.project-scope-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.project-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.projects-toolbar{align-items:flex-start;flex-direction:column}.project-record-card{grid-template-columns:1fr}.project-record-media{min-height:210px}.project-record-content{padding:22px}.project-record-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-heading{flex-direction:column}.project-db-kpis{grid-template-columns:1fr}.project-db-tabs{top:64px}.project-db-tab{padding:12px 14px}.project-db-facts{grid-template-columns:1fr}.project-scope-toolbar{grid-template-columns:1fr}.project-scope-map{height:360px}.project-scope-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Connexion-inspired immersive home */
 body.home-mode .header{background:transparent;border-bottom-color:rgba(255,255,255,.08)}
@@ -782,7 +776,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <!-- PAGE: DETAIL -->
 <div class="page" id="page-detail">
 <section class="detail-hero"><div class="container"><a class="detail-back" onclick="navigateTo('#projects')">← 返回项目列表</a><div class="detail-tags" id="detailTags"></div><h1 class="detail-title" id="detailTitle"></h1><p class="detail-location" id="detailLocation"></p></div></section>
-<section class="section"><div class="container"><div class="detail-grid"><div class="detail-main" id="detailMain"></div><div class="detail-sidebar" id="detailSidebar"></div></div></div></section>
+<section class="section"><div class="container"><div class="detail-grid"><div class="detail-main" id="detailMain"></div></div></div></section>
 </div>
 
 <!-- PAGE: COMMUNITY -->
@@ -1118,7 +1112,7 @@ return'<article class="project-record-card'+(active?' is-active':'')+'" role="bu
 +'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">数据更新时间<br>'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
 }
 async function renderDetailPage(){
-var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=document.getElementById('detailMain'),side=document.getElementById('detailSidebar');
+var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=document.getElementById('detailMain');
 if(pid===null){navigateTo('#projects');return;}
 if(main)main.innerHTML='<div class="result-empty">正在读取项目档案...</div>';
 try{
@@ -1139,7 +1133,6 @@ if(main)main.innerHTML='<div class="project-db-heading"><div><div class="section
 +projectDatabaseTabPanel('analysis','<div class="project-db-tab-section">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div><div class="project-db-tab-section">'+projectDatabasePanel('问题台账',projectIssueDatabaseHtml(issues))+'</div>')
 +projectDatabaseTabPanel('indicators','<div class="project-db-tab-section">'+projectDatabasePanel('住房安全指标目录',projectHousingIndicatorHtml())+'</div>')
 +projectDatabaseTabPanel('report','<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div>');
-if(side)side.innerHTML='<div class="section-tag" style="margin-bottom:10px;">PROJECT TOOLS</div><h3 class="project-db-sidebar-title">快捷操作</h3><div class="project-db-sidebar-actions"><button class="btn btn-primary btn-sm" onclick="selectProject('+p.id+')">设为当前项目</button><button class="btn btn-outline btn-sm" onclick="setProjectDatabaseView(\'ledger\')">住宅台账</button><button class="btn btn-outline btn-sm" onclick="openProjectAi('+p.id+')">住区维度分析</button><button class="btn btn-outline btn-sm" onclick="openProjectCommunity('+p.id+')">社区／街区分析</button><a href="#diagnostic" class="btn btn-outline btn-sm" data-nav="diagnostic">生成体检报告</a></div><div class="project-db-sidebar-note">'+(reportReady?'关键数据已齐备，可进入报告生成。':'当前项目尚需补齐分析数据，完成后即可生成报告。')+'</div><h3 class="project-db-sidebar-title" style="font-size:.95rem;">档案摘要</h3>'+detailInfoItem('项目类型',typeMap[p.type]||'体检项目')+detailInfoItem('项目位置',p.area||'未填写')+detailInfoItem('更新时间',new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleString('zh-CN'));
 }catch(e){if(main)main.innerHTML='<div class="result-empty" style="color:var(--red-500);">项目中枢加载失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
 
