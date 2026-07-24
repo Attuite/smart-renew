@@ -1051,7 +1051,7 @@ low:{label:'低风险',className:'severity-low',icon:'🟢',statColor:'var(--gre
 
 var currentPage='home',currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
 function renderFeaturedProjects(){}
-function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var raw=hash.replace('#',''),page=raw.includes('/')?'detail':raw;showPage(page);window.location.hash=hash;window.scrollTo(0,0);}
+function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash,raw=targetHash.replace('#',''),page=raw.includes('/')?'detail':raw;if(window.location.hash===targetHash)showPage(page);else window.location.hash=targetHash;window.scrollTo(0,0);}
 function showPage(page){
 if((page==='analysis'||page==='diagnostic')&&!getActiveProjectId()){showToast('请先在项目汇总中选择当前项目','info');page='projects';if(window.location.hash!=='#projects')history.replaceState(null,'','#projects');}
 currentPage=page;document.body.classList.toggle('home-mode',page==='home');if(page!=='home')document.body.classList.remove('home-step-2');var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
@@ -1118,7 +1118,8 @@ return'<article class="project-record-card'+(active?' is-active':'')+'" role="bu
 +'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">数据更新时间<br>'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
 }
 async function renderDetailPage(){
-var hash=window.location.hash,pid=hash.split('/')[1],main=document.getElementById('detailMain'),side=document.getElementById('detailSidebar');
+var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=document.getElementById('detailMain'),side=document.getElementById('detailSidebar');
+if(pid===null){navigateTo('#projects');return;}
 if(main)main.innerHTML='<div class="result-empty">正在读取项目档案...</div>';
 try{
 var p=await getProjectById(pid);if(!p){navigateTo('#projects');return;}
@@ -1713,7 +1714,8 @@ async function finalizeAnalysisReview(){if(!_currentAnalysisRecord)return;var pe
 /* ===== INDEXEDDB STORAGE ===== */
 function openDB(){return new Promise(function(resolve,reject){var req=indexedDB.open('SmartRenewDB',2);req.onupgradeneeded=function(e){var db=e.target.result;if(!db.objectStoreNames.contains('analysisRecords')){db.createObjectStore('analysisRecords',{keyPath:'id'});}if(!db.objectStoreNames.contains('projectRecords')){db.createObjectStore('projectRecords',{keyPath:'id'});}};req.onsuccess=function(e){resolve(e.target.result);};req.onerror=function(e){reject(e.target.error);};});}
 
-function getActiveProjectId(){var id=localStorage.getItem('smart_renew_active_project_id');return id?parseInt(id,10):null;}
+function normalizeStorageKey(id){var value=Number(id);return Number.isSafeInteger(value)&&value>0?value:null;}
+function getActiveProjectId(){return normalizeStorageKey(localStorage.getItem('smart_renew_active_project_id'));}
 function setActiveProjectId(id){localStorage.setItem('smart_renew_active_project_id',String(id));}
 
 async function saveProject(project){
@@ -1726,7 +1728,8 @@ try{await ensureServerStorage();var data=await storageApi('/api/projects');setSt
 }
 
 async function getProjectById(id){
-try{await ensureServerStorage();return await storageApi('/api/projects/'+parseInt(id,10));}catch(e){return getProjectByIdLocal(id);}
+var projectId=normalizeStorageKey(id);if(projectId===null)return null;
+try{await ensureServerStorage();return await storageApi('/api/projects/'+projectId);}catch(e){return getProjectByIdLocal(projectId);}
 }
 
 var projectScopeMap=null,projectScopeMouseTool=null,projectScopePolygon=null,projectScopeGeocoder=null,projectScopeSearchToken=0,projectScopeEditingProjectId=null;
@@ -1833,10 +1836,10 @@ function setStorageStatus(ready,text){var el=document.getElementById('projectSto
 async function ensureServerStorage(){if(serverStorageMigration)return serverStorageMigration;serverStorageMigration=(async function(){var remoteProjects=(await storageApi('/api/projects')).items||[],remoteRecords=(await storageApi('/api/analysis-records')).items||[],localProjects=await getAllProjectsLocal(),localRecords=await getAllRecordsLocal(),projectMap={},recordMap={};for(var i=0;i<remoteProjects.length;i++)projectMap[String(remoteProjects[i].id)]=remoteProjects[i];for(var j=0;j<localProjects.length;j++){var localProject=localProjects[j],remoteProject=projectMap[String(localProject.id)],localTime=new Date(localProject.updatedAt||localProject.createdAt||0).getTime(),remoteTime=remoteProject?new Date(remoteProject.updatedAt||remoteProject.createdAt||0).getTime():0;if(!remoteProject||localTime>remoteTime)await storageApi('/api/projects/'+localProject.id,{method:'PUT',body:JSON.stringify(localProject)});}for(var k=0;k<remoteRecords.length;k++)recordMap[String(remoteRecords[k].id)]=remoteRecords[k];for(var m=0;m<localRecords.length;m++){var localRecord=localRecords[m],remoteRecord=recordMap[String(localRecord.id)],localRecordTime=new Date(localRecord.archivedAt||localRecord.timestamp||0).getTime(),remoteRecordTime=remoteRecord?new Date(remoteRecord.archivedAt||remoteRecord.timestamp||0).getTime():0;if(!remoteRecord||localRecordTime>remoteRecordTime)await storageApi('/api/analysis-records/'+localRecord.id,{method:'PUT',body:JSON.stringify(localRecord)});}setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return true;})().catch(function(error){serverStorageMigration=null;throw error;});return serverStorageMigration;}
 async function saveProjectLocal(project){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readwrite'),req=tx.objectStore('projectRecords').put(project);req.onsuccess=function(){resolve(project);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function getAllProjectsLocal(){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readonly'),req=tx.objectStore('projectRecords').getAll();req.onsuccess=function(){resolve(req.result||[]);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
-async function getProjectByIdLocal(id){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readonly'),req=tx.objectStore('projectRecords').get(parseInt(id,10));req.onsuccess=function(){resolve(req.result);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
+async function getProjectByIdLocal(id){var projectId=normalizeStorageKey(id);if(projectId===null)return undefined;var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readonly'),req=tx.objectStore('projectRecords').get(projectId);req.onsuccess=function(){resolve(req.result);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function saveRecordLocal(record){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('analysisRecords','readwrite'),req=tx.objectStore('analysisRecords').put(record);req.onsuccess=function(){resolve();};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function getAllRecordsLocal(){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('analysisRecords','readonly'),req=tx.objectStore('analysisRecords').getAll();req.onsuccess=function(){resolve(req.result||[]);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
-async function getRecordByIdLocal(id){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('analysisRecords','readonly'),req=tx.objectStore('analysisRecords').get(parseInt(id,10));req.onsuccess=function(){resolve(req.result);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
+async function getRecordByIdLocal(id){var recordId=normalizeStorageKey(id);if(recordId===null)return undefined;var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('analysisRecords','readonly'),req=tx.objectStore('analysisRecords').get(recordId);req.onsuccess=function(){resolve(req.result);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function deleteAllRecordsLocal(){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('analysisRecords','readwrite'),req=tx.objectStore('analysisRecords').clear();req.onsuccess=function(){resolve();};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 
 async function clearAllHistory(){
