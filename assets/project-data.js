@@ -49,6 +49,10 @@
   var autoRebuilt = {};
   var sqlJsPromise = null;
   var syncTimers = {};
+  var allIndexItems = [];
+  var activeIndexProjectId = '';
+  var indexPage = 1;
+  var indexPageSize = 30;
 
   function hash(value) {
     var next = 2166136261;
@@ -66,7 +70,7 @@
 
   function targetRecordId() {
     var parts = window.location.hash.replace(/^#/, '').split('/');
-    return parts[2] === 'data' ? decodeURIComponent(parts.slice(3).join('/')) : '';
+    return parts[2] === 'indicator' || parts[2] === 'data' ? decodeURIComponent(parts.slice(3).join('/')) : '';
   }
 
   function api(path, options) {
@@ -79,7 +83,7 @@
 
   window.projectDataIndexPanelHtml = function (projectId) {
     return '<div class="project-data-shell" id="projectDataIndexRoot" data-project-id="' + escape(projectId) + '">'
-      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>项目数据索引</strong><p>所有项目档案、住宅台账、问题、照片、指标和报告均使用独立编号。其他页面或外部接口可通过编号直接读取单条数据。</p></div>'
+      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>项目指标库</strong><p>项目档案、住宅台账、问题、照片、指标和报告统一进入指标库并生成独立编号。其他页面或外部接口可从指标库按编号直接读取。</p></div>'
       + '<div class="project-data-actions">'
       + '<label class="btn btn-primary btn-sm" for="projectDataImportFile">导入数据库</label><input id="projectDataImportFile" type="file" accept=".db,.sqlite,.sqlite3,.json,application/json" onchange="importProjectDataFile(event,\'' + escape(projectId) + '\')">'
       + '<button class="btn btn-outline btn-sm" onclick="importCityHealthStandardLibrary(\'' + escape(projectId) + '\')">载入城市体检标准库</button>'
@@ -87,8 +91,8 @@
       + '<button class="btn btn-outline btn-sm" onclick="exportProjectDataSqlite(\'' + escape(projectId) + '\')">导出 SQLite</button>'
       + '<button class="btn btn-outline btn-sm" onclick="rebuildProjectDataIndex(\'' + escape(projectId) + '\')">同步现有数据</button>'
       + '</div></div>'
-      + '<div id="projectDataIndexContent" class="project-data-loading">正在读取项目数据索引...</div>'
-      + '<p class="project-data-note">导入采用合并方式：相同来源编号会更新，不同编号会新增。SQLite 输出包含统一索引表，可供其他系统按数据编号、项目编号、类型或标签查询。</p>'
+      + '<div id="projectDataIndexContent" class="project-data-loading">正在读取项目指标库...</div>'
+      + '<p class="project-data-note">导入采用合并方式：相同来源编号会更新，不同编号会新增。SQLite 输出包含统一指标库索引表，可供其他系统按数据编号、项目编号、类型或标签查询。</p>'
       + '</div>';
   };
 
@@ -97,7 +101,7 @@
     var content = document.getElementById('projectDataIndexContent');
     if (!root || !content || String(root.dataset.projectId) !== String(projectId)) return;
     content.className = 'project-data-loading';
-    content.textContent = '正在读取项目数据索引...';
+    content.textContent = '正在读取项目指标库...';
     try {
       var result = await api('/api/project-data?projectId=' + encodeURIComponent(projectId));
       if (!result.items.length && !autoRebuilt[projectId]) {
@@ -110,7 +114,7 @@
       renderIndex(result.items, projectId);
     } catch (error) {
       content.className = 'project-data-empty';
-      content.innerHTML = '<strong style="display:block;color:var(--editorial-ink);margin-bottom:8px;">数据索引暂不可用</strong><span>' + escape(error.message) + '</span>';
+      content.innerHTML = '<strong style="display:block;color:var(--editorial-ink);margin-bottom:8px;">指标库暂不可用</strong><span>' + escape(error.message) + '</span>';
     }
   };
 
@@ -138,9 +142,15 @@
     });
     var typeOptions = Object.keys(typeLabels).filter(function (key) { return counts[key]; })
       .map(function (key) { return '<option value="' + key + '">' + escape(typeLabels[key]) + '（' + counts[key] + '）</option>'; }).join('');
+    allIndexItems = items.slice();
+    activeIndexProjectId = String(projectId);
+    indexPage = 1;
+    var directTarget = targetRecordId();
+    var directTargetIndex = directTarget ? items.findIndex(function (item) { return item.id === directTarget; }) : -1;
+    if (directTargetIndex >= 0) indexPage = Math.floor(directTargetIndex / indexPageSize) + 1;
     content.className = '';
     content.innerHTML = '<div class="project-data-stats">'
-      + stat(items.length, '索引数据')
+      + stat(items.length, '指标库数据')
       + stat(counts.issue || 0, '问题实例')
       + stat(counts.dictionary || 0, '标准字典')
       + stat(Object.keys(tags).length, '可用标签')
@@ -148,8 +158,9 @@
       + '<div class="project-data-filter"><input id="projectDataSearch" placeholder="搜索编号、名称、编码或标签" oninput="filterProjectDataRows()">'
       + '<select id="projectDataTypeFilter" onchange="filterProjectDataRows()"><option value="">全部数据类型</option>' + typeOptions + '</select>'
       + '<span style="font-size:.72rem;color:var(--editorial-muted);">共 ' + items.length + ' 条</span></div>'
-      + '<div class="project-data-list" id="projectDataRows">' + renderRows(items, projectId) + '</div>';
-    var target = targetRecordId();
+      + '<div class="project-data-list" id="projectDataRows"></div><div class="project-data-pagination" id="projectDataPagination"></div>';
+    refreshIndexRows();
+    var target = directTarget;
     if (target) {
       var node = document.querySelector('[data-project-data-id="' + cssEscape(target) + '"]');
       if (node) setTimeout(function () { node.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
@@ -161,7 +172,7 @@
   }
 
   function renderRows(items, projectId) {
-    if (!items.length) return '<div class="project-data-empty">暂无索引数据，请点击“同步现有数据”或导入数据库。</div>';
+    if (!items.length) return '<div class="project-data-empty">指标库暂无数据，请点击“同步现有数据”或导入数据库。</div>';
     var target = targetRecordId();
     return items.map(function (item) {
       var tags = (item.tags || []).slice(0, 6).map(function (tag) { return '<span class="project-data-tag">' + escape(tag) + '</span>'; }).join('');
@@ -181,20 +192,42 @@
   }
 
   window.filterProjectDataRows = function () {
+    indexPage = 1;
+    refreshIndexRows();
+  };
+
+  function filteredIndexItems() {
     var query = String((document.getElementById('projectDataSearch') || {}).value || '').trim().toLowerCase();
     var type = String((document.getElementById('projectDataTypeFilter') || {}).value || '');
-    var rows = document.querySelectorAll('[data-project-data-id]');
-    for (var i = 0; i < rows.length; i++) {
-      var matchesQuery = !query || String(rows[i].dataset.projectDataSearch || '').indexOf(query) >= 0;
-      var matchesType = !type || rows[i].dataset.projectDataType === type;
-      rows[i].style.display = matchesQuery && matchesType ? '' : 'none';
-    }
+    return allIndexItems.filter(function (item) {
+      var search = JSON.stringify([item.id, item.code, item.title, item.tags, item.sourceId]).toLowerCase();
+      return (!query || search.indexOf(query) >= 0) && (!type || item.dataType === type);
+    });
+  }
+
+  function refreshIndexRows() {
+    var rowsRoot = document.getElementById('projectDataRows');
+    var pager = document.getElementById('projectDataPagination');
+    if (!rowsRoot || !pager) return;
+    var filtered = filteredIndexItems();
+    var pages = Math.max(1, Math.ceil(filtered.length / indexPageSize));
+    indexPage = Math.min(Math.max(1, indexPage), pages);
+    var start = (indexPage - 1) * indexPageSize;
+    rowsRoot.innerHTML = renderRows(filtered.slice(start, start + indexPageSize), activeIndexProjectId);
+    pager.innerHTML = '<span>筛选结果 ' + filtered.length + ' 条 · 第 ' + indexPage + ' / ' + pages + ' 页</span><div><button type="button" ' + (indexPage <= 1 ? 'disabled' : '') + ' onclick="changeProjectDataPage(-1)">上一页</button><button type="button" ' + (indexPage >= pages ? 'disabled' : '') + ' onclick="changeProjectDataPage(1)">下一页</button></div>';
+  }
+
+  window.changeProjectDataPage = function (delta) {
+    indexPage += Number(delta) || 0;
+    refreshIndexRows();
+    var root = document.getElementById('projectDataIndexRoot');
+    if (root) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   window.rebuildProjectDataIndex = async function (projectId) {
     try {
       var result = await api('/api/projects/' + encodeURIComponent(projectId) + '/data-index/rebuild', { method: 'POST', body: '{}' });
-      window.showToast('已同步 ' + result.rebuilt + ' 条现有项目数据', 'success');
+      window.showToast('已向指标库同步 ' + result.rebuilt + ' 条现有项目数据', 'success');
       await window.loadProjectDataIndex(projectId);
     } catch (error) {
       window.showToast('同步失败：' + error.message, 'error');
@@ -208,7 +241,7 @@
         await api('/api/projects/' + encodeURIComponent(projectId) + '/data-index/rebuild', { method: 'POST', body: '{}' });
         if (document.getElementById('projectDataIndexRoot')) await window.loadProjectDataIndex(projectId);
       } catch (error) {
-        console.warn('项目数据索引同步失败', error);
+        console.warn('项目指标库同步失败', error);
       }
     }, 600);
   };
@@ -229,12 +262,12 @@
   };
 
   window.copyProjectDataLink = async function (id, projectId) {
-    var link = window.location.href.split('#')[0] + '#project/' + encodeURIComponent(projectId) + '/data/' + encodeURIComponent(id);
+    var link = window.location.href.split('#')[0] + '#project/' + encodeURIComponent(projectId) + '/indicator/' + encodeURIComponent(id);
     try {
       await navigator.clipboard.writeText(link);
       window.showToast('索引链接已复制', 'success');
     } catch (error) {
-      window.prompt('复制下面的数据索引链接：', link);
+      window.prompt('复制下面的指标库索引链接：', link);
     }
   };
 
@@ -242,7 +275,7 @@
     try {
       var envelope = await api('/api/projects/' + encodeURIComponent(projectId) + '/data-export');
       downloadBlob(new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json;charset=utf-8' }), fileName(envelope, 'json'));
-      window.showToast('项目数据 JSON 已导出', 'success');
+      window.showToast('指标库 JSON 已导出', 'success');
     } catch (error) {
       window.showToast('导出失败：' + error.message, 'error');
     }
@@ -265,7 +298,7 @@
       insert.free();
       downloadBlob(new Blob([database.export()], { type: 'application/vnd.sqlite3' }), fileName(envelope, 'db'));
       database.close();
-      window.showToast('项目数据 SQLite 已导出', 'success');
+      window.showToast('指标库 SQLite 已导出', 'success');
     } catch (error) {
       window.showToast('SQLite 导出失败：' + error.message, 'error');
     }
@@ -273,7 +306,7 @@
 
   function fileName(envelope, extension) {
     var name = String(envelope.project && envelope.project.name || 'project-data').replace(/[\\/:*?"<>|]/g, '-');
-    return name + '-项目数据-' + new Date().toISOString().slice(0, 10) + '.' + extension;
+    return name + '-指标库数据-' + new Date().toISOString().slice(0, 10) + '.' + extension;
   }
 
   function downloadBlob(blob, name) {

@@ -24,6 +24,10 @@
 .project-data-row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 .project-data-row-actions button{border:1px solid var(--editorial-line);background:#fff;padding:6px 8px;color:var(--editorial-ink);font:inherit;font-size:.7rem;cursor:pointer}
 .project-data-row-actions button:hover{border-color:var(--editorial-ink)}
+.project-data-pagination{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--editorial-line);border-top:0;background:var(--editorial-soft);font-size:.72rem;color:var(--editorial-muted)}
+.project-data-pagination div{display:flex;gap:6px}
+.project-data-pagination button{border:1px solid var(--editorial-line);background:#fff;padding:6px 10px;color:var(--editorial-ink);font:inherit;cursor:pointer}
+.project-data-pagination button:disabled{opacity:.45;cursor:not-allowed}
 .project-data-note{font-size:.72rem;color:var(--editorial-muted);line-height:1.65}
 .project-data-empty{padding:42px 20px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
 .project-data-loading{padding:32px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
@@ -32,4 +36,5 @@
   .project-data-filter{grid-template-columns:1fr}
   .project-data-row{grid-template-columns:1fr}
   .project-data-row-actions{justify-content:flex-start}
+  .project-data-pagination{align-items:flex-start;flex-direction:column}
 }
