@@ -1334,16 +1334,16 @@ var id=getActiveProjectId(),project=id?await getProjectById(id):null;
 if(!project){root.innerHTML='<div class="result-empty"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:8px;">请先选择体检项目</h3><p>体检报告需要挂接到具体项目，并自动读取该项目下的 AI 分析和社区/街区维度分析结果。</p><div style="margin-top:18px;"><a href="#projects" class="btn btn-primary" data-nav="projects">选择项目</a></div></div>';return;}
 var allRecords=await getAllRecords();
 var records=allRecords.filter(function(r){return String(r.projectId)===String(project.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
-var stat=collectDiagnosticStats(records),community=project.communityAnalysis||null,communityTotal=getCommunityTotal(community);
+var officialIssueData=await storageApi('/api/issues?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),officialIssues=officialIssueData.items||[],photoData=await storageApi('/api/photos?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportData=await storageApi('/api/reports?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportVersions=reportData.items||[],stat={images:(photoData.items||[]).filter(function(photo){return !/ANNOTATED/.test(photo.id);}).length,total:officialIssues.length,high:0,medium:0,low:0},community=project.communityAnalysis||null,communityTotal=getCommunityTotal(community);officialIssues.forEach(function(issue){if(issue.severity==='high')stat.high++;else if(issue.severity==='low')stat.low++;else stat.medium++;});
 var communityCounts=community&&community.counts?community.counts:{cat1:0,cat2:0,cat3:0,cat4:0};
-var reportReady=records.length>0&&community;
-var issueRows=buildDiagnosticIssueRows(records);
+var reportReady=officialIssues.length>0&&community;
+var issueRows=officialIssues.map(function(issue){var meta=analysisSeverityMeta[issue.severity]||analysisSeverityMeta.medium;return{title:(issue.problemCode?issue.problemCode+' · ':'')+(issue.title||'未命名问题'),severity:meta.label,location:issue.location||'待定位',suggestion:issue.suggestion||'待评估'};});
 var communityReady=community?'<span style="color:var(--green-600);font-weight:700;">已完成</span>':'<span style="color:var(--amber-600);font-weight:700;">待分析</span>';
 var aiReady=records.length>0?'<span style="color:var(--green-600);font-weight:700;">已完成</span>':'<span style="color:var(--amber-600);font-weight:700;">待分析</span>';
 var reportStatus=reportReady?'可形成项目体检报告':'需补齐分析数据';
 root.innerHTML=diagnosticViewSwitch()+'<div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-bottom:22px;">'
 +'<div><div class="section-tag">当前报告项目</div><h2 class="section-title" style="font-size:1.65rem;text-align:left;margin:8px 0 6px;">'+escapeHtml(project.name||'未命名体检项目')+'</h2><p class="section-desc" style="text-align:left;max-width:760px;">报告页采用“制式章节 + 项目数据自动填充”的方式生成，当前已读取项目档案、建筑隐患 AI 分析记录和社区/街区维度分析结论。</p></div>'
-+'<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="#projects" class="btn btn-outline btn-sm" data-nav="projects">返回项目汇总</a><a href="#ai-analysis" class="btn btn-outline btn-sm" data-nav="ai-analysis">补充住区分析</a><a href="#community" class="btn btn-outline btn-sm" data-nav="community">补充社区/街区分析</a><button class="btn btn-primary btn-sm" onclick="showToast(\'PDF 导出将在下一步接入正式版式\',\'info\')">导出PDF</button></div>'
++'<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="#projects" class="btn btn-outline btn-sm" data-nav="projects">返回项目汇总</a><a href="#ai-analysis" class="btn btn-outline btn-sm" data-nav="ai-analysis">补充住区分析</a><a href="#community" class="btn btn-outline btn-sm" data-nav="community">补充社区/街区分析</a><button class="btn btn-primary btn-sm" onclick="generateCurrentReportSnapshot()" '+(reportReady?'':'disabled')+'>生成报告版本快照</button></div>'
 +'</div>'
 +'<div class="dashboard-grid" style="margin-bottom:24px;">'
 +diagnosticMetricCard('项目档案','已建档',project.area||'未填写位置','var(--blue-500)')
@@ -1369,7 +1369,7 @@ root.innerHTML=diagnosticViewSwitch()+'<div style="display:flex;justify-content:
 +diagnosticStep('AI 隐患分析',records.length>0,records.length>0?records.length+' 次分析已归档':'请上传图片并识别风险')
 +diagnosticStep('社区/街区维度',!!community,community?'已保存地图搜索结论':'请选择项目后定位搜索')
 +diagnosticStep('体检报告',reportReady,reportReady?'可进入导出版式':'等待数据补齐')
-+'<div style="height:1px;background:var(--border);margin:16px 0;"></div><p style="font-size:.84rem;color:var(--text-secondary);line-height:1.7;">后续可继续接入正式 PDF 模板，把这里的章节内容导出为与城市体检总报告一致的封面、目录、正文和附件格式。</p></aside>'
++'<div style="height:1px;background:var(--border);margin:16px 0;"></div><h4 style="font-size:.86rem;color:var(--ink-900);margin-bottom:9px;">已保存报告版本</h4>'+reportVersionListHtml(reportVersions)+'<div style="height:1px;background:var(--border);margin:16px 0;"></div><p style="font-size:.84rem;color:var(--text-secondary);line-height:1.7;">报告版本保存生成时的数据快照，后续数据库变化不会修改旧版本。PDF 文件将在正式版式阶段由该快照输出。</p></aside>'
 +'</div>';
 }catch(e){root.innerHTML='<div class="result-empty" style="color:var(--red-500);">报告生成失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
@@ -1508,6 +1508,10 @@ if(tabName==='history')renderHistoryList();
 if(tabName==='photo-archive')renderPhotoArchive();
 });
 }
+
+function reportVersionListHtml(items){if(!items||!items.length)return'<p style="font-size:.78rem;color:var(--text-muted);">尚未生成固定版本</p>';return'<div style="display:grid;gap:7px;">'+items.slice(0,6).map(function(item){return'<button class="btn btn-outline btn-sm" style="justify-content:space-between;" onclick="viewReportSnapshot(\''+item.id+'\')"><span>V'+item.version+'</span><span>'+escapeHtml(new Date(item.generatedAt).toLocaleDateString('zh-CN'))+'</span></button>';}).join('')+'</div>';}
+async function generateCurrentReportSnapshot(){var projectId=getActiveProjectId(),generatedBy=localStorage.getItem('smart_renew_reviewer_name')||'';if(!generatedBy){showToast('请先在住区维度填写复核人员','error');return;}try{showLoading('正在生成报告版本快照...','固定本次使用的数据与来源编号');var result=await storageApi('/api/reports/generate',{method:'POST',body:JSON.stringify({projectId:String(projectId),generatedBy:generatedBy})});showToast('报告 V'+result.item.version+' 已保存','success');renderDiagnosticReport();}catch(error){showToast('报告版本生成失败：'+error.message,'error');}finally{hideLoading();}}
+async function viewReportSnapshot(id){try{var result=await storageApi('/api/reports/'+id),report=result.item,snapshot=report.snapshot||{},issues=snapshot.issues||{};alert('报告版本：V'+report.version+'\n生成时间：'+new Date(report.generatedAt).toLocaleString('zh-CN')+'\n数据截止：'+new Date(report.dataCutoffAt).toLocaleString('zh-CN')+'\n正式问题：'+(issues.total||0)+' 个\n高风险：'+(issues.high||0)+' 个\n来源数据编号：'+Object.keys(report.sourceIds||{}).reduce(function(sum,key){return sum+((report.sourceIds[key]||[]).length);},0)+' 条');}catch(error){showToast('报告版本读取失败：'+error.message,'error');}}
 }
 
 var photoArchiveItems=[];

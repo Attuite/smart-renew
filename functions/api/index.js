@@ -21,6 +21,9 @@ import {
   filterOfficialIssues,
   normalizeOfficialIssue
 } from './official-issue-core.js';
+import {
+  buildReportSnapshot
+} from './report-snapshot-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
@@ -33,6 +36,7 @@ const apiKeyUsersCollection = db.collection('apiKeyUsers');
 const fieldTaskCollection = db.collection('fieldCollectionTasks');
 const photoRecordCollection = db.collection('photoRecords');
 const officialIssueCollection = db.collection('officialIssues');
+const reportSnapshotCollection = db.collection('reportSnapshots');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -630,6 +634,41 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
   }
 }
 
+async function handleReportSnapshotApi(req, res, url, pathname) {
+  try {
+    const reportMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
+    if (req.method === 'GET' && pathname === '/reports') {
+      const projectId = safeId(url.searchParams.get('projectId'));
+      let items = await listCollection(reportSnapshotCollection);
+      if (projectId) items = items.filter((item) => String(item.projectId) === projectId);
+      items.sort((a, b) => Number(b.version) - Number(a.version));
+      return writeJson(res, 200, { items, storage: 'cloudbase' });
+    }
+    if (req.method === 'GET' && reportMatch) {
+      const item = await getDocument(reportSnapshotCollection, reportMatch[1]);
+      return item ? writeJson(res, 200, { item, storage: 'cloudbase' }) : writeJson(res, 404, { message: '报告版本不存在' });
+    }
+    if (req.method === 'POST' && pathname === '/reports/generate') {
+      const body = await readJson(req, 256 * 1024);
+      const projectId = safeId(body.projectId);
+      if (!projectId) return writeJson(res, 400, { message: '项目编号无效' });
+      const project = await getDocument(projectCollection, projectId);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      const issues = filterOfficialIssues(await listCollection(officialIssueCollection), new URLSearchParams({ projectId }));
+      if (!issues.length) return writeJson(res, 400, { message: '项目尚无人工确认的正式问题' });
+      const photos = filterPhotoRecords(await listCollection(photoRecordCollection), new URLSearchParams({ projectId }));
+      const analyses = (await listCollection(analysisCollection)).filter((item) => String(item.projectId) === projectId);
+      const existing = (await listCollection(reportSnapshotCollection)).filter((item) => String(item.projectId) === projectId);
+      const report = buildReportSnapshot({ project, issues, photos, analyses, existing, generatedBy: body.generatedBy });
+      await putDocument(reportSnapshotCollection, report.id, report);
+      return writeJson(res, 201, { item: report, storage: 'cloudbase' });
+    }
+    return writeJson(res, 404, { message: '报告版本接口不存在' });
+  } catch (error) {
+    return writeJson(res, 400, { message: error.message || '报告版本生成失败' });
+  }
+}
+
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -731,6 +770,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
   if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
   if (pathname.startsWith('/issues')) return handleOfficialIssueApi(req, res, url, pathname);
+  if (pathname.startsWith('/reports')) return handleReportSnapshotApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });
