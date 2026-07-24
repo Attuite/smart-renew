@@ -149,7 +149,8 @@
     var directTargetIndex = directTarget ? items.findIndex(function (item) { return item.id === directTarget; }) : -1;
     if (directTargetIndex >= 0) indexPage = Math.floor(directTargetIndex / indexPageSize) + 1;
     content.className = '';
-    content.innerHTML = '<div class="project-data-stats">'
+    content.innerHTML = residentialIndicatorSummary(items)
+      + '<div class="project-data-stats">'
       + stat(items.length, '指标库数据')
       + stat(counts.issue || 0, '问题实例')
       + stat(counts.dictionary || 0, '标准字典')
@@ -170,6 +171,62 @@
   function stat(value, label) {
     return '<div class="project-data-stat"><strong>' + escape(value) + '</strong><span>' + escape(label) + '</span></div>';
   }
+
+  function residentialIndicatorItems(items) {
+    return items.filter(function (item) {
+      return item.dataType === 'residentialUnit' && item.source === 'smart-renew' && item.status !== 'deleted';
+    });
+  }
+
+  function knownCount(value) {
+    return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+  }
+
+  function residentialIndicatorSummary(items) {
+    var communities = residentialIndicatorItems(items);
+    var buildingTotal = 0;
+    var householdTotal = 0;
+    var buildingKnown = 0;
+    var householdKnown = 0;
+    communities.forEach(function (item) {
+      var building = item.payload && item.payload.buildingCount;
+      var household = item.payload && item.payload.householdCount;
+      if (knownCount(building)) { buildingTotal += Math.max(0, Number(building)); buildingKnown++; }
+      if (knownCount(household)) { householdTotal += Math.max(0, Number(household)); householdKnown++; }
+    });
+    var options = communities.map(function (item) {
+      return '<option value="' + escape(item.id) + '">' + escape(item.title || item.sourceId || '未命名小区') + '</option>';
+    }).join('');
+    return '<section class="indicator-residential-summary">'
+      + '<div class="indicator-residential-heading"><div><strong>住宅台账指标</strong><span>数据自动来自住宅台账；未录入项保持待补录，不参与合计。</span></div>'
+      + '<select id="indicatorCommunitySelect" onchange="showIndicatorCommunityMetrics(this.value)"><option value="">选择小区查看明细</option>' + options + '</select></div>'
+      + '<div class="indicator-residential-totals">'
+      + residentialMetric(communities.length + ' 个', '总小区数量', '当前有效住宅台账')
+      + residentialMetric(buildingKnown ? buildingTotal + ' 栋' : '待补录', '总楼栋数', buildingKnown + ' / ' + communities.length + ' 个小区已录入')
+      + residentialMetric(householdKnown ? householdTotal + ' 户' : '待补录', '总户数', householdKnown + ' / ' + communities.length + ' 个小区已录入')
+      + '</div><div class="indicator-community-detail" id="indicatorCommunityDetail"><span>请从上方选择一个小区，查看该小区的楼栋数和户数。</span></div>'
+      + '</section>';
+  }
+
+  function residentialMetric(value, label, note) {
+    return '<div class="indicator-residential-metric"><strong>' + escape(value) + '</strong><span>' + escape(label) + '</span><small>' + escape(note) + '</small></div>';
+  }
+
+  window.showIndicatorCommunityMetrics = function (id) {
+    var root = document.getElementById('indicatorCommunityDetail');
+    if (!root) return;
+    var item = recordCache[id];
+    if (!item) {
+      root.innerHTML = '<span>请从上方选择一个小区，查看该小区的楼栋数和户数。</span>';
+      return;
+    }
+    var payload = item.payload || {};
+    var building = knownCount(payload.buildingCount) ? Math.max(0, Number(payload.buildingCount)) + ' 栋' : '待补录';
+    var household = knownCount(payload.householdCount) ? Math.max(0, Number(payload.householdCount)) + ' 户' : '待补录';
+    root.innerHTML = '<div class="indicator-community-name"><strong>' + escape(item.title || '未命名小区') + '</strong><span>' + escape(payload.address || '地址未记录') + '</span></div>'
+      + '<div class="indicator-community-value"><strong>' + escape(building) + '</strong><span>楼栋数</span></div>'
+      + '<div class="indicator-community-value"><strong>' + escape(household) + '</strong><span>户数</span></div>';
+  };
 
   function renderRows(items, projectId) {
     if (!items.length) return '<div class="project-data-empty">指标库暂无数据，请点击“同步现有数据”或导入数据库。</div>';
