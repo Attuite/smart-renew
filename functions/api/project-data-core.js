@@ -162,7 +162,7 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
     const analysisId = String(analysis.id || `${projectId}-${analysisIndex}`);
     const analysisDataId = makeProjectDataId(projectId, 'analysisRecord', `:${analysisId}`);
     const issues = Array.isArray(analysis.result?.issues) ? analysis.result.issues : [];
-    const imageCount = analysis.imagesCount || analysis.imagesBase64?.length || analysis.annotatedImages?.length || 0;
+    const imageCount = analysis.imagesCount || analysis.photoIds?.length || analysis.imagesBase64?.length || analysis.annotatedPhotoIds?.length || analysis.annotatedImages?.length || 0;
     const analysisCommunityId = String(analysis.communityId || '');
     const analysisBuildingId = String(analysis.buildingId || '');
     const analysisReferences = [{ targetId: makeProjectDataId(projectId, 'project', `:${projectId}`), relation: '所属项目' }];
@@ -187,7 +187,7 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
       }
     });
     for (let imageIndex = 0; imageIndex < imageCount; imageIndex += 1) {
-      const photoSourceId = `${analysisId}-image-${imageIndex + 1}`;
+      const photoSourceId = String(analysis.photoIds?.[imageIndex] || `${analysisId}-image-${imageIndex + 1}`);
       const imageMeta = analysis.imageMeta?.[imageIndex] || {};
       const communityId = String(imageMeta.communityId || analysis.communityId || '');
       const buildingId = String(imageMeta.buildingId || analysis.buildingId || '');
@@ -202,15 +202,18 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
         sourceId: photoSourceId,
         code: `PHOTO-${stableDataHash(photoSourceId)}`,
         title: `现场照片 ${imageIndex + 1}`,
-        tags: ['现场照片', analysis.annotatedImages?.[imageIndex] ? '已标注' : '原始影像'],
+        tags: ['现场照片', (analysis.annotatedPhotoIds?.[imageIndex] || analysis.annotatedImages?.[imageIndex]) ? '已标注' : '原始影像'],
         references: photoReferences,
         payload: {
           imageIndex: imageIndex + 1,
           communityId,
           buildingId,
-          storage: 'analysis-record-embedded',
-          hasOriginal: Boolean(analysis.imagesBase64?.[imageIndex]),
-          hasAnnotated: Boolean(analysis.annotatedImages?.[imageIndex])
+          storage: imageMeta.storage || (analysis.photoIds?.[imageIndex] ? 'photo-record' : 'analysis-record-embedded'),
+          fileId: imageMeta.fileId || '',
+          cloudPath: imageMeta.cloudPath || '',
+          hasOriginal: Boolean(analysis.photoIds?.[imageIndex] || analysis.imagesBase64?.[imageIndex]),
+          annotatedPhotoId: String(analysis.annotatedPhotoIds?.[imageIndex] || ''),
+          hasAnnotated: Boolean(analysis.annotatedPhotoIds?.[imageIndex] || analysis.annotatedImages?.[imageIndex])
         }
       });
     }
@@ -226,7 +229,7 @@ export function buildNativeProjectIndex(project, analysisRecords = []) {
       if (buildingId) references.push({ targetId: makeProjectDataId(projectId, 'building', `:${buildingId}`), relation: '所属楼栋' });
       if (Number(issue.imageIndex) > 0 && Number(issue.imageIndex) <= imageCount) {
         references.push({
-          targetId: makeProjectDataId(projectId, 'photo', `:${analysisId}-image-${Number(issue.imageIndex)}`),
+          targetId: makeProjectDataId(projectId, 'photo', `:${String(analysis.photoIds?.[Number(issue.imageIndex) - 1] || `${analysisId}-image-${Number(issue.imageIndex)}`)}`),
           relation: '对应照片'
         });
       }

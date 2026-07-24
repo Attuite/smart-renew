@@ -330,6 +330,8 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
 .upload-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:16px}
 .upload-thumb-v2{position:relative;aspect-ratio:1;background:var(--bg-elevated);overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-default);transition:border-color var(--transition)}.upload-thumb-v2 img{width:100%;height:100%;object-fit:cover}.upload-thumb-v2 .thumb-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,.55);color:white;border:none;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity var(--transition)}.upload-thumb-v2:hover .thumb-remove{opacity:1}
 .upload-count-v2{font-size:.85rem;color:var(--text-secondary);margin-top:12px;font-weight:500}
+.photo-archive-toolbar{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:16px}.photo-archive-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}.photo-archive-card{position:relative;border:1px solid var(--border-default);background:var(--bg-surface)}.photo-archive-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--ink-950)}.photo-archive-check{position:absolute;top:9px;left:9px;width:20px;height:20px;accent-color:var(--spice-500)}.photo-archive-meta{padding:10px;font-size:.72rem;color:var(--text-muted);line-height:1.55}.photo-archive-meta strong{display:block;color:var(--ink-900);font-size:.78rem}.photo-archive-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}
+@media (max-width:720px){.photo-archive-toolbar{grid-template-columns:1fr}.photo-archive-actions{align-items:stretch;flex-direction:column}.photo-archive-actions .btn{width:100%}}
 .loading-overlay{display:none;position:fixed;inset:0;background:rgba(8,15,26,.65);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:20px}.loading-overlay.show{display:flex}.loading-spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.15);border-top-color:var(--spice-400);border-radius:50%;animation:ai-spin .7s linear infinite}.loading-text{color:white;font-size:.95rem;font-weight:500;letter-spacing:.3px}.loading-detail{color:rgba(255,255,255,.5);font-size:.8rem}
 .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:3000;padding:12px 28px;font-size:.88rem;font-weight:500;letter-spacing:.3px;animation:toast-in .3s ease;pointer-events:none}@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}.toast-success{background:var(--green-500);color:white}.toast-error{background:var(--red-500);color:white}.toast-info{background:var(--ink-800);color:white}
 .history-list{display:flex;flex-direction:column;gap:8px}.history-item{background:var(--bg-surface);border:1px solid var(--border-default);padding:20px 24px;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;gap:16px}.history-item:hover{background:var(--bg-elevated);border-color:var(--spice-500)}.history-thumb{width:56px;height:56px;background:var(--bg-elevated);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}.history-thumb img{width:100%;height:100%;object-fit:cover}.history-info{flex:1;min-width:0}.history-info h4{font-size:.9rem;font-weight:600;color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history-info .hi-meta{font-size:.76rem;color:var(--text-muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}.history-stats{display:flex;gap:16px;flex-shrink:0}.history-stat-num{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--ink-900);text-align:center}.history-stat-lbl{font-size:.68rem;color:var(--text-muted);text-align:center}.history-arrow{color:var(--text-muted);font-size:1.1rem;flex-shrink:0}.history-empty{text-align:center;padding:48px;color:var(--text-muted)}.history-empty-icon{font-size:2.5rem;opacity:.2;margin-bottom:12px}
@@ -843,6 +845,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 
 <div class="analysis-tabs">
 <button class="analysis-tab active" data-tab="new-analysis">新建分析</button>
+<button class="analysis-tab" data-tab="photo-archive">照片档案</button>
 <button class="analysis-tab" data-tab="history">历史记录</button>
 </div>
 
@@ -873,6 +876,8 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 </div>
 <div class="form-grid">
 <div class="form-group"><label><span class="required">项目名称</span></label><input class="form-input" id="analysisProjectName" placeholder="如：朝阳小区 6 号楼外立面巡检"></div>
+<div class="form-group"><label><span class="required">所属小区</span></label><select class="form-select" id="analysisCommunity"><option value="">请先选择小区</option></select></div>
+<div class="form-group"><label>所属楼栋</label><select class="form-select" id="analysisBuilding"><option value="">小区公共区域／暂不指定楼栋</option></select></div>
 <div class="form-group"><label><span class="required">巡检区域</span></label><input class="form-input" id="analysisArea" list="analysisAreaOptions" autocomplete="off" placeholder="请选择常用区域或手动输入"><datalist id="analysisAreaOptions"><option value="项目整体"><option value="建筑外立面"><option value="屋面及防水区域"><option value="楼道与公共通道"><option value="地下空间"><option value="小区道路与无障碍设施"><option value="公共活动空间"><option value="消防设施区域"><option value="停车与充电区域"></datalist></div>
 <div class="form-group"><label><span class="required">分析类型</span></label><select class="form-select" id="analysisType" required><option value="" selected disabled>请选择分析类型</option><option value="建筑外立面隐患识别">建筑外立面隐患识别</option><option value="结构安全可见风险初筛">结构安全可见风险初筛</option><option value="屋面渗漏与防水问题识别">屋面渗漏与防水问题识别</option><option value="公共设施损坏识别">公共设施损坏识别</option><option value="消防安全隐患排查">消防安全隐患排查</option><option value="电气与燃气可见风险排查">电气与燃气可见风险排查</option><option value="道路与无障碍问题识别">道路与无障碍问题识别</option><option value="综合巡检分析">综合巡检分析</option></select></div>
 <div class="form-group"><label>报告模板</label><select class="form-select" id="analysisTemplate"><option>标准巡检报告</option><option>隐患整改报告</option><option>居民沟通简版</option></select></div>
@@ -918,6 +923,21 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div style="text-align:center;margin-top:36px;">
 <button class="btn btn-sm" id="toggleConfigBtn" style="background:transparent;border:1px solid var(--border-default);color:var(--text-muted);font-size:.75rem;padding:6px 14px;opacity:.5;transition:opacity var(--transition);">⚙ AI后台配置</button>
 </div>
+</div>
+
+<div class="analysis-panel" id="panel-photo-archive">
+<div class="section-header" style="text-align:left;margin-bottom:24px;">
+<div class="section-tag">PHOTO ARCHIVE</div>
+<h2 class="section-title" style="font-size:1.4rem;">项目照片档案</h2>
+<p class="section-desc">照片按项目、小区和楼栋独立归档。选择已有照片后可明确发起重新分析。</p>
+</div>
+<div class="photo-archive-toolbar">
+<select class="form-select" id="photoArchiveCommunity" onchange="renderPhotoArchive()"><option value="">全部小区</option></select>
+<select class="form-select" id="photoArchiveBuilding" onchange="renderPhotoArchive()"><option value="">全部楼栋</option></select>
+<button class="btn btn-outline btn-sm" onclick="renderPhotoArchive()">刷新档案</button>
+</div>
+<div class="photo-archive-grid" id="photoArchiveGrid"><div class="result-empty" style="grid-column:1/-1;">正在读取照片档案...</div></div>
+<div class="photo-archive-actions"><span id="photoArchiveCount" style="font-size:.78rem;color:var(--text-muted);">0 张照片</span><button class="btn btn-primary btn-sm" onclick="loadArchivedPhotosToAnalysis()">将所选照片加入重新分析</button></div>
 </div>
 
 <div class="analysis-panel" id="panel-history">
@@ -1074,8 +1094,14 @@ panel.style.display='block';
 panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;"><div><div class="section-tag" style="margin-bottom:10px;">当前项目</div><h3 style="font-size:1.1rem;color:var(--ink-900);margin-bottom:6px;">'+project.name+'</h3><p style="font-size:.86rem;color:var(--text-secondary);">📍 '+project.area+' · '+(typeMap[project.type]||'体检项目')+'</p></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="#projects" class="btn btn-outline btn-sm" data-nav="projects">切换项目</a><a href="#community" class="btn btn-outline btn-sm" data-nav="community">社区/街区维度</a></div></div>';
 var pn=document.getElementById('analysisProjectName'),pa=document.getElementById('analysisArea'),areaOptions=document.getElementById('analysisAreaOptions'),desc=document.getElementById('analysisDesc');
 if(pn){pn.value=project.name;pn.readOnly=true;}if(pa){pa.value=project.area||'';pa.readOnly=false;}if(areaOptions&&project.area){var values=[project.area,project.area+' · 建筑外立面',project.area+' · 屋面及防水区域',project.area+' · 楼道与公共通道',project.area+' · 小区道路与公共空间',project.area+' · 消防设施区域'];var existing={};for(var ao=0;ao<areaOptions.options.length;ao++)existing[areaOptions.options[ao].value]=true;for(var av=0;av<values.length;av++){if(!existing[values[av]]){var option=document.createElement('option');option.value=values[av];areaOptions.appendChild(option);}}}if(desc&&!desc.value&&project.desc)desc.value=project.desc;
+populateAnalysisCommunitySelect(project);
 return project;
 }
+var analysisLocationProject=null;
+function activeResidentialItems(project){var items=project&&project.residentialInventory&&project.residentialInventory.items;return Array.isArray(items)?items.filter(function(item){return item&&item.status!=='deleted';}):[];}
+function residentialItemId(item,index){return String(item.id||item.sourceId||('community-'+(index+1)));}
+function populateAnalysisCommunitySelect(project){analysisLocationProject=project;var select=document.getElementById('analysisCommunity'),building=document.getElementById('analysisBuilding');if(!select||!building)return;var previous=select.value,items=activeResidentialItems(project);select.innerHTML='<option value="">请选择照片所属小区</option>'+items.map(function(item,index){var id=residentialItemId(item,index);return'<option value="'+escapeHtml(id)+'">'+escapeHtml(item.name||'未命名小区')+'</option>';}).join('');if(items.some(function(item,index){return residentialItemId(item,index)===previous;}))select.value=previous;else if(items.length===1)select.value=residentialItemId(items[0],0);populateAnalysisBuildingSelect();if(!select.dataset.bound){select.addEventListener('change',populateAnalysisBuildingSelect);select.dataset.bound='1';}}
+function populateAnalysisBuildingSelect(){var communitySelect=document.getElementById('analysisCommunity'),buildingSelect=document.getElementById('analysisBuilding');if(!communitySelect||!buildingSelect)return;var communityId=communitySelect.value,items=activeResidentialItems(analysisLocationProject),community=null;for(var i=0;i<items.length;i++){if(residentialItemId(items[i],i)===communityId){community=items[i];break;}}var buildings=community&&Array.isArray(community.buildings)?community.buildings.filter(function(building){return building&&building.status!=='deleted';}):[],previous=buildingSelect.value;buildingSelect.innerHTML='<option value="">小区公共区域／暂不指定楼栋</option>'+buildings.map(function(building,index){return'<option value="'+escapeHtml(String(building.id||('building-'+(index+1))))+'">'+escapeHtml(building.name||((index+1)+'号楼'))+'</option>';}).join('');if(buildings.some(function(building,index){return String(building.id||('building-'+(index+1)))===previous;}))buildingSelect.value=previous;}
 async function renderProjectsPage(){
 var listEl=document.getElementById('allProjects'),countEl=document.getElementById('projectCount'),statsEl=document.getElementById('projectSummaryStats');
 if(!listEl)return;
@@ -1467,9 +1493,15 @@ var panels=document.querySelectorAll('.analysis-panel');
 for(var k=0;k<panels.length;k++)panels[k].classList.remove('active');
 var panel=document.getElementById('panel-'+tabName);if(panel)panel.classList.add('active');
 if(tabName==='history')renderHistoryList();
+if(tabName==='photo-archive')renderPhotoArchive();
 });
 }
 }
+
+var photoArchiveItems=[];
+function syncPhotoArchiveFilters(){var community=document.getElementById('photoArchiveCommunity'),building=document.getElementById('photoArchiveBuilding');if(!community||!building)return;var items=activeResidentialItems(analysisLocationProject),previous=community.value;community.innerHTML='<option value="">全部小区</option>'+items.map(function(item,index){return'<option value="'+escapeHtml(residentialItemId(item,index))+'">'+escapeHtml(item.name||'未命名小区')+'</option>';}).join('');if(items.some(function(item,index){return residentialItemId(item,index)===previous;}))community.value=previous;var selected=null;for(var i=0;i<items.length;i++){if(residentialItemId(items[i],i)===community.value){selected=items[i];break;}}var buildings=selected&&Array.isArray(selected.buildings)?selected.buildings.filter(function(item){return item&&item.status!=='deleted';}):[],oldBuilding=building.value;building.innerHTML='<option value="">全部楼栋</option>'+buildings.map(function(item,index){return'<option value="'+escapeHtml(String(item.id||('building-'+(index+1))))+'">'+escapeHtml(item.name||((index+1)+'号楼'))+'</option>';}).join('');if(buildings.some(function(item,index){return String(item.id||('building-'+(index+1)))===oldBuilding;}))building.value=oldBuilding;if(!community.dataset.bound){community.addEventListener('change',function(){building.value='';syncPhotoArchiveFilters();renderPhotoArchive();});community.dataset.bound='1';}}
+async function renderPhotoArchive(){var grid=document.getElementById('photoArchiveGrid'),count=document.getElementById('photoArchiveCount'),projectId=getActiveProjectId();if(!grid||!projectId)return;syncPhotoArchiveFilters();grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">正在读取照片档案...</div>';try{var community=document.getElementById('photoArchiveCommunity').value,building=document.getElementById('photoArchiveBuilding').value,query='?projectId='+encodeURIComponent(projectId)+(community?'&communityId='+encodeURIComponent(community):'')+(building?'&buildingId='+encodeURIComponent(building):''),result=await storageApi('/api/photos'+query);photoArchiveItems=result.items||[];if(count)count.textContent=photoArchiveItems.length+' 张照片';if(!photoArchiveItems.length){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">当前筛选条件下暂无已归档照片</div>';return;}grid.innerHTML=photoArchiveItems.map(function(item,index){return'<label class="photo-archive-card"><input class="photo-archive-check" type="checkbox" value="'+index+'"><img src="'+escapeHtml(usablePhotoUrl(item.url))+'" alt="'+escapeHtml(item.name||'现场照片')+'"><span class="photo-archive-meta"><strong>'+escapeHtml(item.communityName||'未命名小区')+(item.buildingName?' · '+escapeHtml(item.buildingName):'')+'</strong>'+escapeHtml(item.name||item.id)+'<br>'+escapeHtml(item.status==='archived'?'已归档':'处理中')+'</span></label>';}).join('');}catch(error){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;color:var(--red-500);">照片档案读取失败：'+escapeHtml(error.message)+'</div>';}}
+async function loadArchivedPhotosToAnalysis(){var selected=Array.prototype.slice.call(document.querySelectorAll('.photo-archive-check:checked')).map(function(input){return photoArchiveItems[Number(input.value)];}).filter(Boolean);if(!selected.length){showToast('请先选择需要重新分析的照片','error');return;}var firstLocation=String(selected[0].communityId||'')+'|'+String(selected[0].buildingId||'');if(selected.some(function(item){return String(item.communityId||'')+'|'+String(item.buildingId||'')!==firstLocation;})){showToast('一次分析请选择同一小区、同一楼栋或公共区域的照片','error');return;}var limit=Math.max(0,getConfigMaxImages()-analysisUploadedFiles.length);if(!limit){showToast('新建分析中的照片数量已达上限','error');return;}selected=selected.slice(0,limit);try{showLoading('正在读取已归档照片...','共 '+selected.length+' 张');for(var i=0;i<selected.length;i++){var response=await fetch(usablePhotoUrl(selected[i].url));if(!response.ok)throw new Error('照片读取失败：'+selected[i].name);var blob=await response.blob(),file=new File([blob],selected[i].name||('归档照片-'+(i+1)+'.jpg'),{type:selected[i].mimeType||blob.type||'image/jpeg'});file._photoRecord=selected[i];analysisUploadedFiles.push(file);}var community=document.getElementById('analysisCommunity'),building=document.getElementById('analysisBuilding');if(community){community.value=selected[0].communityId||'';populateAnalysisBuildingSelect();}if(building)building.value=selected[0].buildingId||'';renderUploadPreview();document.querySelector('.analysis-tab[data-tab="new-analysis"]').click();showToast('已加入 '+selected.length+' 张归档照片，可明确发起重新分析','success');}catch(error){showToast(error.message||'归档照片读取失败','error');}finally{hideLoading();}}
 
 var saveApiKeyBtn=document.getElementById('saveApiKeyBtn');
 if(saveApiKeyBtn){saveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('apiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false,'main');document.getElementById('apiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
@@ -1545,10 +1577,15 @@ var maxSide=1920,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalH
 var canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;var ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(img,0,0,width,height);
 var quality=.86,dataUrl=canvas.toDataURL('image/jpeg',quality);while(dataUrl.length>8.5*1024*1024&&quality>.5){quality-=.08;dataUrl=canvas.toDataURL('image/jpeg',quality);}
 if(dataUrl.length>9.5*1024*1024)throw new Error(file.name+' 压缩后仍超过模型限制');
-return{dataUrl:dataUrl,name:file.name,originalSize:file.size,compressedSize:Math.round((dataUrl.length-dataUrl.indexOf(',')-1)*.75),width:width,height:height};
+return{dataUrl:dataUrl,name:file.name,originalSize:file.size,compressedSize:Math.round((dataUrl.length-dataUrl.indexOf(',')-1)*.75),width:width,height:height,sourcePhotoId:file._photoRecord&&file._photoRecord.id||'',sourcePhotoRecord:file._photoRecord||null};
 }
 
 async function preprocessImages(files){var images=[],meta=[];for(var i=0;i<files.length;i++){showLoading('正在压缩与校验照片...',(i+1)+' / '+files.length);var item=await compressImageFile(files[i]);images.push(item.dataUrl);meta.push({name:item.name,originalSize:item.originalSize,compressedSize:item.compressedSize,width:item.width,height:item.height});}return{images:images,meta:meta};}
+function usablePhotoUrl(url){if(!url)return'';return String(url).charAt(0)==='/'?getProxyApiUrl(url):url;}
+async function archiveAnalysisPhotos(project,analysisId,communityId,buildingId,images,meta,variant){
+var records=[],kind=variant||'original';for(var i=0;i<images.length;i++){showLoading(kind==='annotated'?'正在归档标注照片...':'正在归档现场照片...',(i+1)+' / '+images.length);var source=meta[i]||{};if(kind==='original'&&source.sourcePhotoId&&source.sourcePhotoRecord){records.push(source.sourcePhotoRecord);continue;}var photoId='PHOTO-'+analysisId+'-'+kind.toUpperCase()+'-'+(i+1),result=await storageApi('/api/photos/upload',{method:'POST',body:JSON.stringify({photoId:photoId,projectId:String(project.id),communityId:communityId,buildingId:buildingId||'',analysisId:String(analysisId),imageIndex:i+1,name:(kind==='annotated'?'标注图-':'')+(source.name||('照片'+(i+1)+'.jpg')),description:kind==='annotated'?'AI识别后经人工复核生成的标注图':'现场采集原始照片',capturedAt:new Date().toISOString(),width:source.width||0,height:source.height||0,dataUrl:images[i]})});records.push(result.item);}return records;
+}
+async function resolveRecordImages(record){if(record&&Array.isArray(record.imagesBase64)&&record.imagesBase64.length)return record.imagesBase64;if(!record||!Array.isArray(record.photoIds))return[];var urls=[];for(var i=0;i<record.photoIds.length;i++){try{var result=await storageApi('/api/photos/'+record.photoIds[i]);urls.push(usablePhotoUrl(result.item&&result.item.url));}catch(error){urls.push('');}}return urls;}
 
 function showLoading(msg,detail){var overlay=document.getElementById('loadingOverlay');document.getElementById('loadingText').textContent=msg||'正在分析...';document.getElementById('loadingDetail').textContent=detail||'';overlay.classList.add('show');}
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show');}
@@ -1646,6 +1683,8 @@ var activeProjectId=getActiveProjectId(),activeProject=activeProjectId?await get
 if(!activeProject){showToast('请先新建或选择体检项目','error');navigateTo('#projects');return;}
 var projectName=activeProject.name,areaInput=document.getElementById('analysisArea'),area=areaInput?areaInput.value.trim():'';
 if(!area){showToast('请选择或填写巡检区域','error');if(areaInput)areaInput.focus();return;}
+var communityEl=document.getElementById('analysisCommunity'),communityId=communityEl?communityEl.value:'',buildingEl=document.getElementById('analysisBuilding'),buildingId=buildingEl?buildingEl.value:'';
+if(!communityId){showToast('请选择照片所属小区','error');if(communityEl)communityEl.focus();return;}
 var analysisTypeEl=document.getElementById('analysisType'),analysisType=analysisTypeEl?analysisTypeEl.value:'';
 if(!analysisType){showToast('请选择分析类型，帮助 AI 聚焦识别','error');if(analysisTypeEl)analysisTypeEl.focus();return;}
 if(analysisUploadedFiles.length===0){showToast('请至少上传一张现场照片','error');return;}
@@ -1654,6 +1693,8 @@ setAnalysisWorkflowStep(2);showLoading('正在压缩与校验照片...','共 '+a
 
 try{
 var preprocessed=await preprocessImages(analysisUploadedFiles),imagesBase64=preprocessed.images;
+var analysisId=Date.now(),photoRecords=await archiveAnalysisPhotos(activeProject,analysisId,communityId,buildingId,imagesBase64,preprocessed.meta,'original');
+preprocessed.meta=preprocessed.meta.map(function(meta,index){var photo=photoRecords[index]||{};return Object.assign({},meta,{photoId:photo.id||'',communityId:communityId,buildingId:buildingId||'',storage:photo.storage||'',fileId:photo.fileId||'',cloudPath:photo.cloudPath||''});});
 var analysisDesc=document.getElementById('analysisDesc').value.trim();
 setAnalysisWorkflowStep(3);
 var batchSize=20,batchTotal=Math.ceil(imagesBase64.length/batchSize),allIssues=[],summaries=[],requestIds=[],apiResponse=null;
@@ -1665,18 +1706,20 @@ var batchResult=normalizeAnalysisResult(parsed,batchImages.length);for(var bi=0;
 }
 var result={summary:summaries.join(' '),issues:deduplicateAnalysisIssues(allIssues),rawIssueCount:allIssues.length};apiResponse=apiResponse||{};apiResponse.requestId=requestIds.join(', ');
 var record={
-id:Date.now(),
+id:analysisId,
 timestamp:new Date().toISOString(),
 projectName:projectName,
 area:area,
 projectId:activeProject.id,
+communityId:communityId,
+buildingId:buildingId||'',
 analysisType:analysisType,
 analysisTemplate:document.getElementById('analysisTemplate').value,
 analysisDesc:analysisDesc,
 imagesCount:imagesBase64.length,
-imagesBase64:imagesBase64,
+photoIds:photoRecords.map(function(photo){return photo.id;}),
 imageMeta:preprocessed.meta,
-annotatedImages:[],
+annotatedPhotoIds:[],
 reviewIssues:result.issues,
 result:{summary:result.summary,issues:[]},
 status:'reviewing',
@@ -1729,7 +1772,7 @@ function refreshAnalysisReview(){var result={summary:_currentAnalysisRecord&&_cu
 
 async function generateAnnotatedImages(images,issues){var output=[];for(var i=0;i<images.length;i++){showLoading('正在生成可归档标注图...',(i+1)+' / '+images.length);var img=await loadImageSource(images[i]),canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);var rows=issues.filter(function(issue){return issue.imageIndex===i+1;});for(var j=0;j<rows.length;j++){var issue=rows[j],b=issue.bbox,x=b[0]/999*canvas.width,y=b[1]/999*canvas.height,w=(b[2]-b[0])/999*canvas.width,h=(b[3]-b[1])/999*canvas.height,color=issue.severity==='high'?'#dc2626':issue.severity==='medium'?'#d97706':'#16a34a';ctx.strokeStyle=color;ctx.lineWidth=Math.max(3,canvas.width/400);ctx.strokeRect(x,y,w,h);var label=analysisTaxonomy[issue.categoryCode]+' '+Math.round(issue.confidence*100)+'%';ctx.font='600 '+Math.max(16,canvas.width/55)+'px sans-serif';var tw=ctx.measureText(label).width+18,th=Math.max(28,canvas.width/38);ctx.fillStyle=color;ctx.fillRect(x,Math.max(0,y-th),tw,th);ctx.fillStyle='#fff';ctx.fillText(label,x+9,Math.max(20,y-7));}output.push(canvas.toDataURL('image/jpeg',.9));}return output;}
 
-async function finalizeAnalysisReview(){if(!_currentAnalysisRecord)return;var pending=_lastAnalysisIssues.filter(function(i){return i.reviewStatus==='pending';});var accepted=_lastAnalysisIssues.filter(function(i){return i.reviewStatus==='accepted';});if(pending.length){showToast('仍有 '+pending.length+' 个问题待确认','error');return;}if(!accepted.length){showToast('至少需要接受一个问题后才能归档','error');return;}try{showLoading('正在生成标注图并归档...','问题台账将写入当前项目');var annotated=await generateAnnotatedImages(_lastAnalysisImages,accepted);_currentAnalysisRecord.reviewIssues=_lastAnalysisIssues;_currentAnalysisRecord.annotatedImages=annotated;_currentAnalysisRecord.result.issues=accepted;_currentAnalysisRecord.status='archived';_currentAnalysisRecord.archivedAt=new Date().toISOString();await saveRecord(_currentAnalysisRecord);var project=await getProjectById(_currentAnalysisRecord.projectId);if(project){project.updatedAt=new Date().toISOString();project.status='ai-analyzed';if(!project.analysisIds)project.analysisIds=[];if(project.analysisIds.indexOf(_currentAnalysisRecord.id)<0)project.analysisIds.push(_currentAnalysisRecord.id);await saveProject(project);}setAnalysisWorkflowStep(5);renderAnalysisResults(_currentAnalysisRecord.result,_lastAnalysisImages,_currentAnalysisRecord);showToast('标注图与问题台账已归档到项目','success');}catch(e){showToast('归档失败：'+e.message,'error');}finally{hideLoading();}}
+async function finalizeAnalysisReview(){if(!_currentAnalysisRecord)return;var pending=_lastAnalysisIssues.filter(function(i){return i.reviewStatus==='pending';});var accepted=_lastAnalysisIssues.filter(function(i){return i.reviewStatus==='accepted';});if(pending.length){showToast('仍有 '+pending.length+' 个问题待确认','error');return;}if(!accepted.length){showToast('至少需要接受一个问题后才能归档','error');return;}try{showLoading('正在生成标注图并归档...','问题台账将写入当前项目');var annotated=await generateAnnotatedImages(_lastAnalysisImages,accepted),project=await getProjectById(_currentAnalysisRecord.projectId);if(!project)throw new Error('所属项目不存在');var annotatedRecords=await archiveAnalysisPhotos(project,_currentAnalysisRecord.id,_currentAnalysisRecord.communityId,_currentAnalysisRecord.buildingId,annotated,_currentAnalysisRecord.imageMeta||[],'annotated');_currentAnalysisRecord.reviewIssues=_lastAnalysisIssues;_currentAnalysisRecord.annotatedPhotoIds=annotatedRecords.map(function(photo){return photo.id;});delete _currentAnalysisRecord.annotatedImages;delete _currentAnalysisRecord.imagesBase64;_currentAnalysisRecord.result.issues=accepted;_currentAnalysisRecord.status='archived';_currentAnalysisRecord.archivedAt=new Date().toISOString();await saveRecord(_currentAnalysisRecord);project.updatedAt=new Date().toISOString();project.status='ai-analyzed';if(!project.analysisIds)project.analysisIds=[];if(project.analysisIds.indexOf(_currentAnalysisRecord.id)<0)project.analysisIds.push(_currentAnalysisRecord.id);await saveProject(project);setAnalysisWorkflowStep(5);renderAnalysisResults(_currentAnalysisRecord.result,_lastAnalysisImages,_currentAnalysisRecord);showToast('照片、标注图与问题台账已归档到项目','success');}catch(e){showToast('归档失败：'+e.message,'error');}finally{hideLoading();}}
 
 /* ===== INDEXEDDB STORAGE ===== */
 function openDB(){return new Promise(function(resolve,reject){var req=indexedDB.open('SmartRenewDB',2);req.onupgradeneeded=function(e){var db=e.target.result;if(!db.objectStoreNames.contains('analysisRecords')){db.createObjectStore('analysisRecords',{keyPath:'id'});}if(!db.objectStoreNames.contains('projectRecords')){db.createObjectStore('projectRecords',{keyPath:'id'});}};req.onsuccess=function(e){resolve(e.target.result);};req.onerror=function(e){reject(e.target.error);};});}
@@ -1899,7 +1942,7 @@ document.querySelectorAll('.analysis-tab').forEach(function(t){t.classList.remov
 document.querySelector('.analysis-tab[data-tab="new-analysis"]').classList.add('active');
 document.querySelectorAll('.analysis-panel').forEach(function(p){p.classList.remove('active');});
 document.getElementById('panel-new-analysis').classList.add('active');
-renderAnalysisResults(result,record.imagesBase64||[],record);
+var historyImages=await resolveRecordImages(record);renderAnalysisResults(result,historyImages,record);
 setAnalysisWorkflowStep(record.status==='archived'?5:4);
 document.getElementById('analysisResultsBlock').classList.remove('hidden');
 document.getElementById('runAiAnalysisBtn').style.display='none';

@@ -12,6 +12,11 @@ import {
   listFieldCommunities,
   normalizeCollectionTask
 } from './field-collection-core.js';
+import {
+  decodePhotoDataUrl,
+  filterPhotoRecords,
+  normalizePhotoUpload
+} from './photo-storage-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
 const app = cloudbase.init({ env: envId });
@@ -22,6 +27,7 @@ const projectDataCollection = db.collection('projectDataRecords');
 const settingsCollection = db.collection('settings');
 const apiKeyUsersCollection = db.collection('apiKeyUsers');
 const fieldTaskCollection = db.collection('fieldCollectionTasks');
+const photoRecordCollection = db.collection('photoRecords');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -542,6 +548,60 @@ async function handleFieldCollectionApi(req, res, pathname) {
   }
 }
 
+async function photoWithTemporaryUrl(record) {
+  if (!record?.fileId) return record;
+  const result = await app.getTempFileURL({ fileList: [{ fileID: record.fileId, maxAge: 3600 }] });
+  return { ...record, url: result.fileList?.[0]?.tempFileURL || '' };
+}
+
+async function handlePhotoApi(req, res, url, pathname) {
+  try {
+    const recordMatch = pathname.match(/^\/photos\/([A-Za-z0-9_.-]+)$/);
+    const contentMatch = pathname.match(/^\/photos\/([A-Za-z0-9_.-]+)\/content$/);
+    if (req.method === 'GET' && pathname === '/photos') {
+      const items = filterPhotoRecords(await listCollection(photoRecordCollection), url.searchParams)
+        .map((item) => ({ ...item, url: `/api/photos/${item.id}/content` }));
+      return writeJson(res, 200, { items, storage: 'cloudbase-storage' });
+    }
+    if (req.method === 'GET' && contentMatch) {
+      const record = await getDocument(photoRecordCollection, contentMatch[1]);
+      if (!record?.fileId) return writeJson(res, 404, { message: '照片不存在' });
+      const downloaded = await app.downloadFile({ fileID: record.fileId });
+      res.writeHead(200, {
+        'Content-Type': record.mimeType || 'application/octet-stream',
+        'Cache-Control': 'private, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
+        'Access-Control-Allow-Origin': 'null'
+      });
+      return res.end(downloaded.fileContent);
+    }
+    if (req.method === 'POST' && pathname === '/photos/upload') {
+      const body = await readJson(req, 18 * 1024 * 1024);
+      const projectId = safeId(body.projectId);
+      if (!projectId) return writeJson(res, 400, { message: '项目编号无效' });
+      const project = await getDocument(projectCollection, projectId);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      const decoded = decodePhotoDataUrl(body.dataUrl);
+      const record = normalizePhotoUpload(body, project, decoded);
+      const existing = await getDocument(photoRecordCollection, record.id).catch(() => null);
+      if (existing) return writeJson(res, 200, { item: await photoWithTemporaryUrl(existing), duplicated: true });
+      const uploaded = await app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer });
+      record.storage = 'cloudbase-storage';
+      record.fileId = uploaded.fileID || '';
+      await putDocument(photoRecordCollection, record.id, record);
+      return writeJson(res, 201, { item: await photoWithTemporaryUrl(record), duplicated: false });
+    }
+    if (req.method === 'GET' && recordMatch) {
+      const record = await getDocument(photoRecordCollection, recordMatch[1]);
+      return record ? writeJson(res, 200, { item: await photoWithTemporaryUrl(record) }) : writeJson(res, 404, { message: '照片不存在' });
+    }
+    return writeJson(res, 404, { message: '照片档案接口不存在' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '照片数据过大' });
+    return writeJson(res, 400, { message: error.message || '照片归档失败' });
+  }
+}
+
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -641,6 +701,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/vision/analyze') return analyze(req, res);
   if (pathname.startsWith('/project-data') || /^\/projects\/\d+\/data-/.test(pathname)) return handleProjectDataApi(req, res, url, pathname);
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
+  if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
   return writeJson(res, 404, { message: '接口不存在' });
 });

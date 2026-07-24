@@ -14,6 +14,11 @@ import {
   listFieldCommunities,
   normalizeCollectionTask
 } from './functions/api/field-collection-core.js';
+import {
+  decodePhotoDataUrl,
+  filterPhotoRecords,
+  normalizePhotoUpload
+} from './functions/api/photo-storage-core.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const storageRoot = path.resolve(process.env.SMART_RENEW_DATA_DIR || path.join(root, '.smart-renew-data'));
@@ -21,6 +26,8 @@ const projectStorage = path.join(storageRoot, 'projects');
 const analysisStorage = path.join(storageRoot, 'analysis-records');
 const projectDataStorage = path.join(storageRoot, 'project-data');
 const fieldTaskStorage = path.join(storageRoot, 'field-collection-tasks');
+const photoRecordStorage = path.join(storageRoot, 'photo-records');
+const photoFileStorage = path.join(storageRoot, 'photo-files');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -160,6 +167,8 @@ async function ensureStorage() {
   await fs.mkdir(analysisStorage, { recursive: true });
   await fs.mkdir(projectDataStorage, { recursive: true });
   await fs.mkdir(fieldTaskStorage, { recursive: true });
+  await fs.mkdir(photoRecordStorage, { recursive: true });
+  await fs.mkdir(photoFileStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -393,6 +402,57 @@ async function handleFieldCollectionApi(req, res, url) {
   }
 }
 
+async function handlePhotoApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const recordMatch = url.pathname.match(/^\/api\/photos\/([A-Za-z0-9_.-]+)$/);
+    const contentMatch = url.pathname.match(/^\/api\/photos\/([A-Za-z0-9_.-]+)\/content$/);
+    if (req.method === 'GET' && url.pathname === '/api/photos') {
+      const items = filterPhotoRecords(await listStoredJson(photoRecordStorage), url.searchParams)
+        .map((item) => ({ ...item, url: `/api/photos/${item.id}/content` }));
+      return json(res, 200, { items, storage: 'server-filesystem' });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/photos/upload') {
+      const body = await readJson(req, 18 * 1024 * 1024);
+      const projectId = safeId(body.projectId);
+      if (!projectId) return json(res, 400, { message: '项目编号无效' });
+      const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      const decoded = decodePhotoDataUrl(body.dataUrl);
+      const record = normalizePhotoUpload(body, project, decoded);
+      const existing = await readStoredJson(path.join(photoRecordStorage, `${record.id}.json`));
+      if (existing) return json(res, 200, { item: { ...existing, url: `/api/photos/${existing.id}/content` }, duplicated: true });
+      const relativePath = record.cloudPath.replace(/^projects\/[^/]+\/photos\//, '');
+      const filePath = path.resolve(photoFileStorage, projectId, relativePath);
+      const allowedRoot = path.resolve(photoFileStorage, projectId) + path.sep;
+      if (!filePath.startsWith(allowedRoot)) throw new Error('照片存储路径无效');
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, decoded.buffer);
+      record.storage = 'server-filesystem';
+      record.filePath = path.relative(photoFileStorage, filePath).split(path.sep).join('/');
+      await writeStoredJson(path.join(photoRecordStorage, `${record.id}.json`), record);
+      return json(res, 201, { item: { ...record, url: `/api/photos/${record.id}/content` }, duplicated: false });
+    }
+    if (req.method === 'GET' && contentMatch) {
+      const record = await readStoredJson(path.join(photoRecordStorage, `${contentMatch[1]}.json`));
+      if (!record) return json(res, 404, { message: '照片不存在' });
+      const filePath = path.resolve(photoFileStorage, record.filePath || '');
+      if (!filePath.startsWith(path.resolve(photoFileStorage) + path.sep)) return json(res, 403, { message: '照片路径无效' });
+      const data = await fs.readFile(filePath);
+      res.writeHead(200, { 'Content-Type': record.mimeType || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Access-Control-Allow-Origin': 'null' });
+      return res.end(data);
+    }
+    if (req.method === 'GET' && recordMatch) {
+      const record = await readStoredJson(path.join(photoRecordStorage, `${recordMatch[1]}.json`));
+      return record ? json(res, 200, { item: { ...record, url: `/api/photos/${record.id}/content` } }) : json(res, 404, { message: '照片不存在' });
+    }
+    return json(res, 404, { message: '照片档案接口不存在' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '照片数据过大' });
+    return json(res, 400, { message: error.message || '照片归档失败' });
+  }
+}
+
 async function serveStatic(req, res) {
   const pathname = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -425,6 +485,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
   if (url.pathname.startsWith('/api/field/')) return handleFieldCollectionApi(req, res, url);
+  if (url.pathname.startsWith('/api/photos')) return handlePhotoApi(req, res, url);
   if (url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/analysis-records')) return handleStorageApi(req, res, url);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);
   json(res, 405, { message: '不支持的请求方法' });
