@@ -66,9 +66,8 @@ test('raw upload content persists completion and hash', async () => {
   };
   await repository.put(session);
   const client = {
-    async request(pathname, options) {
-      assert.equal(pathname, '/api/photos/upload');
-      assert.ok(JSON.parse(options.body).dataUrl.startsWith('data:image/png;base64,'));
+    async uploadPhoto(input) {
+      assert.ok(input.dataUrl.startsWith('data:image/png;base64,'));
       return { item: { id: 'PHOTO-REAL', storage: 'server-filesystem' }, duplicated: false };
     }
   };
@@ -98,7 +97,7 @@ test('failed storage attempt remains retryable and cancel is explicit', async ()
     attempts: 0
   });
   const client = {
-    async request() {
+    async uploadPhoto() {
       const error = new Error('storage unavailable');
       error.code = 'UPSTREAM_UNAVAILABLE';
       error.status = 502;

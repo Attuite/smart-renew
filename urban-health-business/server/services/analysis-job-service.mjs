@@ -31,7 +31,7 @@ export async function createAnalysisJob(client, repository, projectId, input, op
 
   const [project, photos, health] = await Promise.all([
     client.getProject(normalizedProjectId),
-    client.safeList(`/api/photos?projectId=${encodeURIComponent(normalizedProjectId)}`),
+    client.listPhotos({ projectId: normalizedProjectId }),
     client.health()
   ]);
   const photoMap = new Map(photos.items.map((photo) => [String(photo.id), photo]));

@@ -56,7 +56,7 @@ export async function runIssueRadiusAnalysis(
   const [project, businessIssues, legacyIssues] = await Promise.all([
     client.getProject(projectId),
     issueRepository.list(projectId),
-    client.safeList(`/api/issues?projectId=${encodeURIComponent(projectId)}`)
+    client.listIssues({ projectId })
   ]);
   const merged = new Map();
   for (const issue of legacyIssues.items) merged.set(String(issue.id), issue);

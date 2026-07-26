@@ -17,7 +17,7 @@ function context() {
           residentialInventory: { items: [{ id: 'COMM-1', name: '测试小区', status: 'active' }] }
         };
       },
-      async safeList() { return { items: photos }; }
+      async listPhotos() { return { items: photos }; }
     },
     repository: {
       async get(id) { return metadata.get(id) || null; },

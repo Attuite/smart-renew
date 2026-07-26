@@ -17,7 +17,7 @@ function activeCommunities(project) {
 export async function updatePhotoMetadata(client, repository, projectId, photoId, input, options = {}) {
   const [project, photos, existing] = await Promise.all([
     client.getProject(projectId),
-    client.safeList(`/api/photos?projectId=${encodeURIComponent(projectId)}`),
+    client.listPhotos({ projectId }),
     repository.get(photoId)
   ]);
   const photo = photos.items.find((item) => String(item.id) === String(photoId));

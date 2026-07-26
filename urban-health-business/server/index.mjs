@@ -5,6 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { API_VERSION, SCHEMA_VERSION } from '../packages/api-contracts/constants.mjs';
 import { SmartRenewClient } from './adapters/smart-renew/client.mjs';
+import { createSmartRenewAdapters } from './adapters/smart-renew/index.mjs';
+import { mergePrimaryReadModel } from './adapters/smart-renew/read-model-policy.mjs';
+import { sourceOfTruthSnapshot } from './adapters/smart-renew/source-of-truth.mjs';
 import { OfficialIssueRepository } from './repositories/official-issue-repository.mjs';
 import { PhotoMetadataRepository } from './repositories/photo-metadata-repository.mjs';
 import { AnalysisCandidateRepository } from './repositories/analysis-candidate-repository.mjs';
@@ -79,6 +82,7 @@ const businessDataRoot = path.resolve(
   process.env.URBAN_HEALTH_DATA_DIR || path.join(projectRoot, '.data')
 );
 const smartRenewClient = new SmartRenewClient();
+const smartRenewAdapters = createSmartRenewAdapters(smartRenewClient);
 const officialIssueRepository = new OfficialIssueRepository(
   path.join(businessDataRoot, 'official-issues')
 );
@@ -302,7 +306,7 @@ async function proxyLegacy(req, res, url, id) {
 }
 
 async function handleMeta(res, id) {
-  const services = await getCapabilities(smartRenewClient);
+  const services = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
   sendSuccess(res, {
     apiVersion: API_VERSION,
     schemaVersion: SCHEMA_VERSION,
@@ -313,8 +317,10 @@ async function handleMeta(res, id) {
       ai: services.ai,
       gis: services.gis,
       indicator: services.indicator,
-      report: services.report
+      report: services.report,
+      legacy: services.legacy
     },
+    dataSources: sourceOfTruthSnapshot(),
     features: {
       optimisticConcurrency: true,
       localJsonPersistence: true,
@@ -329,6 +335,8 @@ async function handleMeta(res, id) {
       persistentAnalysisCandidates: true,
       clickToLocateIssues: true,
       requestObservability: true,
+      legacyCapabilityRegistry: true,
+      sourceOfTruthRegistry: true,
       serverPdf: false,
       workflowAggregation: true,
       demoIsolation: true
@@ -372,7 +380,7 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/photos') {
       const projectId = url.searchParams.get('projectId') || '';
       const [photos, metadata] = await Promise.all([
-        smartRenewClient.safeList(`/api/photos${url.search}`),
+        smartRenewClient.listPhotos(Object.fromEntries(url.searchParams)),
         photoMetadataRepository.list(projectId)
       ]);
       return sendSuccess(res, {
@@ -487,7 +495,7 @@ async function handleRequest(req, res) {
       );
     }
     if (req.method === 'GET' && url.pathname === '/api/ready') {
-      const capabilities = await getCapabilities(smartRenewClient);
+      const capabilities = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
       const ready = capabilities.upstream.ready;
       return sendSuccess(res, {
         status: ready ? 'ready' : 'not_ready',
@@ -503,6 +511,7 @@ async function handleRequest(req, res) {
             reason: capabilities.gis.mapReason
           },
           indicator: capabilities.indicator,
+          legacy: capabilities.legacy,
           serverPdf: {
             ready: capabilities.report.pdfReady,
             reason: capabilities.report.pdfReady ? null : 'server_pdf_not_integrated'
@@ -883,7 +892,7 @@ async function handleRequest(req, res) {
       const projectId = decodeURIComponent(analysisJobsMatch[1]);
       const [jobs, photos, photoMetadata] = await Promise.all([
         analysisJobRepository.list(projectId),
-        smartRenewClient.safeList(`/api/photos?projectId=${encodeURIComponent(projectId)}`),
+        smartRenewClient.listPhotos({ projectId }),
         photoMetadataRepository.list(projectId)
       ]);
       return sendSuccess(res, {
@@ -916,7 +925,7 @@ async function handleRequest(req, res) {
         throw error;
       }
       const [photos, photoMetadata] = await Promise.all([
-        smartRenewClient.safeList(`/api/photos?projectId=${encodeURIComponent(job.projectId)}`),
+        smartRenewClient.listPhotos({ projectId: job.projectId }),
         photoMetadataRepository.list(job.projectId)
       ]);
       return sendSuccess(res, {
@@ -1007,12 +1016,16 @@ async function handleRequest(req, res) {
       const projectId = url.searchParams.get('projectId') || '';
       const [businessIssues, legacyIssues] = await Promise.all([
         officialIssueRepository.list(projectId),
-        smartRenewClient.safeList(`/api/issues${url.search}`)
+        smartRenewClient.listIssues(Object.fromEntries(url.searchParams))
       ]);
-      const merged = new Map();
-      for (const issue of legacyIssues.items) merged.set(String(issue.id), issue);
-      for (const issue of businessIssues) merged.set(String(issue.id), issue);
-      return sendSuccess(res, { items: [...merged.values()], storage: 'business-and-legacy' }, id);
+      const items = mergePrimaryReadModel('officialIssue', {
+        businessItems: businessIssues,
+        legacyItems: legacyIssues.items
+      });
+      return sendSuccess(res, {
+        items,
+        storage: 'business-primary-legacy-read-only'
+      }, id);
     }
 
     const projectIssuesMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/issues$/);
@@ -1125,11 +1138,14 @@ async function handleRequest(req, res) {
       }
       const [businessReports, legacyReports] = await Promise.all([
         reportRepository.list(projectId),
-        smartRenewClient.safeList(`/api/reports?projectId=${encodeURIComponent(projectId)}`)
+        smartRenewClient.listReports({ projectId })
       ]);
-      const reportMap = new Map();
-      for (const report of legacyReports.items) reportMap.set(String(report.id), report);
-      for (const report of businessReports) reportMap.set(String(report.id), report);
+      const reportMap = new Map(
+        mergePrimaryReadModel('report', {
+          businessItems: businessReports,
+          legacyItems: legacyReports.items
+        }).map((report) => [String(report.id), report])
+      );
       const baseReport = reportMap.get(baseReportId);
       const targetReport = reportMap.get(targetReportId);
       if (!baseReport || !targetReport) {
@@ -1196,12 +1212,12 @@ async function handleRequest(req, res) {
       const projectId = url.searchParams.get('projectId') || '';
       const [businessReports, legacyReports] = await Promise.all([
         reportRepository.list(projectId),
-        smartRenewClient.safeList(`/api/reports${url.search}`)
+        smartRenewClient.listReports(Object.fromEntries(url.searchParams))
       ]);
-      const merged = new Map();
-      for (const report of legacyReports.items) merged.set(String(report.id), report);
-      for (const report of businessReports) merged.set(String(report.id), report);
-      let items = [...merged.values()];
+      let items = mergePrimaryReadModel('report', {
+        businessItems: businessReports,
+        legacyItems: legacyReports.items
+      });
       if (projectId) {
         const [
           project,
@@ -1213,23 +1229,27 @@ async function handleRequest(req, res) {
         ] = await Promise.all([
           smartRenewClient.getProject(projectId),
           officialIssueRepository.list(projectId),
-          smartRenewClient.safeList(`/api/issues?projectId=${encodeURIComponent(projectId)}`),
+          smartRenewClient.listIssues({ projectId }),
           spatialAnalysisRepository.list(projectId),
-          smartRenewClient.safeList(`/api/photos?projectId=${encodeURIComponent(projectId)}`),
+          smartRenewClient.listPhotos({ projectId }),
           photoMetadataRepository.list(projectId)
         ]);
-        const issueMap = new Map();
-        for (const issue of legacyIssues.items) issueMap.set(String(issue.id), issue);
-        for (const issue of businessIssues) issueMap.set(String(issue.id), issue);
+        const mergedIssues = mergePrimaryReadModel('officialIssue', {
+          businessItems: businessIssues,
+          legacyItems: legacyIssues.items
+        });
         items = markReportStaleness(
           items,
           project,
-          [...issueMap.values()],
+          mergedIssues,
           spatialAnalyses,
           mergePhotoMetadata(photos.items, photoMetadata, true)
         );
       }
-      return sendSuccess(res, { items, storage: 'business-and-legacy' }, id);
+      return sendSuccess(res, {
+        items,
+        storage: 'business-primary-legacy-read-only'
+      }, id);
     }
 
     const reportCreateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/reports$/);
@@ -1247,16 +1267,17 @@ async function handleRequest(req, res) {
       ] = await Promise.all([
         smartRenewClient.getProject(projectId),
         officialIssueRepository.list(projectId),
-        smartRenewClient.safeList(`/api/issues?projectId=${encodeURIComponent(projectId)}`),
-        smartRenewClient.safeList(`/api/analysis-records?projectId=${encodeURIComponent(projectId)}`),
+        smartRenewClient.listIssues({ projectId }),
+        smartRenewClient.listAnalyses({ projectId }),
         reviewSessionRepository.list(projectId),
         spatialAnalysisRepository.list(projectId),
-        smartRenewClient.safeList(`/api/photos?projectId=${encodeURIComponent(projectId)}`),
+        smartRenewClient.listPhotos({ projectId }),
         photoMetadataRepository.list(projectId)
       ]);
-      const issues = new Map();
-      for (const issue of legacyIssues.items) issues.set(String(issue.id), issue);
-      for (const issue of businessIssues) issues.set(String(issue.id), issue);
+      const issues = mergePrimaryReadModel('officialIssue', {
+        businessItems: businessIssues,
+        legacyItems: legacyIssues.items
+      });
       if (
         !analyses.items.some((analysis) => analysis.status === 'archived')
         && !manualReviews.some((review) => review.status === 'archived')
@@ -1268,7 +1289,7 @@ async function handleRequest(req, res) {
       }
       const report = await reportRepository.create(
         project,
-        [...issues.values()],
+        issues,
         analyses.items,
         await readJsonBody(req),
         {

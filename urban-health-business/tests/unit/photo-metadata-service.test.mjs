@@ -17,7 +17,7 @@ function fakeClient() {
         }
       };
     },
-    async safeList() {
+    async listPhotos() {
       return { items: [{ id: 'PHOTO-1', name: '原照片', communityId: 'COMM-1' }] };
     }
   };

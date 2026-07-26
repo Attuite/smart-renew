@@ -150,7 +150,7 @@ export async function runAnalysis(client, projectId, input, options = {}) {
 
   const [project, projectPhotos, health] = await Promise.all([
     client.getProject(projectId),
-    client.safeList(`/api/photos?projectId=${encodeURIComponent(projectId)}`),
+    client.listPhotos({ projectId }),
     client.health()
   ]);
   if (!health?.ready) throw apiError('视觉AI尚未配置。', 503, 'AI_NOT_CONFIGURED');
@@ -190,17 +190,13 @@ export async function runAnalysis(client, projectId, input, options = {}) {
       images.push(`data:${binary.contentType};base64,${binary.bytes.toString('base64')}`);
     }
     const prompt = buildAnalysisPrompt(project, input, images.length);
-    const response = await client.request('/api/vision/analyze', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        images,
-        prompt,
-        model: health.model,
-        temperature: 0.2,
-        maxTokens: 5000,
-        topP: 0.9
-      })
+    const response = await client.analyzeVision({
+      images,
+      prompt,
+      model: health.model,
+      temperature: 0.2,
+      maxTokens: 5000,
+      topP: 0.9
     });
     const result = normalizeAnalysisResult(parseModelContent(response?.content), {
       analysisId: id,

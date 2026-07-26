@@ -17,7 +17,7 @@ test('radius analysis uses user parameter and persists a reproducible source sna
         boundaryCenter: [108.95, 34.27]
       };
     },
-    async safeList() {
+    async listIssues() {
       return { items: [] };
     }
   }, {
@@ -58,7 +58,7 @@ test('radius analysis never substitutes fixed demo radii', async () => {
   await assert.rejects(
     () => runIssueRadiusAnalysis({
       async getProject() { return { id: '170000000000001', boundaryCenter: [108.95, 34.27] }; },
-      async safeList() { return { items: [] }; }
+      async listIssues() { return { items: [] }; }
     }, {
       async list() { return []; }
     }, {}, '170000000000001', {
@@ -72,7 +72,7 @@ test('spatial analysis requires an accountable operator', async () => {
   await assert.rejects(
     () => runIssueRadiusAnalysis({
       async getProject() { return { id: '170000000000001', boundaryCenter: [108.95, 34.27] }; },
-      async safeList() { return { items: [] }; }
+      async listIssues() { return { items: [] }; }
     }, {
       async list() { return []; }
     }, {}, '170000000000001', {

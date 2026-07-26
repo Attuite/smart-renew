@@ -23,7 +23,7 @@ export async function createManualIssue(client, issueRepository, projectId, inpu
 
   const originalPhotoId = clean(input?.originalPhotoId, 120);
   if (originalPhotoId) {
-    const photos = await client.safeList(`/api/photos?projectId=${encodeURIComponent(project.id)}`);
+    const photos = await client.listPhotos({ projectId: project.id });
     if (!photos.items.some((photo) => String(photo.id) === originalPhotoId)) {
       throw manualError('所选照片不属于当前项目或已不存在。', 400, 'PHOTO_NOT_FOUND');
     }
@@ -97,7 +97,7 @@ export async function finalizeManualReview(
 
   const [businessIssues, legacyIssues] = await Promise.all([
     issueRepository.list(project.id),
-    client.safeList(`/api/issues?projectId=${encodeURIComponent(project.id)}`)
+    client.listIssues({ projectId: project.id })
   ]);
   const mergedIssues = new Map();
   for (const issue of legacyIssues.items) mergedIssues.set(String(issue.id), issue);

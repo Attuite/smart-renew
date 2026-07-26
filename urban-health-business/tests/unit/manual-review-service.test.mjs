@@ -7,9 +7,8 @@ function fakeClient() {
     async getProject() {
       return { id: '170000000000001', revision: 4 };
     },
-    async safeList(pathname) {
-      return { items: pathname.startsWith('/api/photos') ? [{ id: 'PHOTO-001' }] : [] };
-    }
+    async listPhotos() { return { items: [{ id: 'PHOTO-001' }] }; },
+    async listIssues() { return { items: [] }; }
   };
 }
 

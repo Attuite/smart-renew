@@ -14,4 +14,7 @@ test('capabilities identify local filesystem without claiming object storage', a
   assert.equal(capabilities.database.mode, 'local-json-files');
   assert.equal(capabilities.database.managedDatabaseReady, false);
   assert.equal(capabilities.database.managedDatabaseReason, 'managed_database_not_integrated');
+  assert.equal(capabilities.legacy.projectData.status, 'available');
+  assert.equal(capabilities.legacy.fieldCollection.adapter, 'FieldAdapter');
+  assert.equal(capabilities.legacy.reportSnapshots.status, 'degraded');
 });

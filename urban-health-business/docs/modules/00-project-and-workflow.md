@@ -393,6 +393,8 @@ sort
 以下内容已经完成，不再列为缺失：
 
 - `/api/meta`；
+- LegacyCapabilityRegistry和专项smart-renew适配器；
+- 唯一主数据源注册表及Business优先、旧数据只读兼容的去重读取策略；
 - 后端workflow聚合；
 - Business项目PATCH、revision和409冲突；
 - 项目汇总统一口径；
@@ -420,8 +422,9 @@ C/D后续项：
 
 ## 24. 本次A/B开发任务
 
-- 固定Project及相关对象主数据源；
-- 接入ProjectData和外业查询适配；
+- 已完成Project及相关对象主数据源注册；
+- 已完成ProjectData和外业查询适配器基础；
+- 下一增量接入ProjectData和外业BFF路由；
 - 抽取高德地图边界Provider；
 - 建立CloudBase可选Repository契约；
-- 增加适配器、地图和主数据源不双写测试。
+- 已增加适配器和主数据源不双写测试，后续补地图与各增量契约测试。

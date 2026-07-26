@@ -122,18 +122,14 @@ export async function uploadSessionContent(client, repository, sessionId, bytes,
     const exif = extractPhotoExif(bytes, session.file.mimeType);
     const photoSeed = `${session.projectId}|${session.communityId}|${session.buildingId}|${contentHash}`;
     const photoId = `PHOTO-${createHash('sha256').update(photoSeed).digest('hex').slice(0, 24)}`;
-    const payload = await client.request('/api/photos/upload', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        photoId,
-        projectId: session.projectId,
-        communityId: session.communityId,
-        buildingId: session.buildingId,
-        name: session.file.name,
-        capturedAt: exif.capturedAt || session.file.lastModified || now,
-        dataUrl: `data:${session.file.mimeType};base64,${bytes.toString('base64')}`
-      })
+    const payload = await client.uploadPhoto({
+      photoId,
+      projectId: session.projectId,
+      communityId: session.communityId,
+      buildingId: session.buildingId,
+      name: session.file.name,
+      capturedAt: exif.capturedAt || session.file.lastModified || now,
+      dataUrl: `data:${session.file.mimeType};base64,${bytes.toString('base64')}`
     });
     const photo = payload?.item || payload;
     const completed = {

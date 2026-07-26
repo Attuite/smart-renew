@@ -1,4 +1,6 @@
 import { buildWorkflow } from '../../packages/workflow-core/index.mjs';
+import { LegacyCapabilityRegistry } from '../adapters/smart-renew/capabilities.mjs';
+import { mergePrimaryReadModel } from '../adapters/smart-renew/read-model-policy.mjs';
 import { assessCollection } from './collection-validation-service.mjs';
 import { mergePhotoMetadata } from './photo-metadata-service.mjs';
 
@@ -6,7 +8,7 @@ function isAiReady(health) {
   return Boolean(health?.ready);
 }
 
-export async function getCapabilities(client) {
+export async function getCapabilities(client, capabilityRegistry = new LegacyCapabilityRegistry()) {
   let health = null;
   let upstreamReady = false;
   let upstreamError = null;
@@ -53,19 +55,17 @@ export async function getCapabilities(client) {
       mapReason: 'map_provider_not_integrated'
     },
     indicator: { ready: false, reason: 'indicator_engine_not_integrated' },
-    report: { ready: upstreamReady, reason: upstreamReady ? null : 'smart_renew_unavailable', pdfReady: false }
+    report: { ready: upstreamReady, reason: upstreamReady ? null : 'smart_renew_unavailable', pdfReady: false },
+    legacy: capabilityRegistry.snapshot({
+      upstreamReady,
+      upstreamError,
+      health
+    })
   };
 }
 
 function projectDataByType(items, type) {
   return items.filter((item) => item?.dataType === type || item?.type === type);
-}
-
-function mergedIssues(legacyIssues, businessIssues) {
-  const merged = new Map();
-  for (const issue of legacyIssues || []) merged.set(String(issue.id), issue);
-  for (const issue of businessIssues || []) merged.set(String(issue.id), issue);
-  return [...merged.values()];
 }
 
 function markSpatialStaleness(runs, project, issues) {
@@ -207,7 +207,10 @@ export async function getProjectWorkflow(
   ]);
 
   const projectData = collections.projectData.items;
-  const officialIssues = mergedIssues(collections.issues.items, businessIssues);
+  const officialIssues = mergePrimaryReadModel('officialIssue', {
+    businessItems: businessIssues,
+    legacyItems: collections.issues.items
+  });
   const rawSpatialAnalyses = [...projectDataByType(projectData, 'spatialAnalysis'), ...businessSpatialAnalyses];
   const spatialAnalyses = markSpatialStaleness(rawSpatialAnalyses, project, officialIssues);
   const governedPhotosAll = mergePhotoMetadata(collections.photos.items, photoMetadata, true);
@@ -222,7 +225,10 @@ export async function getProjectWorkflow(
       .map((job) => [String(job.analysisId), job])
   );
   const reports = markReportStaleness(
-    [...collections.reports.items, ...businessReports],
+    mergePrimaryReadModel('report', {
+      businessItems: businessReports,
+      legacyItems: collections.reports.items
+    }),
     project,
     officialIssues,
     spatialAnalyses,
@@ -303,7 +309,14 @@ export async function getProjectSummary(
     photoMetadataRepository ? photoMetadataRepository.list(projectId) : [],
     sourceAssetRepository ? sourceAssetRepository.list(projectId) : []
   ]);
-  const officialIssues = mergedIssues(collections.issues.items, businessIssues);
+  const officialIssues = mergePrimaryReadModel('officialIssue', {
+    businessItems: businessIssues,
+    legacyItems: collections.issues.items
+  });
+  const reports = mergePrimaryReadModel('report', {
+    businessItems: businessReports,
+    legacyItems: collections.reports.items
+  });
   const governedPhotos = mergePhotoMetadata(collections.photos.items, photoMetadata);
   const collectionValidation = assessCollection({
     projectId,
@@ -328,7 +341,7 @@ export async function getProjectSummary(
       reviewConclusions: reviewConclusions.length,
       spatialAnalyses: businessSpatialAnalyses.length + projectDataByType(collections.projectData.items, 'spatialAnalysis').length,
       officialIssues: officialIssues.length,
-      reports: collections.reports.items.length + businessReports.length,
+      reports: reports.length,
       fieldRecords: collections.fieldRecords.items.length,
       projectData: collections.projectData.items.length
     },

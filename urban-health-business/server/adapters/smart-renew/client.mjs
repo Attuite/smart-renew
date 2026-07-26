@@ -4,6 +4,15 @@ function normalizeBase(value) {
   return String(value || DEFAULT_BASE).replace(/\/+$/, '');
 }
 
+function queryFrom(filters = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters || {})) {
+    if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+  }
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : '';
+}
+
 async function readJsonResponse(response) {
   const text = await response.text();
   if (!text) return null;
@@ -129,6 +138,22 @@ export class SmartRenewClient {
     });
   }
 
+  async analyzeVision(input) {
+    return this.request('/api/vision/analyze', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+  }
+
+  async uploadPhoto(input) {
+    return this.request('/api/photos/upload', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+  }
+
   async getPhotoContent(photoId) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -172,15 +197,38 @@ export class SmartRenewClient {
     }
   }
 
+  async listPhotos(filters = {}) {
+    return this.safeList(`/api/photos${queryFrom(filters)}`);
+  }
+
+  async listAnalyses(filters = {}) {
+    return this.safeList(`/api/analysis-records${queryFrom(filters)}`);
+  }
+
+  async listIssues(filters = {}) {
+    return this.safeList(`/api/issues${queryFrom(filters)}`);
+  }
+
+  async listReports(filters = {}) {
+    return this.safeList(`/api/reports${queryFrom(filters)}`);
+  }
+
+  async listFieldRecords(filters = {}) {
+    return this.safeList(`/api/field-records${queryFrom(filters)}`);
+  }
+
+  async listProjectData(filters = {}) {
+    return this.safeList(`/api/project-data${queryFrom(filters)}`);
+  }
+
   async projectCollections(projectId) {
-    const query = `?projectId=${encodeURIComponent(projectId)}`;
     const [photos, analyses, issues, reports, fieldRecords, projectData] = await Promise.all([
-      this.safeList(`/api/photos${query}`),
-      this.safeList(`/api/analysis-records${query}`),
-      this.safeList(`/api/issues${query}`),
-      this.safeList(`/api/reports${query}`),
-      this.safeList(`/api/field-records${query}`),
-      this.safeList(`/api/project-data${query}`)
+      this.listPhotos({ projectId }),
+      this.listAnalyses({ projectId }),
+      this.listIssues({ projectId }),
+      this.listReports({ projectId }),
+      this.listFieldRecords({ projectId }),
+      this.listProjectData({ projectId })
     ]);
     return { photos, analyses, issues, reports, fieldRecords, projectData };
   }

@@ -179,6 +179,8 @@ functions/api/legacy-migration-core.js
 
 ## 6. AB-00 主数据源和复用适配基础
 
+> 状态：已完成（2026-07-26）。后续工作包必须通过本节建立的适配器和主数据源策略接入。
+
 ### 6.1 目标
 
 - 保留当前`SmartRenewClient`、通用上游代理、`/api/meta`和已有能力声明；
@@ -199,8 +201,12 @@ server/adapters/smart-renew/
 ├─ field-adapter
 ├─ project-data-adapter
 ├─ legacy-migration-adapter
-└─ report-snapshot-adapter
+├─ report-snapshot-adapter
+├─ source-of-truth
+└─ read-model-policy
 ```
+
+实际实现还提供统一适配器工厂；Business服务对旧照片、分析、问题和报告的调用已收敛到适配层方法，不再在业务服务中拼接旧接口路径。
 
 ### 6.3 验收
 

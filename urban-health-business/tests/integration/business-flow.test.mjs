@@ -95,6 +95,13 @@ test('isolated local BFF completes the real manual workflow across both services
     const readiness = await jsonRequest(businessBase, '/api/ready');
     assert.equal(readiness.status, 'ready');
     assert.equal(readiness.optional.ai.ready, false);
+    assert.equal(readiness.optional.legacy.projectData.status, 'available');
+    assert.equal(readiness.optional.legacy.reportSnapshots.mode, 'read-only');
+    const meta = await jsonRequest(businessBase, '/api/meta');
+    assert.equal(meta.features.legacyCapabilityRegistry, true);
+    assert.equal(meta.features.sourceOfTruthRegistry, true);
+    assert.equal(meta.dataSources.officialIssue.primary, 'business');
+    assert.equal(meta.dataSources.report.legacyRole, 'read-only-and-explicit-migration');
 
     const created = await jsonRequest(businessBase, '/api/projects', {
       method: 'POST',

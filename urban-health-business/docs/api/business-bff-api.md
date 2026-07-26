@@ -46,7 +46,9 @@ GET /api/projects/{projectId}/summary
 GET /api/projects/{projectId}/workflow
 ```
 
-`/api/meta` 必须真实报告AI、指标、地图和报告能力，不得因界面需要伪造ready。
+`/api/meta` 必须真实报告AI、指标、地图、报告及原smart-renew复用能力，不得因界面需要伪造ready。`services.legacy`中的每项能力使用`available/degraded/unavailable`状态，并声明适配器、访问模式和主数据源。
+
+`/api/meta.dataSources`返回项目、照片、分析、Candidate、正式问题、SourceAsset、空间分析、报告、ProjectData和外业任务的唯一主数据源规则。正式问题和报告以Business为主，原数据只读兼容并仅允许显式迁移。
 
 `/api/health` 是进程存活检查，不依赖上游；`/api/ready` 检查运行所需的smart-renew数据库与存储连接。AI、地图底图、指标和服务端PDF作为可选能力单独报告，不会因为未配置而把整个Business服务判为不可运行。
 

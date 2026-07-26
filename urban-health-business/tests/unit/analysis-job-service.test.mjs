@@ -26,7 +26,7 @@ function jobRepository() {
 
 const client = {
   async getProject() { return { id: '170000000000001', revision: 4 }; },
-  async safeList() { return { items: [{ id: 'PHOTO-1' }, { id: 'PHOTO-2' }] }; },
+  async listPhotos() { return { items: [{ id: 'PHOTO-1' }, { id: 'PHOTO-2' }] }; },
   async health() { return { ready: true, model: 'mock-vl' }; }
 };
 
