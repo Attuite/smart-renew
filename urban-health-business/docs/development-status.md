@@ -411,3 +411,75 @@ SQLite当前依赖Node.js 22.13以上的内置`node:sqlite`。本地Node.js 24�
 10. 完成全过程契约、浏览器和边界回归。
 
 以上顺序只表示技术依赖，所有A/B工作包的“增量交付项”均属于本次范围。现有基线不重复开发；C/D能力继续以真实待接入状态保留。
+
+## 8. 2026-07-26 开发停止点
+
+今天开发到此停止，后续不得从旧大纲中的“高德地图待接入”状态重新开始。
+
+### 8.1 当前代码基线
+
+- 工作分支：`urban-health-business`；
+- 当前功能提交：`eaf3c62 feat: integrate amap and poi analysis`；
+- 前一功能提交：`692cfd2 feat: add sqlite exchange and business legacy migration`；
+- 原smart-renew根目录没有因Business开发被修改；
+- 本次没有执行远程推送。
+
+### 8.2 今天已经完成
+
+- ProjectData JSON Envelope与真实SQLite导入、导出、引用重建和来源审计；
+- 旧OfficialIssue及旧报告向Business主仓储的显式、幂等迁移；
+- 迁移报告只读保护和迁移后源数据变化冲突；
+- 高德浏览器地图Controller与运行配置；
+- BFF地址正向解析和服务端高德Web服务Provider；
+- GCJ-02项目边界绘制、回显和后端二次校验；
+- GIS工作台项目边界、正式问题回显和点击定位；
+- POI分页查询、允许/硬排除、去重、近邻合并和住宅边界裁剪；
+- 原始POI、Provider、参数、拒绝原因、清洗规则和结果快照；
+- POI运行随项目边界变化进入stale，但不因正式问题集合变化误判stale；
+- WGS84/GCJ-02混用阻断；
+- 未配置高德时的真实不可用状态，不生成假边界或示例POI。
+
+### 8.3 当前验证基线
+
+- Node语法检查通过；
+- 单元测试`108/108`通过；
+- 双服务隔离全过程集成测试`1/1`通过；
+- V9.1 Demo完整性`42`个文件通过；
+- 原项目修改边界校验通过；
+- 浏览器隔离验收通过：无高德配置时地图、地址和POI操作正确禁用，手工经纬度边界仍可保存；
+- 浏览器验收临时服务已停止，隔离数据目录已删除；
+- Git工作区在记录本停止点前为干净状态。
+
+### 8.4 下次继续位置
+
+下一增量从AB-05开始：
+
+```text
+超过20张真实照片
+→ 每20张自动拆批
+→ 保存批次及模型调用元数据
+→ 跨批合并
+→ 使用BBox IoU与标题归一化去重
+→ 形成统一Candidate集合
+→ 保持现有AnalysisJob和AnalysisCandidate为唯一业务主链
+```
+
+开始前先对照：
+
+- `docs/reuse-first-ab-development-outline.md`中的AB-05；
+- `docs/original-smart-renew-reuse-audit.md`中的AI拆批、BBox IoU和候选去重证据；
+- 当前`AnalysisJobRunner`、`AnalysisCandidateRepository`和分析任务测试。
+
+不得重写已有异步任务、候选仓储、stale传播和人工复核主链。
+
+### 8.5 尚未完成的外部验收
+
+真实高德在线验收需要部署环境提供：
+
+```text
+AMAP_JS_KEY
+AMAP_JS_SECURITY_CODE
+AMAP_WEB_SERVICE_KEY
+```
+
+当前已完成Mock契约、缺配置降级和浏览器流程验证，但尚未使用真实高德账号验证在线地图加载、地址返回质量、配额限制和真实POI结果。该事项属于部署配置后的验收，不应被误记为地图/POI代码尚未开发。
