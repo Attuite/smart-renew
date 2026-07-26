@@ -218,6 +218,8 @@ server/adapters/smart-renew/
 
 ## 7. AB-01 ProjectData与结构化数据交换
 
+> 状态：部分完成。查询、过滤、搜索、记录数组导入和JSON Envelope导出BFF已接入；SQLite文件转换、导出及引用重建尚未完成。
+
 ### 7.1 当前基线
 
 - `SmartRenewClient.projectCollections()`已经读取原ProjectData集合；
@@ -273,6 +275,8 @@ ProjectData转换器负责：
 CSV显式字段映射只实现接入A/B转换框架所需的最小层，复杂自定义映射仍保留后续任务。
 
 ## 8. AB-02 外业任务和照片存储核心
+
+> 状态：部分完成。外业层级查询、任务创建/读取和任务引用列表已接入；外业工作台及CloudBase存储契约尚未完成。
 
 ### 8.1 当前基线
 
@@ -519,6 +523,8 @@ Business已有参数化问题半径分析、结果快照、来源revision和stal
 事务、正式索引、多实例一致性和直传不在本次A/B范围。
 
 ## 15. AB-09 Legacy迁移
+
+> 状态：部分完成。原迁移预检、显式执行、运行审计、失败留痕和请求幂等已接入；Business正式问题及报告迁移尚未完成。
 
 ### 15.1 当前基线
 

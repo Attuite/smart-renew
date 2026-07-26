@@ -79,6 +79,60 @@ export const api = {
     return request(`/api/projects/${encodeURIComponent(projectId)}/workflow`);
   },
 
+  async projectData(projectId, filters = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+    }
+    const suffix = query.toString() ? `?${query}` : '';
+    return request(`/api/projects/${encodeURIComponent(projectId)}/project-data${suffix}`);
+  },
+
+  async importProjectData(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/project-data`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  async exportProjectData(projectId) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/project-data/export`);
+  },
+
+  async fieldCommunities(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/communities`
+    ));
+  },
+
+  async fieldBuildings(projectId, communityId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/communities/${encodeURIComponent(communityId)}/buildings`
+    ));
+  },
+
+  async fieldTasks(projectId) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/field/tasks`);
+  },
+
+  async createFieldTask(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/field/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  async legacyMigration(projectId) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/legacy-migration`);
+  },
+
+  async applyLegacyMigration(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/legacy-migration`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
   async communities(projectId) {
     return itemsFrom(await request(`/api/projects/${encodeURIComponent(projectId)}/communities`));
   },

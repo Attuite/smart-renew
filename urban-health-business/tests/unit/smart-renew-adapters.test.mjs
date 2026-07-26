@@ -40,7 +40,7 @@ test('smart-renew adapters preserve the original field and project-data contract
   assert.deepEqual(await adapters.field.listProjects(), [{ id: '1' }]);
   assert.deepEqual(await adapters.field.listCommunities('1'), [{ id: 'COM-1' }]);
   assert.deepEqual(await adapters.field.listBuildings('1', 'COM-1'), [{ id: 'BLD-1' }]);
-  assert.equal((await adapters.field.createTask({ projectId: '1' })).id, 'FIELD-1');
+  assert.equal((await adapters.field.createTask({ projectId: '1' })).task.id, 'FIELD-1');
   assert.equal((await adapters.field.getTask('FIELD-1')).id, 'FIELD-1');
 
   const listed = await adapters.projectData.list('1', { type: 'photo', q: '入口' });

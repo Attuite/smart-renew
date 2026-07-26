@@ -185,6 +185,100 @@ test('isolated local BFF completes the real manual workflow across both services
     );
     assert.equal((recoveredBuildingResult.item || recoveredBuildingResult).status, 'active');
 
+    const fieldCommunities = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/field/communities`
+    );
+    assert.equal(fieldCommunities.items[0].id, community.id);
+    const fieldBuildings = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/field/communities/${community.id}/buildings`
+    );
+    assert.equal(fieldBuildings.items[0].id, building.id);
+    const fieldTaskResult = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/field/tasks`,
+      {
+        method: 'POST',
+        body: {
+          clientTaskId: 'integration-survey-001',
+          communityId: community.id,
+          buildingId: building.id,
+          description: '双服务外业任务',
+          collectorId: 'integration-user'
+        }
+      }
+    );
+    assert.equal(fieldTaskResult.item.projectId, projectId);
+    const fieldTaskList = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/field/tasks`
+    );
+    assert.equal(fieldTaskList.referenceCount, 1);
+    assert.equal(fieldTaskList.items[0].description, '双服务外业任务');
+
+    const projectDataImport = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/project-data`,
+      {
+        method: 'POST',
+        body: {
+          mode: 'append',
+          records: [{
+            id: `PDI-${projectId}-other-INTEGRATION`,
+            dataType: 'other',
+            sourceId: 'integration-source',
+            title: '集成测试结构化数据',
+            source: 'integration-test',
+            payload: { verified: true }
+          }]
+        }
+      }
+    );
+    assert.equal(projectDataImport.imported, 1);
+    const projectDataList = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/project-data?q=${encodeURIComponent('集成测试')}`
+    );
+    assert.equal(projectDataList.items.length, 1);
+    const projectDataExport = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/project-data/export`
+    );
+    assert.ok(projectDataExport.records.some((item) => item.sourceId === 'integration-source'));
+
+    const migrationAudit = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/legacy-migration`
+    );
+    assert.equal(migrationAudit.upstream.applied, false);
+    const migrationRun = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/legacy-migration`,
+      {
+        method: 'POST',
+        body: {
+          clientRequestId: 'integration-migration-001',
+          executedBy: 'integration-user',
+          confirmed: true
+        }
+      }
+    );
+    assert.equal(migrationRun.item.status, 'completed');
+    const duplicatedMigrationRun = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/legacy-migration`,
+      {
+        method: 'POST',
+        body: {
+          clientRequestId: 'integration-migration-001',
+          executedBy: 'integration-user',
+          confirmed: true
+        }
+      }
+    );
+    assert.equal(duplicatedMigrationRun.duplicated, true);
+
     const photoBytes = exifJpegFixture();
     const uploadResult = await jsonRequest(businessBase, '/api/uploads', {
       method: 'POST',
@@ -654,6 +748,8 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(projectExport.business.reviewSessions.length, 1);
     assert.equal(projectExport.business.spatialAnalyses.length, 1);
     assert.equal(projectExport.business.reports.length, 2);
+    assert.equal(projectExport.business.fieldTaskReferences.length, 1);
+    assert.equal(projectExport.business.legacyMigrationRuns.length, 1);
     const metrics = await jsonRequest(businessBase, '/api/metrics');
     assert.ok(metrics.requests > 10);
     assert.ok(Number(metrics.byStatus['200']) > 0);

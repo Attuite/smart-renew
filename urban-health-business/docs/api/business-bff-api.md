@@ -118,6 +118,37 @@ Business楼栋列表包含active和inactive记录。PATCH可修正楼栋字段�
 
 每次通过Business保存边界后，同时写入不可覆盖的边界修订快照；GET返回按项目修订倒序排列的坐标、坐标系、面积、中心、更新人员与时间。迁移前已存在但未经过Business保存的旧边界不会被伪造成历史版本。
 
+### 3.1 ProjectData复用接口
+
+```http
+GET  /api/projects/{projectId}/project-data
+POST /api/projects/{projectId}/project-data
+GET  /api/projects/{projectId}/project-data/export
+```
+
+查询支持原接口的`type/tag/communityId/buildingId/referenceId/q`过滤。POST当前接入原ProjectData记录数组和`append/replace`模式；SQLite文件解析、字段转换和引用重建仍属于AB-01后续增量，不能把记录数组导入误报为SQLite接入完成。
+
+### 3.2 外业复用接口
+
+```http
+GET  /api/projects/{projectId}/field/communities
+GET  /api/projects/{projectId}/field/communities/{communityId}/buildings
+POST /api/projects/{projectId}/field/tasks
+GET  /api/projects/{projectId}/field/tasks
+GET  /api/projects/{projectId}/field/tasks/{taskId}
+```
+
+任务主体始终保存在原smart-renew。Business只保存项目与任务ID引用，用于恢复列表；列表读取时重新向原服务取得任务主体。上游任务缺失时返回`errors`，不得用Business引用伪造任务内容。
+
+### 3.3 Legacy迁移复用接口
+
+```http
+GET  /api/projects/{projectId}/legacy-migration
+POST /api/projects/{projectId}/legacy-migration
+```
+
+GET同时返回原迁移预检和Business运行审计。POST必须提供`clientRequestId`、`executedBy`和`confirmed: true`，相同请求编号幂等返回。当前接口执行的是原smart-renew嵌入照片、标注图和旧问题整理；旧OfficialIssue及旧报告迁入Business主仓储仍是AB-09后续增量。
+
 ## 4. 照片与持久化上传会话
 
 ```http

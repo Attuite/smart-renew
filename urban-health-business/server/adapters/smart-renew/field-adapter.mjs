@@ -26,11 +26,16 @@ export class FieldAdapter {
   }
 
   async createTask(input) {
-    return itemFrom(await this.client.request('/api/field/collection-tasks', {
+    const payload = await this.client.request('/api/field/collection-tasks', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(input)
-    }));
+    });
+    return {
+      task: itemFrom(payload),
+      duplicated: Boolean(payload?.duplicated),
+      storage: payload?.storage || null
+    };
   }
 
   async getTask(taskId) {

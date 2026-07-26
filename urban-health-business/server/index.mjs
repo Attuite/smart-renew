@@ -19,6 +19,8 @@ import { ReviewSessionRepository } from './repositories/review-session-repositor
 import { SpatialAnalysisRepository } from './repositories/spatial-analysis-repository.mjs';
 import { SourceAssetRepository } from './repositories/source-asset-repository.mjs';
 import { UploadSessionRepository } from './repositories/upload-session-repository.mjs';
+import { FieldTaskReferenceRepository } from './repositories/field-task-reference-repository.mjs';
+import { LegacyMigrationRunRepository } from './repositories/legacy-migration-run-repository.mjs';
 import { runAnalysis } from './services/analysis-service.mjs';
 import {
   AnalysisJobRunner,
@@ -59,6 +61,11 @@ import {
   createUploadSession,
   uploadSessionContent
 } from './services/upload-service.mjs';
+import { createFieldTask, listFieldTasks } from './services/field-task-service.mjs';
+import {
+  applyLegacyMigration,
+  auditLegacyMigration
+} from './services/legacy-migration-service.mjs';
 import {
   getCapabilities,
   getProjectSummary,
@@ -105,6 +112,12 @@ const collectionValidationRepository = new CollectionValidationRepository(
 const sourceAssetRepository = new SourceAssetRepository(
   path.join(businessDataRoot, 'source-assets'),
   path.join(businessDataRoot, 'source-asset-content')
+);
+const fieldTaskReferenceRepository = new FieldTaskReferenceRepository(
+  path.join(businessDataRoot, 'field-task-references')
+);
+const legacyMigrationRunRepository = new LegacyMigrationRunRepository(
+  path.join(businessDataRoot, 'legacy-migration-runs')
 );
 const analysisJobRunner = new AnalysisJobRunner({
   client: smartRenewClient,
@@ -648,7 +661,9 @@ async function handleRequest(req, res) {
         businessIssues,
         reviewSessions,
         spatialAnalyses,
-        businessReports
+        businessReports,
+        fieldTaskReferences,
+        legacyMigrationRuns
       ] = await Promise.all([
         smartRenewClient.getProject(projectId),
         smartRenewClient.projectCollections(projectId),
@@ -662,7 +677,9 @@ async function handleRequest(req, res) {
         officialIssueRepository.list(projectId),
         reviewSessionRepository.list(projectId),
         spatialAnalysisRepository.list(projectId),
-        reportRepository.list(projectId)
+        reportRepository.list(projectId),
+        fieldTaskReferenceRepository.list(projectId),
+        legacyMigrationRunRepository.list(projectId)
       ]);
       const artifact = {
         manifest: {
@@ -695,7 +712,9 @@ async function handleRequest(req, res) {
           officialIssues: businessIssues,
           reviewSessions,
           spatialAnalyses,
-          reports: businessReports
+          reports: businessReports,
+          fieldTaskReferences,
+          legacyMigrationRuns
         }
       };
       const body = JSON.stringify(artifact, null, 2);
@@ -708,6 +727,142 @@ async function handleRequest(req, res) {
       });
       res.end(body);
       return;
+    }
+
+    const projectDataMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/project-data$/);
+    if (req.method === 'GET' && projectDataMatch) {
+      const projectId = decodeURIComponent(projectDataMatch[1]);
+      const filters = Object.fromEntries(url.searchParams);
+      delete filters.projectId;
+      return sendSuccess(
+        res,
+        await smartRenewAdapters.projectData.list(projectId, filters),
+        id
+      );
+    }
+    if (req.method === 'POST' && projectDataMatch) {
+      const projectId = decodeURIComponent(projectDataMatch[1]);
+      const input = await readJsonBody(req);
+      const result = await projectWriteCoordinator.run(
+        projectId,
+        () => smartRenewAdapters.projectData.importRecords(
+          projectId,
+          Array.isArray(input?.records) ? input.records : [],
+          { mode: input?.mode }
+        )
+      );
+      return sendSuccess(res, result, id);
+    }
+
+    const projectDataExportMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/project-data\/export$/
+    );
+    if (req.method === 'GET' && projectDataExportMatch) {
+      return sendSuccess(
+        res,
+        await smartRenewAdapters.projectData.export(
+          decodeURIComponent(projectDataExportMatch[1])
+        ),
+        id
+      );
+    }
+
+    const fieldCommunitiesMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/communities$/
+    );
+    if (req.method === 'GET' && fieldCommunitiesMatch) {
+      return sendSuccess(res, {
+        items: await smartRenewAdapters.field.listCommunities(
+          decodeURIComponent(fieldCommunitiesMatch[1])
+        ),
+        source: 'smart-renew'
+      }, id);
+    }
+
+    const fieldBuildingsMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/communities\/([^/]+)\/buildings$/
+    );
+    if (req.method === 'GET' && fieldBuildingsMatch) {
+      return sendSuccess(res, {
+        items: await smartRenewAdapters.field.listBuildings(
+          decodeURIComponent(fieldBuildingsMatch[1]),
+          decodeURIComponent(fieldBuildingsMatch[2])
+        ),
+        source: 'smart-renew'
+      }, id);
+    }
+
+    const fieldTasksMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/field\/tasks$/);
+    if (req.method === 'GET' && fieldTasksMatch) {
+      return sendSuccess(
+        res,
+        await listFieldTasks(
+          smartRenewAdapters.field,
+          fieldTaskReferenceRepository,
+          decodeURIComponent(fieldTasksMatch[1])
+        ),
+        id
+      );
+    }
+    if (req.method === 'POST' && fieldTasksMatch) {
+      const projectId = decodeURIComponent(fieldTasksMatch[1]);
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(
+        projectId,
+        () => createFieldTask(
+          smartRenewAdapters.field,
+          fieldTaskReferenceRepository,
+          projectId,
+          input
+        )
+      );
+      return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
+    }
+
+    const fieldTaskDetailMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/tasks\/([^/]+)$/
+    );
+    if (req.method === 'GET' && fieldTaskDetailMatch) {
+      const projectId = decodeURIComponent(fieldTaskDetailMatch[1]);
+      const task = await smartRenewAdapters.field.getTask(
+        decodeURIComponent(fieldTaskDetailMatch[2])
+      );
+      if (String(task?.projectId) !== String(projectId)) {
+        const error = new Error('外业任务不属于当前项目。');
+        error.status = 404;
+        error.code = 'FIELD_TASK_NOT_FOUND';
+        throw error;
+      }
+      return sendSuccess(res, { item: task, source: 'smart-renew' }, id);
+    }
+
+    const legacyMigrationMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/legacy-migration$/
+    );
+    if (req.method === 'GET' && legacyMigrationMatch) {
+      return sendSuccess(
+        res,
+        await auditLegacyMigration(
+          smartRenewAdapters.legacyMigration,
+          legacyMigrationRunRepository,
+          decodeURIComponent(legacyMigrationMatch[1])
+        ),
+        id
+      );
+    }
+    if (req.method === 'POST' && legacyMigrationMatch) {
+      const projectId = decodeURIComponent(legacyMigrationMatch[1]);
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(
+        projectId,
+        () => applyLegacyMigration(
+          smartRenewAdapters.legacyMigration,
+          legacyMigrationRunRepository,
+          projectId,
+          input
+        )
+      );
+      return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
     }
 
     const communityCreateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/communities$/);
