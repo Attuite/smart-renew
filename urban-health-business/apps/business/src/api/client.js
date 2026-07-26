@@ -71,6 +71,10 @@ export const api = {
     return request('/api/meta');
   },
 
+  async gisConfig() {
+    return request('/api/gis/config');
+  },
+
   async projects() {
     return itemsFrom(await request('/api/projects'));
   },
@@ -220,6 +224,13 @@ export const api = {
 
   async boundaryRevisions(projectId) {
     return itemsFrom(await request(`/api/projects/${encodeURIComponent(projectId)}/boundary`));
+  },
+
+  async geocode(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/gis/geocode`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
   },
 
   async collectionValidation(projectId) {
@@ -450,6 +461,14 @@ export const api = {
 
   async spatialAnalyses(projectId) {
     return itemsFrom(await request(`/api/projects/${encodeURIComponent(projectId)}/spatial-analyses`));
+  },
+
+  async runPoiAnalysis(projectId, input) {
+    const payload = await request(`/api/projects/${encodeURIComponent(projectId)}/poi-analyses`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
   },
 
   async createSpatialAnalysis(projectId, input) {

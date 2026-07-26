@@ -402,7 +402,7 @@ sort
 
 本次A/B复用接入项：
 
-- 原高德地图项目边界编辑；
+- 已完成原高德地图项目边界编辑的Provider化接入；
 - 原ProjectData统一索引、搜索和JSON/SQLite数据交换；
 - 原外业项目、小区和楼栋查询；
 - CloudBase可选Project Repository。
@@ -426,6 +426,6 @@ C/D后续项：
 - 已完成ProjectData和外业查询适配器基础；
 - 已完成ProjectData记录接口、外业任务和原Legacy迁移BFF；
 - 已完成SQLite文件转换/引用重建、来源追溯及Business正式问题、只读报告迁移；
-- 下一增量抽取高德地图边界Provider和POI能力；
+- 已抽取高德地图边界Provider、地址定位和POI能力，并保留现有边界写模型；
 - 建立CloudBase可选Repository契约；
-- 已增加适配器、主数据源不双写、SQLite往返及迁移契约测试，后续补地图与剩余增量契约测试。
+- 已增加适配器、主数据源不双写、SQLite往返、迁移、地图配置和POI清洗契约测试，后续补剩余增量契约测试。

@@ -3,6 +3,7 @@ import { LegacyCapabilityRegistry } from '../adapters/smart-renew/capabilities.m
 import { mergePrimaryReadModel } from '../adapters/smart-renew/read-model-policy.mjs';
 import { assessCollection } from './collection-validation-service.mjs';
 import { mergePhotoMetadata } from './photo-metadata-service.mjs';
+import { amapCapabilitySnapshot } from './amap-provider.mjs';
 
 function isAiReady(health) {
   return Boolean(health?.ready);
@@ -47,13 +48,7 @@ export async function getCapabilities(client, capabilityRegistry = new LegacyCap
       reason: !upstreamReady ? 'smart_renew_unavailable' : isAiReady(health) ? null : 'ai_not_configured',
       model: health?.model || null
     },
-    gis: {
-      ready: true,
-      reason: null,
-      provider: 'manual-coordinate',
-      mapReady: false,
-      mapReason: 'map_provider_not_integrated'
-    },
+    gis: amapCapabilitySnapshot(),
     indicator: { ready: false, reason: 'indicator_engine_not_integrated' },
     report: { ready: upstreamReady, reason: upstreamReady ? null : 'smart_renew_unavailable', pdfReady: false },
     legacy: capabilityRegistry.snapshot({
@@ -68,7 +63,7 @@ function projectDataByType(items, type) {
   return items.filter((item) => item?.dataType === type || item?.type === type);
 }
 
-function markSpatialStaleness(runs, project, issues) {
+export function markSpatialStaleness(runs, project, issues) {
   const issueMap = new Map(issues.map((issue) => [String(issue.id), issue]));
   return runs.map((run) => {
     const reasons = [];
@@ -77,7 +72,10 @@ function markSpatialStaleness(runs, project, issues) {
       snapshot.boundaryUpdatedAt
       && String(snapshot.boundaryUpdatedAt) !== String(project.boundaryUpdatedAt || '')
     ) reasons.push('PROJECT_BOUNDARY_CHANGED');
-    if (Number(snapshot.officialIssueCount) !== issues.length) reasons.push('OFFICIAL_ISSUE_SET_CHANGED');
+    if (
+      snapshot.officialIssueCount !== undefined
+      && Number(snapshot.officialIssueCount) !== issues.length
+    ) reasons.push('OFFICIAL_ISSUE_SET_CHANGED');
     for (const reference of snapshot.issueRevisions || []) {
       const current = issueMap.get(String(reference.id));
       if (!current) {

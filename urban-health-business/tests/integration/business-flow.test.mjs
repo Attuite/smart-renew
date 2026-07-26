@@ -91,7 +91,10 @@ test('isolated local BFF completes the real manual workflow across both services
         URBAN_HEALTH_HOST: '127.0.0.1',
         URBAN_HEALTH_PORT: String(businessPort),
         URBAN_HEALTH_DATA_DIR: path.join(temporaryRoot, 'business'),
-        SMART_RENEW_API_BASE: legacyBase
+        SMART_RENEW_API_BASE: legacyBase,
+        AMAP_JS_KEY: '',
+        AMAP_JS_SECURITY_CODE: '',
+        AMAP_WEB_SERVICE_KEY: ''
       },
       stdio: 'ignore'
     }));
@@ -109,6 +112,14 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(meta.features.projectDataSqlite, true);
     assert.equal(meta.features.businessLegacyMigration, true);
     assert.equal(meta.features.migratedReportsReadOnly, true);
+    assert.equal(meta.features.amapProvider, true);
+    assert.equal(meta.features.poiAnalysis, true);
+    const gisConfig = await jsonRequest(businessBase, '/api/gis/config');
+    assert.equal(gisConfig.provider, 'amap');
+    assert.equal(gisConfig.coordinateSystem, 'GCJ-02');
+    assert.equal(gisConfig.browser.ready, false);
+    assert.equal(gisConfig.poi.ready, false);
+    assert.equal('webServiceKey' in gisConfig, false);
 
     const created = await jsonRequest(businessBase, '/api/projects', {
       method: 'POST',
@@ -116,6 +127,13 @@ test('isolated local BFF completes the real manual workflow across both services
     });
     const project = created.item || created;
     const projectId = String(project.id);
+    await assert.rejects(
+      () => jsonRequest(businessBase, `/api/projects/${projectId}/gis/geocode`, {
+        method: 'POST',
+        body: { address: '测试地址' }
+      }),
+      (error) => error.status === 503 && error.code === 'AMAP_WEB_SERVICE_NOT_CONFIGURED'
+    );
     const revisedProjectResult = await jsonRequest(businessBase, `/api/projects/${projectId}`, {
       method: 'PATCH',
       body: {

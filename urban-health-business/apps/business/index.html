@@ -149,6 +149,20 @@
 
           <section class="work-panel boundary-panel">
             <header><span>PROJECT BOUNDARY</span><h2>项目真实边界</h2></header>
+            <div class="provider-map-shell">
+              <div class="provider-map-toolbar">
+                <form id="boundaryGeocodeForm" class="map-geocode-form">
+                  <input name="city" maxlength="100" placeholder="城市（可选）">
+                  <input name="address" maxlength="300" required placeholder="输入真实地址定位地图">
+                  <button id="locateBoundaryAddressButton" type="submit">地址定位</button>
+                </form>
+                <button id="drawBoundaryButton" type="button">绘制边界</button>
+                <button id="clearBoundaryDraftButton" type="button">清除绘制草稿</button>
+              </div>
+              <div class="provider-status" id="boundaryMapStatus">正在读取地图运行配置。</div>
+              <div class="provider-map-canvas" id="boundaryMapCanvas" aria-label="项目边界高德地图"></div>
+              <p class="form-error" id="boundaryMapError" hidden></p>
+            </div>
             <div class="boundary-layout">
               <form id="boundaryForm">
                 <label class="form-field">
@@ -318,7 +332,7 @@
 
           <aside class="deferred-capabilities">
             <strong>本模块尚待接入</strong>
-            <span>地图交互绘制、WebP EXIF、时区校正、对象存储直传、断点续传和复杂资料内容解析。JPEG拍摄时间/GPS与CSV照片坐标批量治理已接入；缺失或解析失败时不会生成假值。</span>
+            <span>高德GCJ-02边界绘制和地址定位已接入。仍待WebP EXIF、时区校正、对象存储直传、断点续传和复杂资料内容解析；缺失或解析失败时不会生成假值。</span>
           </aside>
         </section>
 
@@ -473,7 +487,7 @@
               <button class="back-button" id="backFromGisButton" type="button">← 返回项目总览</button>
               <span>04 / GIS & ISSUES</span>
               <h1>GIS落图与问题清单</h1>
-              <p>正式问题是唯一输入；当前支持真实经纬度人工绑定，不使用西安静态图或百分比坐标。</p>
+              <p>正式问题是唯一输入；支持高德GCJ-02底图与真实经纬度人工绑定，不使用西安静态图或百分比坐标。</p>
             </div>
             <div class="module-stat-strip">
               <article><span>正式问题</span><strong id="gisIssueCount">0</strong></article>
@@ -490,6 +504,11 @@
 
             <section class="work-panel coordinate-panel">
               <header><span>MANUAL SPATIAL BINDING</span><h2>经纬度绑定</h2></header>
+              <div class="provider-map-shell">
+                <div class="provider-status" id="gisMapStatus">正在读取地图运行配置。</div>
+                <div class="provider-map-canvas provider-map-canvas-large" id="gisMapCanvas" aria-label="正式问题高德地图"></div>
+                <p class="form-error" id="gisMapError" hidden></p>
+              </div>
               <form id="geometryForm">
                 <label class="form-field">
                   <span>正式问题</span>
@@ -509,12 +528,8 @@
               </form>
 
               <div class="spatial-preview" id="spatialPreview"></div>
-              <p class="spatial-click-hint">项目存在真实边界时，可选择正式问题后点击预览内部位置，系统将换算为当前边界坐标系的经纬度并回填；保存仍需确认人员。</p>
+              <p class="spatial-click-hint">高德地图可用且项目为GCJ-02时，可直接点击底图回填；矢量预览仍可作为不依赖底图的真实坐标校验视图。保存仍需确认人员。</p>
               <div class="geometry-audit-list" id="geometryAuditList"></div>
-              <div class="map-unavailable">
-                <strong>当前为真实坐标矢量预览</strong>
-                <span>直接按项目真实经纬度绘制边界和问题点，不使用西安底图或存储百分比坐标；真实地图SDK接入后可替换显示层，业务几何无需迁移。</span>
-              </div>
             </section>
           </div>
 
@@ -549,9 +564,22 @@
             <div id="spatialAnalysisHistory"></div>
           </section>
 
+          <section class="work-panel poi-analysis-panel">
+            <header><span>AMAP POI ANALYSIS</span><h2>高德POI检索与清洗</h2></header>
+            <form id="poiAnalysisForm" class="poi-analysis-form">
+              <label class="form-field"><span>设施分类</span><select id="poiCategorySelect" name="category" required></select></label>
+              <label class="form-field"><span>检索半径（米）</span><input name="radiusMeters" type="number" min="50" max="10000" step="50" value="1000" required></label>
+              <label class="form-field"><span>自定义关键词（可选）</span><input name="keywords" maxlength="200" placeholder="以逗号分隔；留空使用分类规则"></label>
+              <label class="form-field"><span>操作人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+              <button class="primary-button" id="runPoiAnalysisButton" type="submit">检索并保存分析快照</button>
+              <p class="form-error" id="poiAnalysisFormError" hidden></p>
+            </form>
+            <div class="poi-analysis-history" id="poiAnalysisHistory"></div>
+          </section>
+
           <aside class="deferred-capabilities">
             <strong>尚待接入</strong>
-            <span>已支持边界内点位校验、点击矢量预览回填、点位修订审计、自定义半径分析、来源快照与过期传播。仍待接入地图提供者、底图图层、照片坐标建议、点位拖拽、坐标转换、空间对象绑定和POI数据源。</span>
+            <span>高德地图、地址定位、GCJ-02边界绘制、问题点点击定位、POI分页检索、清洗及来源快照已接入。仍待照片坐标建议、点位拖拽、WGS84/GCJ-02转换、空间对象正式绑定、POI逐条人工确认和政务GIS。</span>
           </aside>
         </section>
 

@@ -1096,7 +1096,7 @@ xian-city-map.jpg
 
 现有基线只有在行为对照、回归测试和独立变更审查通过后才允许收敛代码；不得以“复用”为理由直接覆盖或另建平行实现。
 
-AB-00“主数据源与适配基础”已完成。ProjectData记录/JSON Envelope/SQLite交换、来源追溯、外业任务，以及原Legacy与Business正式问题/只读报告迁移均已接入；当前下一增量为高德地图和POI复用。
+AB-00、AB-03和AB-04已完成。ProjectData记录/JSON Envelope/SQLite交换、来源追溯、外业任务、原Legacy与Business正式问题/只读报告迁移，以及高德地图、地址定位、GCJ-02边界绘制和POI清洗快照均已接入；当前下一增量为AI自动拆批、跨批合并与候选去重。
 
 完整范围、主数据源、接口、测试和完成条件见[A/B等级复用优先开发大纲](docs/reuse-first-ab-development-outline.md)。
 
@@ -1174,7 +1174,7 @@ AB-00“主数据源与适配基础”已完成。ProjectData记录/JSON Envelop
 
 ## 23. 当前本地运行与验证
 
-要求 Node.js 20或以上。需要同时启动原smart-renew本地后端和Business BFF：
+要求 Node.js 22.13或以上。需要同时启动原smart-renew本地后端和Business BFF：
 
 ```powershell
 # 终端1：smart-renew仓库根目录
@@ -1184,6 +1184,16 @@ npm start
 cd urban-health-business
 npm start
 ```
+
+高德地图与POI为可选运行能力；如需启用，在终端2执行`npm start`前设置：
+
+```powershell
+$env:AMAP_JS_KEY = '高德Web端JS Key'
+$env:AMAP_JS_SECURITY_CODE = '高德JS安全密钥'
+$env:AMAP_WEB_SERVICE_KEY = '仅供BFF使用的Web服务Key'
+```
+
+未配置时系统继续支持真实经纬度、GeoJSON边界和SVG空间预览，但会明确显示地图/地址/POI不可用，不生成假边界或示例POI。当前没有WGS84/GCJ-02转换，因此高德叠加和POI运行只接受GCJ-02项目边界。
 
 访问：
 
@@ -1201,4 +1211,4 @@ cd urban-health-business
 npm run verify
 ```
 
-`verify` 包含语法检查、100项单元测试、双服务隔离全过程集成测试、Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。
+`verify` 包含语法检查、108项单元测试、双服务隔离全过程集成测试、Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。

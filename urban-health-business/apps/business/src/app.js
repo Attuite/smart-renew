@@ -1,4 +1,5 @@
 import { api } from './api/client.js';
+import { AmapMapController } from './gis/amap-map-controller.js';
 import { createStore } from './store/app-store.js';
 import { stageCatalog, statusLabels } from './workflow/stages.js';
 
@@ -6,6 +7,12 @@ const store = createStore();
 const pendingUploadFiles = new Map();
 let pendingSourceAssetRequestId = crypto.randomUUID();
 let analysisPollTimer = null;
+let boundaryMapController = null;
+let boundaryMapProjectSignature = '';
+let boundaryMapInitializing = false;
+let gisMapController = null;
+let gisMapProjectSignature = '';
+let gisMapInitializing = false;
 const elements = {
   projectSelect: document.querySelector('#projectSelect'),
   serviceStrip: document.querySelector('#serviceStrip'),
@@ -61,6 +68,13 @@ const elements = {
   boundaryRevisionList: document.querySelector('#boundaryRevisionList'),
   boundaryFormError: document.querySelector('#boundaryFormError'),
   saveBoundaryButton: document.querySelector('#saveBoundaryButton'),
+  boundaryGeocodeForm: document.querySelector('#boundaryGeocodeForm'),
+  locateBoundaryAddressButton: document.querySelector('#locateBoundaryAddressButton'),
+  drawBoundaryButton: document.querySelector('#drawBoundaryButton'),
+  clearBoundaryDraftButton: document.querySelector('#clearBoundaryDraftButton'),
+  boundaryMapStatus: document.querySelector('#boundaryMapStatus'),
+  boundaryMapCanvas: document.querySelector('#boundaryMapCanvas'),
+  boundaryMapError: document.querySelector('#boundaryMapError'),
   communityList: document.querySelector('#communityList'),
   communityForm: document.querySelector('#communityForm'),
   saveCommunityButton: document.querySelector('#saveCommunityButton'),
@@ -149,11 +163,19 @@ const elements = {
   updateIssueButton: document.querySelector('#updateIssueButton'),
   issueEditFormError: document.querySelector('#issueEditFormError'),
   spatialPreview: document.querySelector('#spatialPreview'),
+  gisMapStatus: document.querySelector('#gisMapStatus'),
+  gisMapCanvas: document.querySelector('#gisMapCanvas'),
+  gisMapError: document.querySelector('#gisMapError'),
   geometryAuditList: document.querySelector('#geometryAuditList'),
   spatialAnalysisForm: document.querySelector('#spatialAnalysisForm'),
   runSpatialAnalysisButton: document.querySelector('#runSpatialAnalysisButton'),
   spatialAnalysisFormError: document.querySelector('#spatialAnalysisFormError'),
   spatialAnalysisHistory: document.querySelector('#spatialAnalysisHistory'),
+  poiAnalysisForm: document.querySelector('#poiAnalysisForm'),
+  poiCategorySelect: document.querySelector('#poiCategorySelect'),
+  runPoiAnalysisButton: document.querySelector('#runPoiAnalysisButton'),
+  poiAnalysisFormError: document.querySelector('#poiAnalysisFormError'),
+  poiAnalysisHistory: document.querySelector('#poiAnalysisHistory'),
   indicatorWorkspace: document.querySelector('#indicatorWorkspace'),
   backFromIndicatorButton: document.querySelector('#backFromIndicatorButton'),
   indicatorIssueCount: document.querySelector('#indicatorIssueCount'),
@@ -346,6 +368,187 @@ function isCollectionWorkspace(state) {
   return state.selectedStageId === 'collection' && query.get('view') === 'workspace' && Boolean(state.activeProjectId);
 }
 
+function normalizedCrs(value) {
+  return String(value || '').toUpperCase().replaceAll('-', '');
+}
+
+function setProviderStatus(element, message, status = '') {
+  element.textContent = message;
+  element.className = `provider-status${status ? ` status-${status}` : ''}`;
+}
+
+function resetMapControllers() {
+  boundaryMapController?.destroy();
+  gisMapController?.destroy();
+  boundaryMapController = null;
+  gisMapController = null;
+  boundaryMapProjectSignature = '';
+  gisMapProjectSignature = '';
+  boundaryMapInitializing = false;
+  gisMapInitializing = false;
+}
+
+async function syncBoundaryMap(state) {
+  if (!isCollectionWorkspace(state)) return;
+  const config = state.gisConfig;
+  const browserReady = Boolean(config?.browser?.ready);
+  elements.boundaryMapCanvas.hidden = !browserReady;
+  elements.drawBoundaryButton.disabled = !browserReady || state.collectionLoading;
+  elements.clearBoundaryDraftButton.disabled = !browserReady || state.collectionLoading;
+  elements.locateBoundaryAddressButton.disabled = !config?.geocoding?.ready || state.collectionLoading;
+  if (!browserReady) {
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      '高德浏览器地图未配置；仍可通过经纬度或GeoJSON录入真实边界，不会生成默认边界。',
+      'warning'
+    );
+    return;
+  }
+
+  const project = state.activeProject;
+  const boundaryCrs = normalizedCrs(project?.scopeBoundaryCrs);
+  const canOverlay = !project?.scopeBoundary?.length || boundaryCrs === 'GCJ02';
+  const signature = `${state.activeProjectId}:${Number(project?.revision) || 0}:${boundaryCrs}`;
+  if (boundaryMapController) {
+    if (signature !== boundaryMapProjectSignature) {
+      boundaryMapController.setBoundary(canOverlay ? project?.scopeBoundary : []);
+      boundaryMapProjectSignature = signature;
+    }
+    boundaryMapController.resize();
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      canOverlay
+        ? '高德地图已连接，绘制结果将以GCJ-02草稿回填，保存仍由Business后端校验。'
+        : '当前已保存边界为WGS84；坐标转换接入前不在GCJ-02底图上叠加，避免位置误导。',
+      canOverlay ? 'ready' : 'warning'
+    );
+    return;
+  }
+  if (boundaryMapInitializing) return;
+  boundaryMapInitializing = true;
+  const expectedProjectId = String(state.activeProjectId);
+  setProviderStatus(elements.boundaryMapStatus, '正在加载高德地图。');
+  try {
+    const controller = await AmapMapController.create(
+      elements.boundaryMapCanvas,
+      config.browser,
+      {
+        boundary: canOverlay ? project?.scopeBoundary : [],
+        onBoundaryChanged(points) {
+          elements.boundaryCoordinatesInput.value = points
+            .map((point) => `${point[0]},${point[1]}`)
+            .join('\n');
+          elements.boundaryCoordinatesInput.dataset.revision = 'map-draft';
+          elements.boundaryForm.elements.crs.value = 'GCJ02';
+          setProviderStatus(
+            elements.boundaryMapStatus,
+            `已绘制 ${points.length} 个边界点并回填为GCJ-02草稿；请填写更新人员后保存。`,
+            'ready'
+          );
+        }
+      }
+    );
+    if (String(store.get().activeProjectId) !== expectedProjectId || !isCollectionWorkspace(store.get())) {
+      controller.destroy();
+      return;
+    }
+    boundaryMapController = controller;
+    boundaryMapProjectSignature = signature;
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      canOverlay
+        ? '高德地图已连接，绘制结果将以GCJ-02草稿回填，保存仍由Business后端校验。'
+        : '当前已保存边界为WGS84；坐标转换接入前不在GCJ-02底图上叠加，避免位置误导。',
+      canOverlay ? 'ready' : 'warning'
+    );
+  } catch (error) {
+    elements.boundaryMapCanvas.hidden = true;
+    elements.boundaryMapError.textContent = error.message;
+    elements.boundaryMapError.hidden = false;
+    setProviderStatus(elements.boundaryMapStatus, '高德地图加载失败，未生成任何边界。', 'warning');
+  } finally {
+    boundaryMapInitializing = false;
+  }
+}
+
+async function syncGisMap(state) {
+  if (!isGisWorkspace(state)) return;
+  const project = state.activeProject;
+  const browserReady = Boolean(state.gisConfig?.browser?.ready);
+  const gcjProject = normalizedCrs(project?.scopeBoundaryCrs) === 'GCJ02';
+  const hasBoundary = Array.isArray(project?.scopeBoundary) && project.scopeBoundary.length >= 3;
+  const usable = browserReady && gcjProject && hasBoundary;
+  elements.gisMapCanvas.hidden = !usable;
+  if (!usable) {
+    const message = !browserReady
+      ? '高德浏览器地图未配置；下方继续显示真实经纬度矢量预览。'
+      : !hasBoundary
+        ? '项目尚无真实边界，地图不会创建默认范围。'
+        : '项目边界不是GCJ-02；坐标转换接入前不在高德底图叠加，避免错位。';
+    setProviderStatus(elements.gisMapStatus, message, 'warning');
+    return;
+  }
+  const signature = `${state.activeProjectId}:${Number(project.revision) || 0}:${state.issues
+    .map((issue) => `${issue.id}:${Number(issue.geometryRevision) || 0}`)
+    .join('|')}`;
+  if (gisMapController) {
+    if (signature !== gisMapProjectSignature) {
+      gisMapController.setBoundary(project.scopeBoundary);
+      gisMapController.setIssues(state.issues);
+      gisMapProjectSignature = signature;
+    }
+    gisMapController.resize();
+    setProviderStatus(elements.gisMapStatus, '高德地图已连接；点击边界内位置可回填当前问题的GCJ-02坐标。', 'ready');
+    return;
+  }
+  if (gisMapInitializing) return;
+  gisMapInitializing = true;
+  const expectedProjectId = String(state.activeProjectId);
+  setProviderStatus(elements.gisMapStatus, '正在加载高德地图。');
+  try {
+    const controller = await AmapMapController.create(
+      elements.gisMapCanvas,
+      state.gisConfig.browser,
+      {
+        boundary: project.scopeBoundary,
+        issues: state.issues,
+        onPointSelected(point) {
+          if (!elements.geometryIssueSelect.value) return;
+          const boundary = store.get().activeProject?.scopeBoundary || [];
+          elements.geometryFormError.hidden = true;
+          if (!pointInsideBoundary(point, boundary)) {
+            elements.geometryFormError.textContent = '点击位置在项目边界之外，请点击边界面内部。';
+            elements.geometryFormError.hidden = false;
+            return;
+          }
+          elements.geometryForm.elements.longitude.value = point[0];
+          elements.geometryForm.elements.latitude.value = point[1];
+          elements.geometryForm.elements.crs.value = 'GCJ02';
+          setProviderStatus(
+            elements.gisMapStatus,
+            `已回填 ${point[0].toFixed(6)}, ${point[1].toFixed(6)}；保存前请核对问题和确认人员。`,
+            'ready'
+          );
+        }
+      }
+    );
+    if (String(store.get().activeProjectId) !== expectedProjectId || !isGisWorkspace(store.get())) {
+      controller.destroy();
+      return;
+    }
+    gisMapController = controller;
+    gisMapProjectSignature = signature;
+    setProviderStatus(elements.gisMapStatus, '高德地图已连接；点击边界内位置可回填当前问题的GCJ-02坐标。', 'ready');
+  } catch (error) {
+    elements.gisMapCanvas.hidden = true;
+    elements.gisMapError.textContent = error.message;
+    elements.gisMapError.hidden = false;
+    setProviderStatus(elements.gisMapStatus, '高德地图加载失败；下方矢量预览仍可使用。', 'warning');
+  } finally {
+    gisMapInitializing = false;
+  }
+}
+
 function renderCollection(state) {
   const visible = isCollectionWorkspace(state);
   elements.collectionWorkspace.hidden = !visible;
@@ -411,6 +614,7 @@ function renderCollection(state) {
         <small>${revision.createdAt ? new Date(revision.createdAt).toLocaleString() : '时间未记录'}${revision.updatedBy ? ` · ${escapeHtml(revision.updatedBy)}` : ''}</small>
       </article>`).join('')
     : '<p class="workspace-empty">尚无Business边界修订快照；首次保存后开始记录。</p>';
+  void syncBoundaryMap(state);
 
   elements.communityList.innerHTML = state.communities.length
     ? state.communities.map((community) => `<article>
@@ -1016,12 +1220,15 @@ function renderGis(state) {
     elements.issueEditForm.dataset.loadedIssueId = String(selectedEditIssue?.id || '');
     populateIssueEditForm(selectedEditIssue);
   }
-  elements.spatialAnalysisHistory.innerHTML = state.spatialAnalyses.length
-    ? state.spatialAnalyses.map((run) => `<article class="history-row spatial-history-row">
+  const issueRadiusRuns = state.spatialAnalyses.filter((run) => run.type !== 'poi-search');
+  const poiRuns = state.spatialAnalyses.filter((run) => run.type === 'poi-search');
+  elements.spatialAnalysisHistory.innerHTML = issueRadiusRuns.length
+    ? issueRadiusRuns.map((run) => `<article class="history-row spatial-history-row">
         <div><strong>${Number(run.parameters?.radiusMeters) || 0}米半径</strong><span>${run.completedAt ? new Date(run.completedAt).toLocaleString() : '时间未记录'}</span></div>
         <span>中心 ${escapeHtml(run.parameters?.center?.join(', ') || '未记录')}</span>
         <span>命中 ${Number(run.result?.matchedIssueCount) || 0} / 已定位 ${Number(run.sourceSnapshot?.locatedIssueCount) || 0}</span>
-        <i class="run-status status-completed">已完成</i>
+        <i class="run-status status-${escapeHtml(run.status || 'completed')}">${run.status === 'stale' ? '已过期' : '已完成'}</i>
+        ${run.staleReasons?.length ? `<small>${escapeHtml(run.staleReasons.join('、'))}</small>` : ''}
       </article>`).join('')
     : '<p class="workspace-empty">尚未运行空间分析。系统不会自动生成固定500/800/1000米结果。</p>';
   const hasProjectBoundary = Array.isArray(state.activeProject?.scopeBoundary)
@@ -1030,6 +1237,47 @@ function renderGis(state) {
   elements.runSpatialAnalysisButton.title = hasProjectBoundary
     ? ''
     : '请先在阶段01录入真实项目边界';
+
+  const previousCategory = elements.poiCategorySelect.value;
+  const categories = Array.isArray(state.gisConfig?.poiCategories)
+    ? state.gisConfig.poiCategories
+    : [];
+  elements.poiCategorySelect.replaceChildren();
+  for (const category of categories) {
+    const option = document.createElement('option');
+    option.value = category.value;
+    option.textContent = category.label;
+    elements.poiCategorySelect.append(option);
+  }
+  if (categories.some((category) => category.value === previousCategory)) {
+    elements.poiCategorySelect.value = previousCategory;
+  }
+  const poiReady = Boolean(state.gisConfig?.poi?.ready);
+  const gcjProject = normalizedCrs(state.activeProject?.scopeBoundaryCrs) === 'GCJ02';
+  elements.runPoiAnalysisButton.disabled = !poiReady || !hasProjectBoundary || !gcjProject || state.gisLoading;
+  elements.runPoiAnalysisButton.title = !poiReady
+    ? '请在服务端配置AMAP_WEB_SERVICE_KEY'
+    : !gcjProject
+      ? '高德POI使用GCJ-02；当前边界需先转换或重新绘制为GCJ-02'
+      : !hasProjectBoundary
+        ? '请先录入真实项目边界'
+        : '';
+  elements.poiAnalysisHistory.innerHTML = poiRuns.length
+    ? poiRuns.map((run) => `<article>
+        <header>
+          <strong>${escapeHtml(run.parameters?.categoryLabel || run.parameters?.category || 'POI检索')}</strong>
+          <span>${Number(run.parameters?.radiusMeters) || 0}米 · ${escapeHtml(run.providerSnapshot?.provider || '未知Provider')}</span>
+        </header>
+        <p>原始 ${Number(run.cleaning?.rawCount) || 0} 条 → 清洗合并 ${Number(run.result?.itemCount) || 0} 条 · 规则 ${escapeHtml(run.cleaning?.ruleVersion || '未记录')}${run.parameters?.boundaryOnly ? ' · 已按项目边界裁剪' : ''}${run.status === 'stale' ? ` · 已过期：${escapeHtml((run.staleReasons || []).join('、'))}` : ''}</p>
+        <div class="poi-result-chips">${(run.result?.items || []).slice(0, 12).map((item) =>
+          `<span>${escapeHtml(item.name)} · ${Math.round(Number(item.distanceMeters) || 0)}m</span>`
+        ).join('') || '<span>本次未发现符合清洗规则的POI</span>'}</div>
+        <small>${run.completedAt ? new Date(run.completedAt).toLocaleString() : '时间未记录'} · ${escapeHtml(run.createdBy || '人员未记录')}</small>
+      </article>`).join('')
+    : `<p class="workspace-empty">${poiReady
+      ? '尚未运行POI检索。结果会保存原始POI、查询参数和清洗快照，不会转成指标得分。'
+      : '高德Web服务未配置；当前不会生成示例POI。'}</p>`;
+  void syncGisMap(state);
 }
 
 function isIndicatorWorkspace(state) {
@@ -1291,6 +1539,7 @@ async function loadProject(projectId) {
     return;
   }
   if (String(store.get().activeProjectId) !== String(projectId)) {
+    resetMapControllers();
     if (analysisPollTimer) clearTimeout(analysisPollTimer);
     analysisPollTimer = null;
     store.set({
@@ -1497,8 +1746,12 @@ function parseBoundaryCoordinates(value) {
 async function boot() {
   store.set({ loading: true, error: null });
   try {
-    const [meta, projects] = await Promise.all([api.meta(), api.projects()]);
-    store.set({ meta, projects });
+    const [meta, gisConfig, projects] = await Promise.all([
+      api.meta(),
+      api.gisConfig(),
+      api.projects()
+    ]);
+    store.set({ meta, gisConfig, projects });
     const queryProject = new URLSearchParams(location.search).get('projectId');
     const activeProjectId = projects.some((item) => String(item.id) === queryProject)
       ? queryProject
@@ -1812,6 +2065,66 @@ elements.projectMetadataForm.addEventListener('submit', async (event) => {
   } finally {
     elements.saveProjectMetadataButton.disabled = false;
   }
+});
+
+elements.boundaryGeocodeForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const state = store.get();
+  const form = new FormData(elements.boundaryGeocodeForm);
+  elements.boundaryMapError.hidden = true;
+  elements.locateBoundaryAddressButton.disabled = true;
+  try {
+    const result = await api.geocode(state.activeProjectId, {
+      city: form.get('city'),
+      address: form.get('address')
+    });
+    const match = result.items?.[0];
+    if (!match) {
+      throw new Error('高德未返回可用的地址坐标，请补充城市或详细门牌。');
+    }
+    boundaryMapController?.setCenter(match.coordinates);
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      `已定位：${match.formattedAddress || form.get('address')}（${match.coordinates.join(', ')}，GCJ-02）；该点仅用于定位地图，不会自动生成项目边界。`,
+      'ready'
+    );
+  } catch (error) {
+    elements.boundaryMapError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.boundaryMapError.hidden = false;
+  } finally {
+    elements.locateBoundaryAddressButton.disabled = !store.get().gisConfig?.geocoding?.ready;
+  }
+});
+
+elements.drawBoundaryButton.addEventListener('click', () => {
+  elements.boundaryMapError.hidden = true;
+  if (!boundaryMapController) {
+    elements.boundaryMapError.textContent = '地图尚未加载完成。';
+    elements.boundaryMapError.hidden = false;
+    return;
+  }
+  boundaryMapController.startBoundaryDraw();
+  setProviderStatus(elements.boundaryMapStatus, '请在地图上逐点绘制真实项目范围，双击结束。', 'ready');
+});
+
+elements.clearBoundaryDraftButton.addEventListener('click', () => {
+  const project = store.get().activeProject;
+  const saved = Array.isArray(project?.scopeBoundary) ? project.scopeBoundary : [];
+  elements.boundaryCoordinatesInput.value = saved
+    .map((point) => `${point[0]},${point[1]}`)
+    .join('\n');
+  elements.boundaryForm.elements.crs.value = project?.scopeBoundaryCrs || 'WGS84';
+  elements.boundaryCoordinatesInput.dataset.revision = String(Number(project?.revision) || 0);
+  boundaryMapController?.setBoundary(
+    normalizedCrs(project?.scopeBoundaryCrs) === 'GCJ02' ? saved : []
+  );
+  setProviderStatus(
+    elements.boundaryMapStatus,
+    saved.length
+      ? '绘制草稿已清除，已恢复当前保存边界。'
+      : '绘制草稿已清除；项目仍未设置边界。',
+    saved.length ? 'ready' : 'warning'
+  );
 });
 
 elements.boundaryForm.addEventListener('submit', async (event) => {
@@ -2331,6 +2644,34 @@ elements.spatialAnalysisForm.addEventListener('submit', async (event) => {
     elements.spatialAnalysisFormError.hidden = false;
   } finally {
     elements.runSpatialAnalysisButton.disabled = false;
+  }
+});
+
+elements.poiAnalysisForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const state = store.get();
+  const form = new FormData(elements.poiAnalysisForm);
+  elements.poiAnalysisFormError.hidden = true;
+  store.set({ gisLoading: true });
+  try {
+    await api.runPoiAnalysis(state.activeProjectId, {
+      category: form.get('category'),
+      radiusMeters: form.get('radiusMeters'),
+      keywords: form.get('keywords'),
+      createdBy: form.get('createdBy'),
+      maxPages: 3
+    });
+    const [summary, workflow] = await Promise.all([
+      api.summary(state.activeProjectId),
+      api.workflow(state.activeProjectId)
+    ]);
+    store.set({ summary, workflow });
+    await loadGis();
+  } catch (error) {
+    elements.poiAnalysisFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.poiAnalysisFormError.hidden = false;
+  } finally {
+    store.set({ gisLoading: false });
   }
 });
 

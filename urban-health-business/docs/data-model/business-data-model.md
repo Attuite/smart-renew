@@ -392,34 +392,46 @@ rejected
 
 ```json
 {
-  "id": "SPATIAL-001",
+  "id": "SPRUN-001",
   "projectId": "PRJ-001",
+  "type": "poi-search",
   "status": "completed",
-  "analysisType": "surrounding-services",
-  "inputSnapshotId": "SNAP-SPATIAL-001",
   "parameters": {
-    "issueIds": ["ISSUE-001"],
-    "radiiMeters": [500, 800, 1000],
-    "categories": []
+    "center": [108.95, 34.27],
+    "centerCrs": "GCJ02",
+    "radiusMeters": 1000,
+    "category": "residential",
+    "keywords": ["小区", "家园"],
+    "boundaryOnly": true
   },
-  "sources": [
-    {
-      "provider": "amap",
-      "queriedAt": "",
-      "sourceVersion": null
-    }
-  ],
+  "providerSnapshot": {
+    "provider": "amap",
+    "api": "place-around-v3",
+    "coordinateSystem": "GCJ-02",
+    "queriedAt": ""
+  },
+  "sourceSnapshot": {
+    "projectRevision": 1,
+    "boundaryUpdatedAt": "",
+    "boundaryCrs": "GCJ02"
+  },
   "cleaning": {
-    "rulesVersion": "1.0.0",
+    "ruleVersion": "smart-renew-ab-poi-v1",
     "rawCount": 0,
-    "deduplicatedCount": 0,
-    "confirmedCount": 0
+    "acceptedBeforeMergeCount": 0,
+    "mergedCount": 0,
+    "rejectedCount": 0
   },
-  "resultRef": "RESULT-SPATIAL-001"
+  "rawPois": [],
+  "result": {
+    "itemCount": 0,
+    "items": [],
+    "rejected": []
+  }
 }
 ```
 
-不能只保存最终汇总数字。
+当前实现支持`official-issue-radius`和`poi-search`两类运行。POI运行保存原始Provider响应、清洗拒绝原因和合并结果，不能只保存最终汇总数字；自动清洗结果不是指标得分。
 
 ## 14. IndicatorRun
 
@@ -671,7 +683,7 @@ Demo对象不迁移为业务数据库种子数据。
 - 上传会话与分片；
 - 踏勘路线；
 - 空间图层；
-- POI原始与清洗结果；
+- POI逐条人工确认状态（原始与自动清洗结果已进入SpatialAnalysisRun）；
 - 指标输入快照；
 - 指标计算方案；
 - 报告模板；

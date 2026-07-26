@@ -1,5 +1,6 @@
 const initialState = {
   meta: null,
+  gisConfig: null,
   projects: [],
   activeProjectId: '',
   activeProject: null,

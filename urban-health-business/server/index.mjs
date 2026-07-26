@@ -52,6 +52,11 @@ import { importBoundaryFromSourceAsset } from './services/geojson-boundary-servi
 import { bindIssueGeometry } from './services/spatial-binding-service.mjs';
 import { runIssueRadiusAnalysis } from './services/spatial-analysis-service.mjs';
 import {
+  AmapWebServiceProvider,
+  publicAmapConfig
+} from './services/amap-provider.mjs';
+import { POI_CATEGORIES, runPoiAnalysis } from './services/poi-analysis-service.mjs';
+import {
   createSourceAsset,
   updateSourceAsset,
   uploadSourceAssetContent
@@ -77,7 +82,8 @@ import {
   getProjectSummary,
   getProjectWorkflow,
   markAnalysisStaleness,
-  markReportStaleness
+  markReportStaleness,
+  markSpatialStaleness
 } from './services/workflow-service.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -133,6 +139,7 @@ const analysisJobRunner = new AnalysisJobRunner({
   jobRepository: analysisJobRepository,
   candidateRepository: analysisCandidateRepository
 });
+const amapWebServiceProvider = new AmapWebServiceProvider();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -362,6 +369,8 @@ async function handleMeta(res, id) {
       projectDataSqlite: true,
       businessLegacyMigration: true,
       migratedReportsReadOnly: true,
+      amapProvider: true,
+      poiAnalysis: true,
       serverPdf: false,
       workflowAggregation: true,
       demoIsolation: true
@@ -383,6 +392,15 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && url.pathname === '/api/meta') {
       return await handleMeta(res, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/gis/config') {
+      return sendSuccess(res, {
+        ...publicAmapConfig(),
+        poiCategories: Object.entries(POI_CATEGORIES).map(([value, definition]) => ({
+          value,
+          label: definition.label
+        }))
+      }, id);
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       return sendSuccess(res, {
@@ -1320,10 +1338,28 @@ async function handleRequest(req, res) {
       return sendSuccess(res, { item: issue }, id);
     }
 
+    const projectGeocodeMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/gis\/geocode$/);
+    if (req.method === 'POST' && projectGeocodeMatch) {
+      const projectId = decodeURIComponent(projectGeocodeMatch[1]);
+      await smartRenewClient.getProject(projectId);
+      return sendSuccess(res, await amapWebServiceProvider.geocode(await readJsonBody(req)), id);
+    }
+
     const spatialAnalysesMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/spatial-analyses$/);
     if (req.method === 'GET' && spatialAnalysesMatch) {
+      const projectId = decodeURIComponent(spatialAnalysesMatch[1]);
+      const [project, businessIssues, legacyIssues, runs] = await Promise.all([
+        smartRenewClient.getProject(projectId),
+        officialIssueRepository.list(projectId),
+        smartRenewClient.listIssues({ projectId }),
+        spatialAnalysisRepository.list(projectId)
+      ]);
+      const issues = mergePrimaryReadModel('officialIssue', {
+        businessItems: businessIssues,
+        legacyItems: legacyIssues.items
+      });
       return sendSuccess(res, {
-        items: await spatialAnalysisRepository.list(decodeURIComponent(spatialAnalysesMatch[1]))
+        items: markSpatialStaleness(runs, project, issues)
       }, id);
     }
     if (req.method === 'POST' && spatialAnalysesMatch) {
@@ -1332,6 +1368,32 @@ async function handleRequest(req, res) {
         officialIssueRepository,
         spatialAnalysisRepository,
         decodeURIComponent(spatialAnalysesMatch[1]),
+        await readJsonBody(req)
+      );
+      return sendSuccess(res, { item: run }, id, 201);
+    }
+
+    const poiAnalysesMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/poi-analyses$/);
+    if (req.method === 'GET' && poiAnalysesMatch) {
+      const projectId = decodeURIComponent(poiAnalysesMatch[1]);
+      const [project, items] = await Promise.all([
+        smartRenewClient.getProject(projectId),
+        spatialAnalysisRepository.list(projectId)
+      ]);
+      return sendSuccess(res, {
+        items: markSpatialStaleness(
+          items.filter((run) => run.type === 'poi-search'),
+          project,
+          []
+        )
+      }, id);
+    }
+    if (req.method === 'POST' && poiAnalysesMatch) {
+      const run = await runPoiAnalysis(
+        smartRenewClient,
+        spatialAnalysisRepository,
+        amapWebServiceProvider,
+        decodeURIComponent(poiAnalysesMatch[1]),
         await readJsonBody(req)
       );
       return sendSuccess(res, { item: run }, id, 201);

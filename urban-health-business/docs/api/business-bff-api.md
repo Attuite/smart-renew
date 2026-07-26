@@ -50,7 +50,7 @@ GET /api/projects/{projectId}/workflow
 
 `/api/meta.dataSources`返回项目、照片、分析、Candidate、正式问题、SourceAsset、空间分析、报告、ProjectData和外业任务的唯一主数据源规则。正式问题和报告以Business为主，原数据只读兼容并仅允许显式迁移。
 
-本轮新增的`features.projectDataSqlite`、`features.businessLegacyMigration`和`features.migratedReportsReadOnly`用于声明真实接入状态；这些能力仍分别受Node运行时和smart-renew上游可用性约束。
+`features.projectDataSqlite`、`features.businessLegacyMigration`、`features.migratedReportsReadOnly`、`features.amapProvider`和`features.poiAnalysis`用于声明真实接入状态；具体运行可用性仍分别受Node运行时、smart-renew上游及高德运行配置约束。
 
 `/api/health` 是进程存活检查，不依赖上游；`/api/ready` 检查运行所需的smart-renew数据库与存储连接。AI、地图底图、指标和服务端PDF作为可选能力单独报告，不会因为未配置而把整个Business服务判为不可运行。
 
@@ -120,7 +120,18 @@ Business楼栋列表包含active和inactive记录。PATCH可修正楼栋字段�
 
 每次通过Business保存边界后，同时写入不可覆盖的边界修订快照；GET返回按项目修订倒序排列的坐标、坐标系、面积、中心、更新人员与时间。迁移前已存在但未经过Business保存的旧边界不会被伪造成历史版本。
 
-### 3.1 ProjectData复用接口
+### 3.1 高德地图运行配置与地址定位
+
+```http
+GET  /api/gis/config
+POST /api/projects/{projectId}/gis/geocode
+```
+
+`/api/gis/config`只返回浏览器高德JS SDK所需的Web端Key、SecurityCode及功能可用状态，不返回服务端`AMAP_WEB_SERVICE_KEY`。未配置时`browser/geocoding/poi.ready`如实为`false`，前端保留真实经纬度和GeoJSON录入能力，但不创建默认地图边界。
+
+地址定位由BFF使用高德Web服务代理，结果明确声明为GCJ-02。地址点只用于调整地图视野，不会自动扩展成项目边界。地图绘制得到GCJ-02坐标草稿，最终仍通过现有边界PATCH执行几何校验、项目revision检测和修订留痕。
+
+### 3.2 ProjectData复用接口
 
 ```http
 GET  /api/projects/{projectId}/project-data
@@ -138,7 +149,7 @@ SQLite文件必须先作为SourceAsset上传，再以`assetId`、`importedBy`和
 
 `sqlite-export`返回真实`application/vnd.sqlite3`文件，包含`project_data_meta`和`project_data_index`。服务端SQLite能力依赖Node.js 22.13或更高版本；当前使用Node内置SQLite接口，不能在更低运行时误报可用。
 
-### 3.2 外业复用接口
+### 3.3 外业复用接口
 
 ```http
 GET  /api/projects/{projectId}/field/communities
@@ -150,7 +161,7 @@ GET  /api/projects/{projectId}/field/tasks/{taskId}
 
 任务主体始终保存在原smart-renew。Business只保存项目与任务ID引用，用于恢复列表；列表读取时重新向原服务取得任务主体。上游任务缺失时返回`errors`，不得用Business引用伪造任务内容。
 
-### 3.3 Legacy迁移复用接口
+### 3.4 Legacy迁移复用接口
 
 ```http
 GET  /api/projects/{projectId}/legacy-migration
@@ -352,7 +363,28 @@ POST /api/projects/{projectId}/spatial-analyses
 }
 ```
 
-半径必须由用户在50—10000米间提供，且必须填写实际操作人员；中心默认取真实项目边界中心，也可由接口显式提供。结果保存项目修订、正式问题修订、真实距离和命中ID，不生成固定500/800/1000米结果。Business前端在项目无边界时禁用运行按钮。地图SDK、坐标转换、POI和空间对象绑定尚未接入。
+半径必须由用户在50—10000米间提供，且必须填写实际操作人员；中心默认取真实项目边界中心，也可由接口显式提供。结果保存项目修订、正式问题修订、真实距离和命中ID，不生成固定500/800/1000米结果。Business前端在项目无边界时禁用运行按钮。
+
+高德POI：
+
+```http
+GET  /api/projects/{projectId}/poi-analyses
+POST /api/projects/{projectId}/poi-analyses
+```
+
+```json
+{
+  "category": "residential",
+  "radiusMeters": 1000,
+  "keywords": "小区,家园",
+  "createdBy": "GIS人员",
+  "maxPages": 3
+}
+```
+
+POI请求由BFF使用服务端Web服务Key分页查询。运行记录作为`type: poi-search`写入同一`SpatialAnalysisRepository`，保存查询中心、半径、分类、关键词、Provider、GCJ-02声明、原始POI、过滤/合并数量、清洗规则版本及清洗结果。住宅小区分类默认进一步按真实项目多边形裁剪。自动POI结论不会写入指标分数。
+
+当前未接入WGS84/GCJ-02转换；因此POI运行要求项目边界为GCJ-02。WGS84项目返回`POI_PROJECT_CRS_MISMATCH`，前端也不会把WGS84边界直接叠在高德底图上。
 
 工作流会比较空间运行保存的边界时间、正式问题集合和问题更新时间；输入变化后阶段04返回 `stale` 和原因，要求重新运行。
 
@@ -420,7 +452,12 @@ URBAN_HEALTH_HOST
 URBAN_HEALTH_DATA_DIR
 SMART_RENEW_API_BASE
 SMART_RENEW_API_TIMEOUT_MS
+AMAP_JS_KEY
+AMAP_JS_SECURITY_CODE
+AMAP_WEB_SERVICE_KEY
 ```
+
+`AMAP_JS_KEY`和`AMAP_JS_SECURITY_CODE`是高德JS SDK的浏览器端运行凭据；`AMAP_WEB_SERVICE_KEY`只供BFF地址解析和POI查询使用，不通过接口返回。只配置浏览器凭据时可以显示和绘制地图，但地址解析与POI保持不可用；只配置Web服务Key时可以调用BFF地理服务，但前端不显示底图。
 
 Business扩展数据默认写入：
 

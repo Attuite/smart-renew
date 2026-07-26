@@ -253,9 +253,13 @@ GET   /api/issues/{issueId}
 GET   /api/issues/{issueId}/spatial-binding
 PATCH /api/issues/{issueId}/geometry
 POST  /api/issues/{issueId}/spatial-bindings
+GET   /api/gis/config
+POST  /api/projects/{projectId}/gis/geocode
 GET   /api/projects/{projectId}/spatial-layers
 POST  /api/projects/{projectId}/spatial-analyses
 GET   /api/projects/{projectId}/spatial-analyses
+POST  /api/projects/{projectId}/poi-analyses
+GET   /api/projects/{projectId}/poi-analyses
 GET   /api/spatial-analyses/{analysisId}
 POST  /api/spatial-analyses/{analysisId}/confirm
 GET   /api/projects/{projectId}/spatial-summary
@@ -402,20 +406,23 @@ GET   /api/projects/{projectId}/spatial-summary
 
 ## 22. 当前缺失能力
 
-当前Business已实现边界内问题坐标、后端坐标系校验、点位修订审计和参数化半径运行。
+当前Business已实现边界内问题坐标、后端坐标系校验、点位修订审计、参数化半径运行、高德运行配置、地址定位、GCJ-02边界绘制和问题点地图点击回填。
 
-本次A/B复用接入项：
+本次已完成的A/B复用接入项：
 
 - 高德地图Provider；
 - 地址定位、地图点击和边界绘制；
-- 半径显示；
 - POI分页检索；
 - POI自动清洗和去重；
 - 原始POI、查询参数和清洗摘要保存；
-- 原社区/街区分类规则。
+- 原社区/街区分类规则；
+- 住宅POI按真实项目边界二次裁剪；
+- 无配置、Provider失败和坐标系不匹配状态；
+- 服务端Web服务Key不下发浏览器。
 
 C/D后续项：
 
+- 底图Circle半径覆盖物和更多图层控制；
 - POI逐条人工确认；
 - 点位拖拽；
 - WGS84/GCJ-02坐标转换；
@@ -431,11 +438,13 @@ C/D后续项：
 - `docs/original-smart-renew-reuse-audit.md`；
 - `docs/reuse-first-ab-development-outline.md`。
 
-## 24. 本次A/B开发任务
+## 24. 本次A/B开发结果
 
-- 抽取高德地图Provider并移除硬编码Key；
-- 抽取POI查询和清洗纯函数；
-- 保存原始POI、Provider、参数和规则版本；
-- 将清洗结果写入SpatialAnalysisRun；
-- 保留Business后端坐标和边界校验；
-- 完成地图、POI、坐标系声明和无启发式评分测试。
+- 已抽取高德浏览器地图Controller和服务端Web服务Provider，Key全部改为运行配置；
+- 已将地址解析和POI请求收敛到BFF，服务端Key不下发；
+- 已抽取POI分类、允许、硬排除、去重、近邻合并和项目边界裁剪；
+- 已保存原始POI、Provider、查询参数、拒绝原因和规则版本；
+- 已将清洗结果写入`type: poi-search`的SpatialAnalysisRun；
+- 继续复用Business后端边界、点在多边形内、revision和stale校验；
+- 已增加地图缺配置、Provider契约、POI清洗、边界裁剪和坐标系不混用测试；
+- 当前无法用真实高德账号做自动化在线回归，需在部署环境配置三项AMAP变量后完成账号级验收。

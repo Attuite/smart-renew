@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   markAnalysisStaleness,
-  markReportStaleness
+  markReportStaleness,
+  markSpatialStaleness
 } from '../../server/services/workflow-service.mjs';
 
 test('photo metadata revision or deactivation makes dependent AI jobs stale', () => {
@@ -50,4 +51,26 @@ test('photo set and metadata changes make report snapshots stale', () => {
 
   assert.equal(result[0].status, 'stale');
   assert.deepEqual(result[0].staleReasons, ['PHOTO_SET_CHANGED', 'PHOTO_METADATA_CHANGED']);
+});
+
+test('POI runs depend on project boundary but not on the official issue set', () => {
+  const current = markSpatialStaleness(
+    [{
+      id: 'SPRUN-POI',
+      type: 'poi-search',
+      status: 'completed',
+      sourceSnapshot: { boundaryUpdatedAt: '2026-07-26T00:00:00.000Z' }
+    }],
+    { boundaryUpdatedAt: '2026-07-26T00:00:00.000Z' },
+    [{ id: 'ISSUE-NEW' }]
+  );
+  assert.equal(current[0].status, 'completed');
+
+  const changed = markSpatialStaleness(
+    current,
+    { boundaryUpdatedAt: '2026-07-26T01:00:00.000Z' },
+    [{ id: 'ISSUE-NEW' }]
+  );
+  assert.equal(changed[0].status, 'stale');
+  assert.deepEqual(changed[0].staleReasons, ['PROJECT_BOUNDARY_CHANGED']);
 });
