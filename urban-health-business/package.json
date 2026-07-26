@@ -1,0 +1,20 @@
+{
+  "name": "urban-health-business",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "V9.1 visual baseline with a real smart-renew business workflow.",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "precheck": "node --check server/services/geojson-boundary-service.mjs && node --check server/services/photo-exif-service.mjs && node --check server/services/photo-metadata-batch-service.mjs && node --check server/services/source-asset-preview-service.mjs && node --check server/services/spatial-binding-service.mjs",
+    "check": "node --check server/index.mjs && node --check server/adapters/smart-renew/client.mjs && node --check server/repositories/analysis-candidate-repository.mjs && node --check server/repositories/analysis-job-repository.mjs && node --check server/repositories/boundary-revision-repository.mjs && node --check server/repositories/collection-validation-repository.mjs && node --check server/repositories/official-issue-repository.mjs && node --check server/repositories/photo-metadata-repository.mjs && node --check server/repositories/report-repository.mjs && node --check server/repositories/review-session-repository.mjs && node --check server/repositories/source-asset-repository.mjs && node --check server/repositories/spatial-analysis-repository.mjs && node --check server/repositories/upload-session-repository.mjs && node --check server/services/analysis-candidate-service.mjs && node --check server/services/analysis-job-service.mjs && node --check server/services/analysis-service.mjs && node --check server/services/collection-validation-service.mjs && node --check server/services/manual-review-service.mjs && node --check server/services/photo-metadata-service.mjs && node --check server/services/project-service.mjs && node --check server/services/project-write-coordinator.mjs && node --check server/services/report-comparison-service.mjs && node --check server/services/review-service.mjs && node --check server/services/source-asset-service.mjs && node --check server/services/spatial-analysis-service.mjs && node --check server/services/upload-service.mjs && node --check server/services/workflow-service.mjs && node --check packages/workflow-core/index.mjs && node --check apps/business/src/api/client.js && node --check apps/business/src/app.js",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "verify:demo": "node scripts/verify-demo-integrity.mjs",
+    "verify:boundary": "node scripts/verify-project-boundary.mjs",
+    "verify": "npm run check && npm test && npm run test:integration && npm run verify:demo && npm run verify:boundary"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

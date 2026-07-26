@@ -1,0 +1,19 @@
+{
+  "version": "V7.0 Beta1",
+  "dataNature": "Demo预置空间数据",
+  "runtimeNetworkRequired": false,
+  "sourceDate": "2026-06",
+  "accuracy": "演示级",
+  "disclaimer": "用于Demo空间分析展示，不代表实时政务数据、正式测绘成果或审批结论。",
+  "inputLayers": [
+    { "layerId": "boundary", "layerName": "项目边界", "sourceName": "项目资料归档", "sourceType": "项目资料", "updateStatus": "已本地化" },
+    { "layerId": "buildings", "layerName": "地块与建筑轮廓", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "planning", "layerName": "规划用地与控制条件", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "roads", "layerName": "道路与慢行网络", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "transit", "layerName": "公共交通设施", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "publicServices", "layerName": "公共服务设施", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "commercial", "layerName": "商业服务设施", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" },
+    { "layerId": "greenHeritage", "layerName": "蓝绿空间与历史文化资源", "sourceName": "Demo预置空间数据", "sourceType": "Demo预置", "updateStatus": "已本地化" }
+  ],
+  "generatedLayers": ["42项问题点位", "风险分级表达", "选中问题分析范围", "GIS空间绑定结果", "临时距离连线"]
+}

@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>城市数智体检平台 · 西安市城市更新项目总览</title>
+  <link rel="stylesheet" href="./styles-v9.1.css" />
+</head>
+<body>
+  <div class="app-stage" id="appStage">
+    <header class="topbar">
+      <button class="brand" id="brandHome" type="button" aria-label="返回西安市城市项目总览">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M8 7h26l6 6v28H14l-6-6V7Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M14 14h20v20H14zM14 24h20M24 14v20" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <path d="m19 29 5-5 5 5" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span class="brand-copy">
+          <strong>城市数智体检平台</strong>
+          <small>URBAN SPATIAL INTELLIGENCE</small>
+        </span>
+      </button>
+
+      <div class="top-context" aria-label="当前城市视图">
+        <span class="context-city">西安市</span>
+        <i></i>
+        <span>城市更新项目总览</span>
+        <span class="context-pill"><b>6</b> 个项目</span>
+        <span class="context-pill"><b>4</b> 类更新</span>
+      </div>
+
+      <div class="top-controls">
+        <div class="demo-clock" id="demoClock" aria-live="polite">
+          <span id="demoProgressLabel">00:00 / --:--</span>
+          <div class="demo-timeline" id="demoTimeline" role="slider" tabindex="0" aria-label="自动演示时间轴" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="00:00 / --:--">
+            <i id="demoTimelineTrack"><b id="demoProgressBar"></b><em id="demoTimelineThumb"></em></i>
+            <div class="demo-timeline-marks" aria-hidden="true"><span style="--mark:0%">总览</span><span style="--mark:13.39%">01</span><span style="--mark:25%">02</span><span style="--mark:41.07%">03</span><span style="--mark:58.93%">04</span><span style="--mark:70.27%">05</span><span style="--mark:80.45%">06</span></div>
+          </div>
+        </div>
+        <button class="top-button top-button--primary" id="autoDemoButton" type="button">
+          <svg class="play-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4.5 15.5 10 7 15.5z"/></svg>
+          <svg class="pause-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.2 4.5h2.5v11H6.2zM11.3 4.5h2.5v11h-2.5z"/></svg>
+          <span id="autoDemoLabel">自动演示</span>
+        </button>
+        <button class="top-button" id="resetButton" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.7 6.6A6.4 6.4 0 1 0 16 13M15.7 6.6V2.8m0 3.8h-3.8"/></svg>
+          <span>重置</span>
+        </button>
+        <button class="icon-button" id="fullscreenButton" type="button" aria-label="全屏">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7V3.5H7M13 3.5h3.5V7M16.5 13v3.5H13M7 16.5H3.5V13"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="map-stage" id="mapStage">
+      <div class="map-viewport" id="mapViewport" aria-label="西安市完整卫星地图，可拖拽缩放">
+        <div class="map-transform" id="mapTransform">
+          <div class="map-content" id="mapContent">
+            <img class="city-map-image" id="cityMapImage" src="./assets/xian-city-map.jpg" alt="西安市完整卫星地图" draggable="false" />
+            <div class="map-tone" aria-hidden="true"></div>
+            <div class="project-points" id="projectPoints" aria-label="六个城市更新项目点位"></div>
+          </div>
+        </div>
+        <div class="map-scan" aria-hidden="true"></div>
+        <div class="map-vignette" aria-hidden="true"></div>
+      </div>
+
+      <section class="city-summary" id="citySummary" aria-label="西安市城市级概览">
+        <header>
+          <span>XI'AN / CITY OVERVIEW</span>
+          <b>城市项目总览</b>
+        </header>
+        <div class="city-summary-grid">
+          <article><strong>6</strong><span>纳入演示项目</span></article>
+          <article><strong>4</strong><span>城市更新类型</span></article>
+          <article><strong>75</strong><span>综合体检均值</span></article>
+        </div>
+      </section>
+
+      <button class="project-entry" id="projectEntry" type="button" aria-expanded="false" aria-controls="leftDrawer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z"/></svg>
+        <span><b>6</b> 项目</span>
+        <i></i>
+      </button>
+
+      <aside class="left-drawer" id="leftDrawer" aria-hidden="true">
+        <div class="drawer-line" aria-hidden="true"></div>
+        <header class="drawer-header">
+          <div>
+            <span id="leftDrawerEyebrow">XI'AN / URBAN RENEWAL FIELD ATLAS</span>
+            <h2 id="leftDrawerTitle">西安市城市更新项目总览</h2>
+          </div>
+          <button class="drawer-close" id="leftDrawerClose" type="button" aria-label="关闭项目抽屉">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+          </button>
+        </header>
+
+        <div class="drawer-view city-list-view" id="cityListView">
+          <div class="atlas-stats">
+            <article><strong>6</strong><span>纳入演示项目</span></article>
+            <article><strong>75</strong><span>综合体检均值</span></article>
+            <article><strong>4</strong><span>城市更新类型</span></article>
+          </div>
+          <div class="list-heading"><span>PROJECT DIRECTORY</span><b>六项目清单</b></div>
+          <div class="project-list" id="cityProjectList"></div>
+          <button class="primary-action primary-action--compact" id="createAssessmentButton" type="button">
+            <span>新建 / 进入智慧体检</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+          </button>
+        </div>
+
+        <div class="drawer-view project-detail-view" id="projectDetailView" hidden>
+          <button class="back-list" id="backToProjectList" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回六项目列表
+          </button>
+          <div class="project-identity">
+            <span id="detailProjectId">PROJECT / P1</span>
+            <h3 id="detailProjectName">—</h3>
+            <p><i></i><span id="detailProjectArea">西安市</span><b id="detailProjectType">城市更新</b></p>
+          </div>
+          <div class="current-stage-block">
+            <span>CURRENT STAGE</span>
+            <strong><b>01</b> 资料上传与治理</strong>
+          </div>
+          <div class="project-key-metrics">
+            <article class="metric-emphasis" data-demo-metric="completeness"><span>数据完整度</span><strong>82<small>%</small></strong></article>
+            <article data-demo-metric="candidate"><span>AI候选问题</span><strong>43<small>项</small></strong></article>
+            <article data-demo-metric="review"><span>待人工复核</span><strong>7<small>项</small></strong></article>
+          </div>
+          <div class="source-metrics">
+            <article><span>现场照片</span><b>186张</b></article>
+            <article><span>无人机影像</span><b>12张</b></article>
+            <article><span>外业调查表</span><b>3份</b></article>
+            <article><span>GIS图层</span><b>8个</b></article>
+            <article><span>最终有效问题</span><b>42项</b></article>
+          </div>
+          <button class="primary-action" id="enterCurrentAssessment" type="button">
+            <span>进入当前体检</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <div class="map-tools" aria-label="地图工具">
+        <button id="zoomInButton" type="button" aria-label="放大地图"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></button>
+        <button id="zoomOutButton" type="button" aria-label="缩小地图"><svg viewBox="0 0 20 20"><path d="M4 10h12"/></svg></button>
+        <button id="restoreMapButton" type="button" aria-label="恢复城市全图"><svg viewBox="0 0 20 20"><path d="M15.6 6.5A6.3 6.3 0 1 0 16 13M15.6 6.5V3m0 3.5h-3.5"/></svg></button>
+        <span id="mapZoomLabel">100%</span>
+      </div>
+
+      <div class="map-caption">
+        <span>当前视图 / CITY PROJECT OVERVIEW</span>
+        <b>西安市城市更新项目总览</b>
+      </div>
+    </main>
+
+    <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
+
+    <aside class="module-drawer stage-drawer" id="moduleDrawer" aria-hidden="true">
+      <div class="drawer-line" aria-hidden="true"></div>
+      <header class="stage-drawer__header">
+        <div>
+          <span id="moduleNumber">MODULE / 01</span>
+          <h2 id="moduleTitle">资料上传与治理</h2>
+        </div>
+        <button class="drawer-close" id="moduleDrawerClose" type="button" aria-label="关闭模块说明">
+          <svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </header>
+      <div class="stage-drawer__body" id="stageDrawerBody">
+      <p class="module-project-context" id="moduleProjectContext" hidden></p>
+      <p class="module-goal" id="moduleGoal">统一接入现场照片、无人机影像、调查表及GIS数据。</p>
+      <div class="module-io">
+        <article><span>INPUT / 输入</span><p id="moduleInput"></p></article>
+        <article><span>PROCESS / 处理</span><p id="moduleProcess"></p></article>
+        <article><span>OUTPUT / 输出</span><p id="moduleOutput"></p></article>
+      </div>
+      <section class="stage-module-summary" id="stageDrawerSummary" aria-live="polite" aria-label="当前阶段专属摘要"></section>
+      </div>
+      <footer class="stage-drawer__footer">
+      <button class="primary-action" id="moduleEnterButton" type="button">
+        <span id="moduleEnterLabel">进入模块工作台</span>
+        <svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+      </button>
+      <div class="development-note" id="moduleDevelopmentNote" hidden>
+        <i></i><span>该模块将在下一开发阶段完成。</span>
+      </div>
+      </footer>
+    </aside>
+
+    <nav class="module-rail" id="moduleRail" aria-label="六阶段业务流程">
+      <div class="rail-heading"><span>WORKFLOW</span><b>六阶段体检</b></div>
+      <button class="module-rail-item" data-module="0" type="button"><b>01</b><span>资料上传与治理</span><i>未开始</i></button>
+      <button class="module-rail-item" data-module="1" type="button"><b>02</b><span>AI智能识别</span><i>未开始</i></button>
+      <button class="module-rail-item" data-module="2" type="button"><b>03</b><span>人工复核</span><i>未开始</i></button>
+      <button class="module-rail-item" data-module="3" type="button"><b>04</b><span>GIS落图与问题清单</span><i>未开始</i></button>
+      <button class="module-rail-item" data-module="4" type="button"><b>05</b><span>指标核算</span><i>未开始</i></button>
+      <button class="module-rail-item" data-module="5" type="button"><b>06</b><span>报告生成</span><i>未开始</i></button>
+      <div class="rail-future"><span>远期规划</span><p>项目库 · RAG策略 · 投资测算 · 申报材料</p></div>
+    </nav>
+
+    <section class="workspace-shell" id="workspaceShell" aria-hidden="true">
+      <header class="workspace-header">
+        <div class="workspace-heading">
+          <button class="back-map-button" id="backToMapButton" type="button">
+            <svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回地图
+          </button>
+          <div><span>MODULE / 01 · DATA GOVERNANCE</span><h1>资料上传与治理</h1></div>
+        </div>
+        <div class="workspace-project"><span>当前项目</span><strong id="workspaceProjectName">请选择项目</strong><i>演示数据</i></div>
+      </header>
+
+      <div class="workspace-flow" id="workspaceFlow">
+        <button class="flow-step is-current" data-module="0" type="button"><b>01</b><span>资料上传与治理</span><i>当前</i></button>
+        <button class="flow-step" data-module="1" type="button"><b>02</b><span>AI智能识别</span><i>下一阶段</i></button>
+        <button class="flow-step" data-module="2" type="button"><b>03</b><span>人工复核</span><i>未开始</i></button>
+        <button class="flow-step" data-module="3" type="button"><b>04</b><span>GIS落图与问题清单</span><i>未开始</i></button>
+        <button class="flow-step" data-module="4" type="button"><b>05</b><span>指标核算</span><i>未开始</i></button>
+        <button class="flow-step" data-module="5" type="button"><b>06</b><span>报告生成</span><i>未开始</i></button>
+      </div>
+
+      <nav class="workspace-view-tabs" id="uploadViewTabs" aria-label="资料治理工作台视图">
+        <button type="button" class="is-current" data-upload-view="governance">资料治理</button>
+        <button type="button" data-upload-view="spatial">空间采集信息</button>
+      </nav>
+
+      <div class="workspace-grid" id="governanceView">
+        <section class="upload-zone">
+          <header class="section-heading">
+            <div><span>DATA INTAKE / 资料接入</span><h2>项目资料治理工作区</h2></div>
+            <button class="simulate-button" id="simulateUploadButton" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 16V5m0 0L8 9m4-4 4 4M5 15v4h14v-4"/></svg>
+              <span>模拟上传</span>
+            </button>
+          </header>
+
+          <div class="source-cards">
+            <article data-source="photos"><i class="source-icon"><svg viewBox="0 0 24 24"><path d="M4 6h4l1.5-2h5L16 6h4v13H4zM12 9a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/></svg></i><span>现场照片</span><strong id="photoCount">186</strong><small>张</small></article>
+            <article data-source="drone"><i class="source-icon"><svg viewBox="0 0 24 24"><path d="M7 9h10l2 3-2 3H7l-2-3zM3 7h5M16 7h5M12 9V5m-3 13h6"/></svg></i><span>无人机影像</span><strong id="droneCount">12</strong><small>张</small></article>
+            <article data-source="survey"><i class="source-icon"><svg viewBox="0 0 24 24"><path d="M7 3h10v3h3v15H4V6h3zM8 11h8M8 15h8"/></svg></i><span>外业调查表</span><strong id="surveyCount">3</strong><small>份</small></article>
+            <article data-source="gis"><i class="source-icon"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4zM4 12l8 4 8-4M4 17l8 4 8-4"/></svg></i><span>GIS图层</span><strong id="gisCount">8</strong><small>个</small></article>
+          </div>
+
+          <div class="upload-progress-block">
+            <div class="progress-copy"><span id="uploadProgressCopy">等待接入新资料</span><strong id="uploadProgressValue">0%</strong></div>
+            <div class="progress-track"><i id="uploadProgressBar"></i></div>
+          </div>
+
+          <div class="governance-pipeline" id="governancePipeline">
+            <article data-governance="classify"><i></i><b>01</b><span>分类与去重</span><small>等待处理</small></article>
+            <article data-governance="locate"><i></i><b>02</b><span>定位解析</span><small>等待处理</small></article>
+            <article data-governance="bind"><i></i><b>03</b><span>缺失坐标补绑</span><small>等待处理</small></article>
+            <article data-governance="route"><i></i><b>04</b><span>路线清洗与关联</span><small>等待处理</small></article>
+            <article data-governance="format"><i></i><b>05</b><span>格式检查</span><small>等待处理</small></article>
+            <article data-governance="validate"><i></i><b>06</b><span>完整性校验</span><small>等待处理</small></article>
+          </div>
+
+          <div class="material-strip">
+            <article class="material-thumb material-thumb--a"><span>现场影像 / 046</span><b>建筑立面</b></article>
+            <article class="material-thumb material-thumb--b"><span>无人机 / 008</span><b>社区全景</b></article>
+            <article class="material-thumb material-thumb--c"><span>调查表 / 003</span><b>设施核验</b></article>
+            <article class="material-thumb material-thumb--d"><span>GIS / L08</span><b>项目边界</b></article>
+          </div>
+        </section>
+
+        <aside class="data-status-zone">
+          <header class="section-heading"><div><span>PROJECT DATA STATUS</span><h2>项目数据状态</h2></div><i class="live-dot">LIVE</i></header>
+          <div class="completeness-block">
+            <div><span>数据完整度</span><b id="completenessValue">82<small>%</small></b></div>
+            <p><i id="completenessBar"></i></p>
+            <small id="completenessDelta">治理后预计提升至 96%</small>
+          </div>
+          <div class="status-summary">
+            <article><span>已接入资料</span><b id="totalAssetsValue">209</b><small>项</small></article>
+            <article><span>当前处理进度</span><b id="processingValue">0</b><small>%</small></article>
+          </div>
+          <div class="anomaly-panel">
+            <header><span>异常数据</span><b id="anomalyCount">待检测</b></header>
+            <article id="duplicateAnomaly"><i></i><span>重复照片</span><b>—</b></article>
+            <article id="locationAnomaly"><i></i><span>缺失定位</span><b>—</b></article>
+          </div>
+          <div class="source-composition">
+            <span>数据来源分类</span>
+            <p><i style="--w:89%"></i><b>现场影像</b><small>89%</small></p>
+            <p><i style="--w:6%"></i><b>无人机</b><small>6%</small></p>
+            <p><i style="--w:5%"></i><b>表格 / GIS</b><small>5%</small></p>
+          </div>
+          <button class="next-stage-button" id="nextStageButton" type="button">
+            <span><small>NEXT / 02</small>进入AI智能识别</span>
+            <svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+          </button>
+        </aside>
+      </div>
+      <section class="spatial-collection-view" id="spatialCollectionView" hidden aria-label="空间采集信息">
+        <header class="spatial-collection-stats">
+          <article><span>现场照片</span><b>186张</b></article><article><span>原始带定位</span><b>174张</b></article>
+          <article><span>缺失定位</span><b id="spatialMissingCount">12张</b></article><article><span>候选定位</span><b id="spatialCandidateCount">0 / 12</b></article>
+          <article><span>照片定位</span><b id="spatialLocatedCount">174 / 186</b></article><article><span>人工补绑</span><b id="spatialBoundCount">0 / 12</b></article>
+          <article><span>关键停留节点</span><b id="spatialStopCount">0 / 8</b></article><article><span>路线关联照片</span><b id="spatialRouteLinkedCount">0 / 186</b></article>
+        </header>
+        <div class="spatial-collection-layout">
+          <section class="spatial-collection-map-panel">
+            <header><div><span>SPATIAL COLLECTION / 空间采集</span><b>项目边界 · 踏勘路线 · 照片点位</b></div></header>
+            <section class="spatial-workflow-strip" id="spatialWorkflowStrip" aria-live="polite">
+              <div class="spatial-workflow-state">
+                <span>LOCATION GOVERNANCE / 定位治理</span>
+                <b id="spatialWorkflowStatus">原始数据待治理</b>
+                <p id="spatialWorkflowMessage">原始定位174 / 186，识别到12张缺失定位照片。</p>
+              </div>
+              <div class="spatial-workflow-steps" aria-label="定位治理四步流程">
+                <i data-spatial-step="route"><b>01</b><span>清洗踏勘路线</span></i><i data-spatial-step="locate"><b>02</b><span>自动定位缺失照片</span></i>
+                <i data-spatial-step="bind"><b>03</b><span>确认照片补绑</span></i><i data-spatial-step="link"><b>04</b><span>建立路线关联</span></i>
+              </div>
+              <div class="spatial-workflow-control">
+                <div class="spatial-workflow-metrics">
+                  <span>定位 <b id="spatialWorkflowLocatedCount">174 / 186</b></span><span>候选 <b id="spatialWorkflowCandidateCount">0 / 12</b></span><span>补绑 <b id="spatialWorkflowBoundCount">0 / 12</b></span>
+                </div>
+                <div class="spatial-workflow-actions"><button type="button" id="spatialAutoLocateButton">自动定位缺失照片</button><button type="button" id="spatialConfirmBindButton" disabled>确认并补绑12张</button></div>
+              </div>
+            </section>
+            <div class="spatial-collection-map" id="spatialCollectionMap">
+              <img src="./assets/project-thumbnails/04_项目边界.png" alt="项目边界离线底图" draggable="false">
+              <svg id="spatialCollectionSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="踏勘路线和照片点位图"></svg>
+              <div class="spatial-collection-map-tools"><button type="button" id="spatialLocateRoute">定位到路线</button><button type="button" id="spatialResetMap">复位</button></div>
+            </div>
+            <div class="spatial-layer-controls" id="spatialLayerControls" aria-label="空间采集图层">
+              <button type="button" class="is-on" data-spatial-layer="boundary">项目边界</button>
+              <button type="button" class="is-on" data-spatial-layer="route">踏勘路线</button>
+              <button type="button" class="is-on" data-spatial-layer="photos">照片点位</button>
+              <button type="button" class="is-on" data-spatial-layer="manual">人工补绑点位</button>
+              <button type="button" class="is-on" data-spatial-layer="stops">关键停留节点</button>
+            </div>
+          </section>
+          <aside class="spatial-collection-info">
+            <nav><button type="button" class="is-current" data-spatial-tab="photo">照片定位</button><button type="button" data-spatial-tab="route">踏勘路线</button><button type="button" data-spatial-tab="binding">补绑记录</button></nav>
+            <div id="spatialCollectionInfo"></div>
+          </aside>
+        </div>
+      </section>
+    </section>
+
+    <section class="ai-recognition-workspace" id="aiRecognitionWorkspace" aria-hidden="true" aria-label="AI智能识别工作台">
+      <header class="ai-recognition-header">
+        <div class="ai-recognition-heading">
+          <button class="ai-recognition-back" id="aiRecognitionBackButton" type="button">
+            <svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回地图
+          </button>
+          <div><span>MODULE / 02 · AI RECOGNITION</span><h1>AI智能识别</h1></div>
+        </div>
+        <div class="ai-recognition-beta-badge"><i></i><span>阶段02</span><b>AI识别已完成</b></div>
+        <div class="ai-recognition-project"><span>当前项目</span><strong id="aiRecognitionProjectName">请选择项目</strong><i>演示数据</i></div>
+        <button class="ai-recognition-close" id="aiRecognitionCloseButton" type="button" aria-label="关闭AI识别工作台">
+          <svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </header>
+
+      <div class="ai-recognition-flow" aria-label="六阶段流程状态">
+        <article class="ai-recognition-flow-step is-complete"><b>01</b><span>资料上传与治理</span><i>已完成</i></article>
+        <article class="ai-recognition-flow-step is-current"><b>02</b><span>AI智能识别</span><i>当前阶段</i></article>
+        <article class="ai-recognition-flow-step"><b>03</b><span>人工复核</span><i>未开始</i></article>
+        <article class="ai-recognition-flow-step"><b>04</b><span>GIS落图与问题清单</span><i>未开始</i></article>
+        <article class="ai-recognition-flow-step"><b>05</b><span>指标核算</span><i>未开始</i></article>
+        <article class="ai-recognition-flow-step"><b>06</b><span>报告生成</span><i>未开始</i></article>
+      </div>
+
+      <div class="ai-recognition-grid">
+        <aside class="ai-recognition-column ai-recognition-source">
+          <header class="ai-recognition-panel-heading"><div><span>IMAGE SOURCE</span><h2>影像资料栏</h2></div><b id="aiRecognitionVisibleImageCount">06</b></header>
+          <div class="ai-recognition-filter-preview" aria-label="影像类型筛选"><button class="is-current" type="button" data-ai-image-filter="all">全部影像</button><button type="button" data-ai-image-filter="photo">现场照片</button><button type="button" data-ai-image-filter="drone">无人机影像</button></div>
+          <p class="ai-recognition-source-status"><i></i><span>数据治理已完成</span><b>完整度 96%</b></p>
+          <div class="ai-recognition-thumbnail-list" id="aiRecognitionThumbnailList" aria-label="正式现场影像列表"></div>
+        </aside>
+
+        <section class="ai-recognition-column ai-recognition-visual">
+          <header class="ai-recognition-panel-heading"><div><span>AI VISUAL FIELD</span><h2>现场影像问题识别</h2></div><em id="aiRecognitionScanState"><i></i><span>等待识别</span></em></header>
+          <div class="ai-recognition-visual-toolbar">
+            <div class="ai-recognition-image-meta"><b id="aiRecognitionImageId">IMG-XA-001</b><span id="aiRecognitionImageLocation">P1 · 西仪厂片区北侧</span></div>
+            <div class="ai-recognition-mode-switch" role="group" aria-label="原图与识别结果切换"><button type="button" data-ai-mode="original">原图</button><button class="is-current" type="button" data-ai-mode="result">识别结果</button></div>
+          </div>
+          <div class="ai-recognition-main-media" id="aiRecognitionMediaViewport">
+            <div class="ai-recognition-media-frame" id="aiRecognitionMediaFrame">
+              <img id="aiRecognitionMainImage" src="./assets/recognition/01-facade-damage.jpg" alt="外墙饰面脱落现场照片" draggable="false">
+              <div class="ai-recognition-box-layer" id="aiRecognitionBoxLayer" aria-label="AI问题框选区域"></div>
+              <div class="ai-recognition-scan-line" id="aiRecognitionScanLine" aria-hidden="true"></div>
+            </div>
+            <div class="ai-recognition-media-empty" id="aiRecognitionMediaEmpty"><span>AI READY</span><b>等待开始识别</b><small>点击“开始AI识别”生成机器候选结果</small></div>
+            <i class="ai-recognition-corner is-a"></i><i class="ai-recognition-corner is-b"></i><i class="ai-recognition-corner is-c"></i><i class="ai-recognition-corner is-d"></i>
+          </div>
+          <div class="ai-recognition-visual-footer">
+            <div class="ai-recognition-progress-copy"><span id="aiRecognitionProgressCopy">识别引擎待命</span><strong id="aiRecognitionProgressValue">0%</strong></div>
+            <div class="ai-recognition-progress-track"><i id="aiRecognitionProgressBar"></i></div>
+            <div class="ai-recognition-engine-controls"><button class="ai-recognition-run-button" id="aiRecognitionRunButton" type="button"><span>开始AI识别</span></button><button class="ai-recognition-reset-button" id="aiRecognitionResetButton" type="button">重置识别</button></div>
+          </div>
+        </section>
+
+        <aside class="ai-recognition-column ai-recognition-results">
+          <header class="ai-recognition-panel-heading"><div><span>RECOGNITION OUTPUT</span><h2>机器候选结果</h2></div><b>AI / 02</b></header>
+          <div class="ai-recognition-result-status" id="aiRecognitionResultStatus"><i></i><div><span>当前结果状态</span><strong>待启动识别</strong></div></div>
+          <section class="ai-recognition-stats is-empty" id="aiRecognitionStats" aria-label="AI识别统计">
+            <article class="ai-recognition-stat-primary"><span>AI候选问题</span><strong id="aiRecognitionCandidateCount">—</strong><small>项</small></article>
+            <article><span>平均置信度</span><strong id="aiRecognitionConfidence">—</strong><small>%</small></article>
+            <article><span>重点待复核</span><strong id="aiRecognitionPriorityCount">—</strong><small>项</small></article>
+            <article><span>已处理影像</span><strong id="aiRecognitionProcessedCount">0</strong><small>/ 198</small></article>
+          </section>
+          <div class="ai-recognition-risk-summary is-empty" id="aiRecognitionRiskSummary" aria-label="风险分布"><span>风险分布</span><b class="is-high">高 <i id="aiRecognitionHighCount">—</i></b><b class="is-medium">中 <i id="aiRecognitionMediumCount">—</i></b><b class="is-general">一般 <i id="aiRecognitionGeneralCount">—</i></b></div>
+          <div class="ai-recognition-risk-filters" id="aiRecognitionRiskFilters" aria-label="问题风险筛选"><button class="is-current" type="button" data-ai-risk="all">全部</button><button type="button" data-ai-risk="high">高风险</button><button type="button" data-ai-risk="medium">中风险</button><button type="button" data-ai-risk="general">一般</button><button type="button" data-ai-risk="priority">重点复核</button></div>
+          <section class="ai-recognition-issue-panel" id="aiRecognitionIssuePanel">
+            <div class="ai-recognition-issue-empty" id="aiRecognitionIssueEmpty"><span>RESULT / WAITING</span><b>尚未生成候选问题</b><p>识别结果将包含问题类型、风险等级、置信度与指标映射建议。</p></div>
+            <div class="ai-recognition-issue-detail" id="aiRecognitionIssueDetail" hidden>
+              <header><span id="aiRecognitionIssueId">AI-XA-000</span><b id="aiRecognitionIssueSeverity">—</b></header>
+              <h3 id="aiRecognitionIssueType">—</h3>
+              <dl>
+                <div><dt>识别置信度</dt><dd id="aiRecognitionIssueConfidence">—</dd></div>
+                <div><dt>照片编号</dt><dd id="aiRecognitionIssueImage">—</dd></div>
+                <div><dt>点位坐标</dt><dd id="aiRecognitionIssueLocation">—</dd></div>
+                <div><dt>建议关联指标</dt><dd id="aiRecognitionIssueIndicator">—</dd></div>
+                <div><dt>识别依据</dt><dd id="aiRecognitionIssueDescription">—</dd></div>
+                <div><dt>当前状态</dt><dd class="is-pending">待人工复核</dd></div>
+              </dl>
+            </div>
+          </section>
+          <div class="ai-recognition-result-actions"><button id="aiRecognitionPreviousIssue" type="button">上一个问题</button><button id="aiRecognitionNextIssue" type="button">下一个问题</button><button class="is-next-stage" id="aiRecognitionHandoffButton" type="button"><span><small>NEXT / 03</small>人工复核｜下一阶段</span></button></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="human-review-workspace" id="humanReviewWorkspace" aria-hidden="true" aria-label="人工复核工作台">
+      <header class="human-review-header">
+        <div class="human-review-heading">
+          <button class="human-review-back" id="humanReviewBackButton" type="button">
+            <svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回地图
+          </button>
+          <div><span>MODULE / 03 · HUMAN REVIEW</span><h1>人工复核</h1></div>
+        </div>
+        <div class="human-review-alpha-badge"><i></i><span>阶段03</span><b>人工复核已完成</b></div>
+        <div class="human-review-project"><span>当前项目</span><strong id="humanReviewProjectName">请选择项目</strong><i>演示数据</i></div>
+        <button class="human-review-close" id="humanReviewCloseButton" type="button" aria-label="关闭人工复核工作台">
+          <svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </header>
+
+      <div class="human-review-flow" aria-label="六阶段流程状态">
+        <article class="human-review-flow-step is-complete"><b>01</b><span>资料上传与治理</span><i>已完成</i></article>
+        <article class="human-review-flow-step is-complete"><b>02</b><span>AI智能识别</span><i>已完成</i></article>
+        <article class="human-review-flow-step is-current"><b>03</b><span>人工复核</span><i>当前阶段</i></article>
+        <article class="human-review-flow-step"><b>04</b><span>GIS落图与问题清单</span><i>未开始</i></article>
+        <article class="human-review-flow-step"><b>05</b><span>指标核算</span><i>未开始</i></article>
+        <article class="human-review-flow-step"><b>06</b><span>报告生成</span><i>未开始</i></article>
+      </div>
+
+      <div class="human-review-grid">
+        <aside class="human-review-column human-review-queue">
+          <header class="human-review-panel-heading"><div><span>REVIEW QUEUE</span><h2>重点复核任务</h2></div><b>07</b></header>
+          <div class="human-review-queue-summary">
+            <article><span>AI候选问题</span><b>43</b><small>项</small></article>
+            <article><span>重点待复核</span><b>7</b><small>项</small></article>
+          </div>
+          <div class="human-review-progress-summary">
+            <article><span>已复核</span><b id="humanReviewReviewedCount">36 / 43</b></article>
+            <article><span>重点任务</span><b id="humanReviewPriorityProgress">0 / 7</b></article>
+            <article><span>待复核</span><b id="humanReviewPendingCount">7</b></article>
+          </div>
+          <p class="human-review-current-filter"><i></i><span>当前筛选</span><b>重点复核</b></p>
+          <div class="human-review-risk-filters" aria-label="复核任务风险筛选">
+            <button class="is-current" type="button" data-human-review-risk="all">全部</button>
+            <button type="button" data-human-review-risk="high">高风险</button>
+            <button type="button" data-human-review-risk="medium">中风险</button>
+            <button type="button" data-human-review-risk="general">一般</button>
+          </div>
+          <div class="human-review-task-list" id="humanReviewTaskList" aria-label="7项重点复核任务"></div>
+        </aside>
+
+        <section class="human-review-column human-review-visual">
+          <header class="human-review-panel-heading"><div><span>VISUAL VERIFICATION</span><h2>影像与问题核验</h2></div><em><i></i><span>待人工复核</span></em></header>
+          <div class="human-review-visual-toolbar">
+            <div class="human-review-image-meta"><b id="humanReviewImageId">IMG-XA-001</b><span id="humanReviewIssueMeta">DEF-021 · 外墙饰面脱落</span></div>
+            <div class="human-review-mode-switch" role="group" aria-label="原图与AI识别结果切换">
+              <button type="button" data-human-review-mode="original">原图</button>
+              <button class="is-current" type="button" data-human-review-mode="result">AI识别结果</button>
+            </div>
+          </div>
+          <div class="human-review-media" id="humanReviewMediaViewport">
+            <div class="human-review-media-frame" id="humanReviewMediaFrame">
+              <img id="humanReviewMainImage" src="./assets/recognition/01-facade-damage.jpg" alt="外墙饰面脱落现场照片" draggable="false">
+              <div class="human-review-box-layer">
+                <button class="human-review-box is-selected is-high" id="humanReviewCurrentBox" type="button" aria-label="当前候选问题识别框"><span id="humanReviewBoxLabel">DEF-021 · 外墙饰面脱落</span></button>
+              </div>
+            </div>
+            <button class="human-review-zoom-entry" id="humanReviewZoomButton" type="button"><span>问题局部</span><b>放大查看</b></button>
+            <div class="human-review-zoom-placeholder" id="humanReviewZoomPlaceholder" hidden><span>DETAIL / VIEW</span><b>问题局部放大占位</b><small>保持原始影像与百分比识别框关系，不生成新的裁切资源。</small></div>
+          </div>
+          <div class="human-review-current-detail">
+            <div><span>当前问题</span><strong id="humanReviewIssueType">外墙饰面脱落</strong><small id="humanReviewIssueDescription">大面积饰面层缺失，边缘存在继续剥落风险</small></div>
+            <dl>
+              <div><dt>风险等级</dt><dd class="is-high" id="humanReviewSeverity">高风险</dd></div>
+              <div><dt>AI置信度</dt><dd id="humanReviewConfidence">89.8%</dd></div>
+              <div><dt>建议关联指标</dt><dd id="humanReviewIndicator">房屋安全·外墙完好度</dd></div>
+            </dl>
+          </div>
+          <div class="human-review-navigation">
+            <button id="humanReviewPreviousTask" type="button">上一个任务</button>
+            <p><span>当前筛选位置</span><b id="humanReviewProgress">1 / 7 · 全部任务</b><i><em id="humanReviewProgressBar"></em></i></p>
+            <button id="humanReviewNextTask" type="button">下一个任务</button>
+          </div>
+        </section>
+
+        <aside class="human-review-column human-review-actions">
+          <header class="human-review-panel-heading"><div><span>REVIEW ACTION</span><h2>人工复核操作</h2></div><b>HUMAN / 03</b></header>
+          <div class="human-review-status">
+            <article><span>当前状态</span><b id="humanReviewOverallStatus">重点任务待人工复核</b></article>
+            <article><span>数据来源</span><b>AI机器预识别</b></article>
+            <article><span>正式入库状态</span><b id="humanReviewGisStatus">未入库</b></article>
+          </div>
+          <div class="human-review-decision" aria-label="人工复核结论临时选择">
+            <button type="button" data-human-review-decision="confirm"><i></i><span>确认问题</span><small>保存后生效</small></button>
+            <button type="button" data-human-review-decision="modify"><i></i><span>修改问题</span><small>保存后生效</small></button>
+            <button type="button" data-human-review-decision="exclude"><i></i><span>排除误报</span><small>需填写原因</small></button>
+          </div>
+          <div class="human-review-supplement">
+            <button class="human-review-add-issue" id="humanReviewAddIssueButton" type="button"><span>＋ 补录问题</span><small>演示草稿</small></button>
+            <div class="human-review-supplement-form" id="humanReviewSupplementForm" hidden>
+              <input id="humanReviewSupplementType" type="text" placeholder="问题类型">
+              <select id="humanReviewSupplementRisk" aria-label="补录风险等级"><option value="high">高风险</option><option value="medium">中风险</option><option value="general">一般问题</option></select>
+              <input id="humanReviewSupplementIndicator" type="text" placeholder="指标关联建议">
+              <textarea id="humanReviewSupplementNote" rows="2" placeholder="补录备注"></textarea>
+              <button id="humanReviewSupplementSave" type="button">保存补录草稿</button>
+              <small>演示草稿，尚未纳入锁定结果口径</small>
+            </div>
+          </div>
+          <div class="human-review-edit-stack">
+            <section class="human-review-edit-item">
+              <button type="button" data-human-review-toggle="risk"><span>调整风险等级</span><i>＋</i></button>
+              <div class="human-review-edit-panel" data-human-review-panel="risk" hidden>
+                <label><input type="radio" name="humanReviewRisk" value="high">高风险</label>
+                <label><input type="radio" name="humanReviewRisk" value="medium">中风险</label>
+                <label><input type="radio" name="humanReviewRisk" value="general">一般</label>
+              </div>
+            </section>
+            <section class="human-review-edit-item">
+              <button type="button" data-human-review-toggle="type"><span>修改问题类型</span><i>＋</i></button>
+              <div class="human-review-edit-panel" data-human-review-panel="type" hidden><input id="humanReviewTypeInput" type="text" value="外墙饰面脱落" aria-label="问题类型临时输入"></div>
+            </section>
+            <section class="human-review-edit-item">
+              <button type="button" data-human-review-toggle="indicator"><span>指标关联建议</span><i>＋</i></button>
+              <div class="human-review-edit-panel" data-human-review-panel="indicator" hidden><input id="humanReviewIndicatorInput" type="text" value="房屋安全·外墙完好度" aria-label="指标关联建议临时输入"></div>
+            </section>
+            <section class="human-review-edit-item">
+              <button type="button" data-human-review-toggle="opinion"><span>复核意见输入区</span><i>＋</i></button>
+              <div class="human-review-edit-panel" data-human-review-panel="opinion" hidden><textarea id="humanReviewOpinionInput" rows="3" placeholder="输入临时复核意见，不会正式提交"></textarea></div>
+            </section>
+            <section class="human-review-edit-item human-review-exclusion-item" id="humanReviewExclusionItem" hidden>
+              <button type="button" data-human-review-toggle="exclusion"><span>排除原因（必填）</span><i>－</i></button>
+              <div class="human-review-edit-panel" data-human-review-panel="exclusion"><textarea id="humanReviewExclusionReason" rows="3" placeholder="填写现场核验依据和排除原因"></textarea></div>
+            </section>
+          </div>
+          <button class="human-review-save" id="humanReviewSaveButton" type="button"><span>保存当前复核</span><small>保存后写入任务状态与追溯日志</small></button>
+          <div class="human-review-final-actions">
+            <button id="humanReviewCompleteButton" type="button" disabled>完成人工复核</button>
+            <button id="humanReviewResetButton" type="button">重置人工复核</button>
+          </div>
+          <div class="human-review-trace">
+            <header><span>复核记录 / 追溯日志</span><b id="humanReviewLogCount">36 RECORDS</b></header>
+            <div class="human-review-trace-chain" aria-label="当前问题追溯链">
+              <b id="humanReviewTraceImage">IMG-XA-001</b><i>→</i><b id="humanReviewTraceIssue">DEF-021</b><i>→</i><b id="humanReviewTraceAction">待人工复核</b><i>→</i><span id="humanReviewTraceMap">MAP-021</span><i>→</i><span>IND-BS-03</span><i>→</i><span>RPT-04</span>
+            </div>
+            <div class="human-review-log-list" id="humanReviewLogList">
+              <article><i></i><div><b id="humanReviewTraceTask">DEF-021</b><span id="humanReviewTraceCopy">任务已载入，等待人工操作</span></div><time>当前会话</time></article>
+            </div>
+          </div>
+          <section class="human-review-completion" id="humanReviewCompletion" hidden>
+            <span>REVIEW / COMPLETED</span>
+            <h3>人工复核已完成</h3>
+            <p>人工复核完成，等待GIS落图与问题清单生成。</p>
+            <div>
+              <article><span>AI候选</span><b>43</b><small>项</small></article>
+              <article><span>有效问题</span><b id="humanReviewFinalEffective">42</b><small>项</small></article>
+              <article><span>排除误报</span><b id="humanReviewFinalExcluded">1</b><small>项</small></article>
+              <article><span>高风险</span><b id="humanReviewFinalHigh">6</b><small>项</small></article>
+              <article><span>中风险</span><b id="humanReviewFinalMedium">18</b><small>项</small></article>
+              <article><span>一般问题</span><b id="humanReviewFinalGeneral">18</b><small>项</small></article>
+            </div>
+            <button class="human-review-next-stage" id="humanReviewNextStageButton" type="button"><b>NEXT / 04</b><span>打开GIS落图与问题清单说明</span><small>仅打开阶段说明抽屉</small></button>
+            <button id="humanReviewCompletionReset" type="button">重置人工复核</button>
+          </section>
+        </aside>
+      </div>
+      <div class="human-review-unsaved" id="humanReviewUnsavedPrompt" hidden role="alertdialog" aria-label="未保存修改提示">
+        <div><b>当前修改尚未保存，是否放弃？</b><span id="humanReviewUnsavedDetail">继续将丢弃当前任务草稿。</span></div>
+        <button id="humanReviewKeepEditing" type="button">继续编辑</button>
+        <button id="humanReviewDiscardChanges" type="button">放弃修改</button>
+      </div>
+    </section>
+
+    <section class="gis-workspace" id="gisWorkspace" aria-hidden="true" aria-label="GIS落图与问题清单工作台">
+      <header class="gis-header">
+        <div class="gis-heading">
+          <button class="gis-back" id="gisBackButton" type="button">
+            <svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回地图
+          </button>
+          <div><span>MODULE / 04 · GIS MAPPING</span><h1>GIS落图与问题清单</h1></div>
+        </div>
+        <div class="gis-header-summary"><span>有效问题</span><b>42</b><i>空间绑定进行中</i></div>
+        <div class="gis-project"><span>当前项目</span><strong id="gisProjectName">西仪厂城市更新改造项目</strong><i>演示数据</i></div>
+        <button class="gis-close" id="gisCloseButton" type="button" aria-label="关闭GIS工作台">
+          <svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </header>
+
+      <div class="gis-flow" aria-label="六阶段流程状态">
+        <article class="gis-flow-step is-complete"><b>01</b><span>资料上传与治理</span><i>已完成</i></article>
+        <article class="gis-flow-step is-complete"><b>02</b><span>AI智能识别</span><i>已完成</i></article>
+        <article class="gis-flow-step is-complete"><b>03</b><span>人工复核</span><i>已完成</i></article>
+        <article class="gis-flow-step is-current"><b>04</b><span>GIS落图与问题清单</span><i>当前阶段</i></article>
+        <article class="gis-flow-step"><b>05</b><span>指标核算</span><i>未开始</i></article>
+        <article class="gis-flow-step"><b>06</b><span>报告生成</span><i>未开始</i></article>
+      </div>
+
+      <div class="gis-grid">
+        <aside class="gis-column gis-list-panel">
+          <header class="gis-panel-heading"><div><span>ISSUE REGISTER</span><h2>问题清单</h2></div><b>42</b></header>
+          <div class="gis-stats" aria-label="问题风险统计">
+            <article><span>全部</span><b>42</b></article>
+            <article class="is-high"><span>高风险</span><b>6</b></article>
+            <article class="is-medium"><span>中风险</span><b>18</b></article>
+            <article class="is-general"><span>一般</span><b>18</b></article>
+          </div>
+          <div class="gis-binding-stats" aria-label="GIS空间绑定统计">
+            <article><span>已绑定</span><b id="gisBoundCount">36</b></article>
+            <article><span>待确认</span><b id="gisPendingCount">6</b></article>
+          </div>
+          <label class="gis-search"><span>搜索</span><input id="gisSearchInput" type="search" placeholder="MAP / DEF / 类型 / 影像编号" autocomplete="off"></label>
+          <div class="gis-risk-filters" aria-label="风险筛选">
+            <button class="is-current" type="button" data-gis-risk="all">全部</button>
+            <button type="button" data-gis-risk="high">高风险</button>
+            <button type="button" data-gis-risk="medium">中风险</button>
+            <button type="button" data-gis-risk="general">一般</button>
+          </div>
+          <label class="gis-type-filter"><span>问题类型</span><select id="gisTypeFilter" aria-label="问题类型筛选"><option value="all">全部问题类型</option></select></label>
+          <div class="gis-list-status"><span>当前显示</span><b id="gisVisibleCount">42项</b><i id="gisObjectFilterStatus">GIS状态：36已绑定 / 6待确认</i></div>
+          <div class="gis-issue-list" id="gisIssueList" aria-label="42项GIS问题清单"></div>
+        </aside>
+
+        <section class="gis-column gis-map-panel">
+          <header class="gis-panel-heading"><div><span>PROJECT SPATIAL VIEW</span><h2>项目问题点位图</h2></div><p><span>当前选中</span><b id="gisCurrentMapId">MAP-021</b></p></header>
+          <div class="gis-map-toolbar">
+            <div><i></i><span>项目边界内固定相对坐标</span><b id="gisMapScaleLabel">100%</b></div>
+            <div class="gis-radius-switch" aria-label="空间分析半径"><span>分析范围</span><button class="is-current" type="button" data-gis-radius="500">500m</button><button type="button" data-gis-radius="800">800m</button><button type="button" data-gis-radius="1000">1000m</button></div>
+            <div class="gis-map-buttons"><button id="gisZoomIn" type="button" aria-label="放大GIS地图">＋</button><button id="gisZoomOut" type="button" aria-label="缩小GIS地图">－</button><button id="gisMapReset" type="button">复位</button></div>
+          </div>
+          <div class="gis-map-viewport" id="gisMapViewport" aria-label="可缩放拖拽的项目GIS地图">
+            <div class="gis-map-transform" id="gisMapTransform">
+              <div class="gis-map-content" id="gisMapContent">
+                <img src="./assets/project-thumbnails/04_项目边界.png" alt="西仪厂更新项目边界离线底图" draggable="false">
+                <div class="gis-map-tone" aria-hidden="true"></div>
+                <svg class="gis-boundary-layer" id="gisBoundaryLayer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="项目边界">
+                  <path class="gis-boundary-fill" d="M16 18 L38 10 L72 15 L88 34 L84 70 L64 88 L30 84 L12 62 Z"/>
+                  <path class="gis-boundary-line" d="M16 18 L38 10 L72 15 L88 34 L84 70 L64 88 L30 84 L12 62 Z"/>
+                </svg>
+                <svg class="gis-spatial-layer" id="gisSpatialLayer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="城市公共空间数据图层"></svg>
+                <div class="gis-analysis-range" id="gisAnalysisRange" aria-hidden="true"><span id="gisAnalysisRangeLabel">500m</span></div>
+                <svg class="gis-distance-layer" id="gisDistanceLayer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="临时距离连线"></svg>
+                <div class="gis-facility-layer" id="gisFacilityLayer" aria-label="公共空间设施点"></div>
+                <div class="gis-point-layer" id="gisPointLayer" aria-label="42个问题点位"></div>
+              </div>
+            </div>
+            <div class="gis-layer-control" id="gisLayerControl" aria-label="GIS图层控制">
+              <header><span>LAYERS</span><b>图层控制</b><button id="gisLayerCollapse" type="button" aria-label="折叠图层控制">−</button></header>
+              <div class="gis-layer-control-body">
+                <section><h3>项目问题数据</h3>
+                  <label><input type="checkbox" data-gis-layer="points" checked><span>问题点位</span></label>
+                  <label><input type="checkbox" data-gis-layer="risk" checked><span>风险分级</span></label>
+                  <label><input type="checkbox" data-gis-layer="labels" checked><span>点位编号</span></label>
+                  <label><input type="checkbox" data-gis-layer="imagePoints"><span>现场影像点</span></label>
+                  <label><input type="checkbox" data-gis-layer="analysisRange"><span>当前分析范围</span></label>
+                </section>
+                <section><h3>城市空间底图 · 8类输入</h3>
+                  <label><input type="checkbox" data-gis-layer="boundary" checked><span>项目边界</span></label>
+                  <label><input type="checkbox" data-gis-layer="buildings" checked><span>地块与建筑</span></label>
+                  <label><input type="checkbox" data-gis-layer="planning"><span>规划控制</span></label>
+                  <label><input type="checkbox" data-gis-layer="roads" checked><span>道路与慢行</span></label>
+                  <label><input type="checkbox" data-gis-layer="transit"><span>公共交通</span></label>
+                  <label><input type="checkbox" data-gis-layer="publicServices"><span>公共服务</span></label>
+                  <label><input type="checkbox" data-gis-layer="commercial"><span>商业服务</span></label>
+                  <label><input type="checkbox" data-gis-layer="greenHeritage"><span>蓝绿与历史文化</span></label>
+                </section>
+                <button class="gis-source-entry" id="gisSourceEntry" type="button">查看数据来源</button>
+                <div class="gis-beta-layers"><span>后续版本</span><button type="button" disabled>风险热力图</button><button type="button" disabled>动态聚类</button><button type="button" disabled>空间密度</button></div>
+              </div>
+            </div>
+            <div class="gis-map-tooltip" id="gisMapTooltip" hidden><b>MAP-021</b><span>外墙饰面脱落</span><i>高风险</i></div>
+            <div class="gis-object-tooltip" id="gisObjectTooltip" hidden><b>BLD-01</b><span>关联问题 0项</span><small>点击可筛选关联问题</small></div>
+            <div class="gis-facility-tooltip" id="gisFacilityTooltip" hidden><b>北侧公交站</b><span>公共交通</span><i>距当前问题 240m</i><small>Demo预置空间数据</small></div>
+            <div class="gis-map-legend"><span><i class="is-high"></i>高风险 6</span><span><i class="is-medium"></i>中风险 18</span><span><i class="is-general"></i>一般 18</span></div>
+          </div>
+          <div class="gis-map-footer"><span>离线项目级地图 · 相对坐标仅用于竞赛演示</span><b>项目边界：显示</b><i>空间绑定准备中</i></div>
+        </section>
+
+        <aside class="gis-column gis-detail-panel">
+          <header class="gis-panel-heading"><div><span>SPATIAL CONTEXT</span><h2>问题详情与空间关联</h2></div><b>GIS / 04</b></header>
+          <nav class="gis-detail-tabs" aria-label="GIS详情页签"><button class="is-current" type="button" data-gis-tab="detail">问题详情</button><button type="button" data-gis-tab="surroundings">周边条件</button><button type="button" data-gis-tab="sources">数据来源</button></nav>
+
+          <div class="gis-tab-panel is-current" data-gis-panel="detail">
+            <div class="gis-detail-status"><span>人工复核</span><b>已确认</b><i></i><span>GIS状态</span><strong id="gisBindingStatus">待空间确认</strong></div>
+            <section class="gis-detail-primary">
+              <header><span id="gisDetailMapId">MAP-021</span><b id="gisDetailRisk" class="is-high">高风险</b></header>
+              <h3 id="gisDetailType">外墙饰面脱落</h3>
+              <dl>
+                <div><dt>DEF编号</dt><dd id="gisDetailDefectId">DEF-021</dd></div>
+                <div><dt>照片编号</dt><dd id="gisDetailImageId">IMG-XA-001</dd></div>
+                <div><dt>项目内坐标</dt><dd id="gisDetailCoordinate">32.4%, 41.8%</dd></div>
+                <div><dt>空间位置</dt><dd id="gisDetailLocation">西仪厂片区北侧</dd></div>
+              </dl>
+            </section>
+            <figure class="gis-evidence">
+              <button id="gisEvidencePreview" type="button" aria-label="查看原始影像"><img id="gisEvidenceImage" src="./assets/recognition/01-facade-damage.jpg" alt="现场影像证据"><span>查看原始影像</span></button>
+              <figcaption><b id="gisEvidenceImageId">IMG-XA-001</b><span id="gisEvidenceType">外墙饰面脱落</span><small id="gisEvidenceConclusion">人工确认：问题成立</small></figcaption>
+            </figure>
+            <section class="gis-review-record">
+              <header><span>复核记录</span><b>TRACEABLE</b></header>
+              <p><span>AI识别</span><b id="gisOriginalType">外墙饰面脱落</b></p>
+              <p><span>人工复核</span><b id="gisReviewResult">人工确认：问题成立</b></p>
+              <p><span>风险等级</span><b id="gisReviewRisk">高风险</b></p>
+              <p><span>复核说明</span><b id="gisReviewNote">问题成立，进入GIS空间绑定准备。</b></p>
+            </section>
+            <section class="gis-trace">
+              <header><span>问题追溯链</span><b>04 / GIS</b></header>
+              <div><b id="gisTraceImage">IMG-XA-001</b><i>→</i><b id="gisTraceDefect">DEF-021</b><i>→</i><b id="gisTraceReview">人工确认</b><i>→</i><strong id="gisTraceMap">MAP-021</strong></div>
+              <small>追溯止于GIS点位；指标和报告节点尚未开发。</small>
+            </section>
+          </div>
+
+          <div class="gis-tab-panel" data-gis-panel="surroundings">
+            <div class="gis-data-nature"><i></i><span>数据性质：Demo预置空间分析</span><b id="gisSurroundingRadius">500m</b></div>
+            <section class="gis-surround-card"><header><span>基础空间归属</span><b id="gisInsideBoundary">项目边界内</b></header><dl>
+              <div><dt>所属地块</dt><dd id="gisParcelValue">PARCEL-A</dd></div><div><dt>所属建筑/道路</dt><dd id="gisObjectValue">BLD-03</dd></div><div><dt>规划用地</dt><dd id="gisPlanningUse">居住用地</dd></div><div><dt>规划控制</dt><dd id="gisPlanningControl">一般更新控制区 · Demo预置条件</dd></div><div><dt>历史文化</dt><dd id="gisHeritageRelation">无直接关联</dd></div>
+            </dl></section>
+            <section class="gis-surround-card"><header><span>周边交通</span><b>空间事实</b></header><button class="gis-distance-fact" type="button" data-gis-distance="road"><span>最近城市道路</span><b id="gisNearestRoad">更新大道 · 86m</b></button><button class="gis-distance-fact" type="button" data-gis-distance="bus"><span>最近公交站</span><b id="gisNearestBus">北侧公交站 · 240m</b></button><button class="gis-distance-fact" type="button" data-gis-distance="parking"><span>最近停车点</span><b id="gisNearestParking">PARK-01 · 310m</b></button><p><span>轨道交通</span><b id="gisNearestMetro">500m范围内暂无轨道站</b></p></section>
+            <section class="gis-surround-card"><header><span>公共服务设施</span><b id="gisServiceTotal">6处</b></header><div class="gis-service-grid"><span>教育<b id="gisEducationCount">1</b></span><span>医疗<b id="gisMedicalCount">1</b></span><span>养老<b id="gisElderlyCount">0</b></span><span>文化<b id="gisCultureCount">1</b></span><span>体育<b id="gisSportsCount">1</b></span><span>社区<b id="gisCommunityCount">2</b></span></div></section>
+            <section class="gis-surround-card"><header><span>商业与蓝绿空间</span><b>范围覆盖</b></header><p><span>商业服务设施</span><b id="gisCommercialCount">6处</b></p><button class="gis-distance-fact" type="button" data-gis-distance="commercial"><span>最近便利商业</span><b id="gisNearestCommercial">社区便利店 · 180m</b></button><button class="gis-distance-fact" type="button" data-gis-distance="green"><span>最近公园/绿地</span><b id="gisNearestGreen">西侧街旁绿地 · 420m</b></button><p><span>历史文化资源</span><b id="gisNearestHeritage">当前范围无直接关联</b></p></section>
+          </div>
+
+          <div class="gis-tab-panel" data-gis-panel="sources">
+            <div class="gis-data-nature"><i></i><span>全部数据已本地化</span><b>演示级</b></div>
+            <div class="gis-source-list" id="gisSourceList"></div>
+            <p class="gis-source-note">不连接政府内部系统，不进行实时网站抓取，不代表实时政务数据。</p>
+          </div>
+
+          <section class="gis-binding-panel">
+            <header><span>GIS空间绑定</span><b id="gisBindingBadge">待确认</b></header>
+            <div class="gis-binding-selects"><label>建筑<select id="gisBuildingSelect"></select></label><label>地块<select id="gisParcelSelect"></select></label><label>道路<select id="gisRoadSelect"></select></label></div>
+            <div class="gis-nudge-controls"><span>点位微调</span><button type="button" data-gis-nudge="up">上</button><button type="button" data-gis-nudge="left">左</button><button type="button" data-gis-nudge="down">下</button><button type="button" data-gis-nudge="right">右</button></div>
+            <div class="gis-binding-actions"><button id="gisUndoAdjustment" type="button">撤销本次调整</button><button id="gisRestorePosition" type="button">恢复原始位置</button><button id="gisConfirmBinding" type="button">确认空间绑定</button></div>
+          </section>
+          <div class="gis-detail-actions"><button id="gisLocateButton" type="button">在地图中定位</button><button id="gisPreviousIssue" type="button">上一个问题</button><button id="gisNextIssue" type="button">下一个问题</button></div>
+          <button class="workspace-next-stage" id="gisNextStageButton" type="button"><b>NEXT / 05</b><span>打开指标核算说明</span><small>仅打开阶段说明抽屉</small></button>
+        </aside>
+      </div>
+
+      <section class="gis-demo-completion" id="gisDemoCompletion" hidden aria-label="GIS空间绑定完成汇总">
+        <span>GIS / SPATIAL BINDING COMPLETED</span>
+        <h2>42项问题已完成空间绑定</h2>
+        <p>项目问题、8类GIS基础图层与周边空间事实已完成关联，等待进入下一阶段。</p>
+        <div><article><span>有效问题</span><b>42</b></article><article><span>已绑定</span><b>42</b></article><article><span>待确认</span><b>0</b></article><article><span>高风险</span><b>6</b></article><article><span>中风险</span><b>18</b></article><article><span>一般问题</span><b>18</b></article></div>
+        <footer><i></i><span>8类GIS基础图层已关联</span><b>04已完成 · 05未开始</b></footer>
+      </section>
+
+      <div class="gis-image-preview" id="gisImagePreview" hidden aria-label="原始影像预览">
+        <button id="gisImagePreviewClose" type="button" aria-label="关闭影像预览">×</button>
+        <img id="gisImagePreviewSource" src="./assets/recognition/01-facade-damage.jpg" alt="原始现场影像">
+        <p><b id="gisImagePreviewId">IMG-XA-001</b><span>本地影像证据 · 未使用在线资源</span></p>
+      </div>
+    </section>
+
+    <section class="indicator-workspace" id="indicatorWorkspace" aria-hidden="true" aria-label="指标核算工作台">
+      <header class="indicator-header">
+        <div class="indicator-heading">
+          <button class="indicator-back" id="indicatorBackButton" type="button">
+            <svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>
+            返回地图
+          </button>
+          <div><span>MODULE / 05 · INDICATOR CALCULATION</span><h1>指标核算</h1></div>
+        </div>
+        <div class="indicator-header-summary"><span>综合得分</span><b id="indicatorHeaderScore">82.4</b><i id="indicatorHeaderUnmet">3项未达标</i></div>
+        <div class="indicator-project"><span>当前项目</span><strong id="indicatorProjectName">西仪厂城市更新改造项目</strong><i>核算结果预览</i></div>
+        <button class="indicator-close" id="indicatorCloseButton" type="button" aria-label="关闭指标核算工作台">
+          <svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </header>
+
+      <div class="indicator-flow" aria-label="六阶段流程状态">
+        <article class="indicator-flow-step is-complete"><b>01</b><span>资料上传与治理</span><i>已完成</i></article>
+        <article class="indicator-flow-step is-complete"><b>02</b><span>AI智能识别</span><i>已完成</i></article>
+        <article class="indicator-flow-step is-complete"><b>03</b><span>人工复核</span><i>已完成</i></article>
+        <article class="indicator-flow-step is-complete"><b>04</b><span>GIS落图与问题清单</span><i>已完成</i></article>
+        <article class="indicator-flow-step is-current"><b>05</b><span>指标核算</span><i>当前阶段</i></article>
+        <article class="indicator-flow-step"><b>06</b><span>报告生成</span><i>未开始</i></article>
+      </div>
+
+      <div class="indicator-grid">
+        <aside class="indicator-column indicator-tree-panel">
+          <header class="indicator-panel-heading"><div><span>INDICATOR SYSTEM</span><h2>指标体系</h2></div><b>2类 / 10项</b></header>
+          <div class="indicator-tree-stats"><article><span>一级指标</span><b>2</b></article><article><span>二级指标</span><b>10</b></article><article><span>已核算</span><b>10</b></article><article class="is-unmet"><span>未达标</span><b>3</b></article></div>
+          <label class="indicator-search"><span>搜索</span><input id="indicatorSearchInput" type="search" placeholder="指标 / 问题类型 / MAP / DEF" autocomplete="off"></label>
+          <div class="indicator-status-filters" aria-label="指标状态筛选">
+            <button class="is-current" type="button" data-indicator-status="all">全部</button>
+            <button type="button" data-indicator-status="unmet">未达标</button>
+            <button type="button" data-indicator-status="basic">基本达标</button>
+            <button type="button" data-indicator-status="good">表现较好</button>
+          </div>
+          <div class="indicator-tree-status"><span>当前显示</span><b id="indicatorVisibleCount">10项</b><i>Demo预置规则</i></div>
+          <div class="indicator-tree" id="indicatorTree" aria-label="十项二级指标"></div>
+        </aside>
+
+        <section class="indicator-column indicator-overview-panel">
+          <header class="indicator-panel-heading"><div><span>CALCULATION OVERVIEW</span><h2>核算总览</h2></div><p><span>规则性质</span><b>Demo预置核算规则</b></p></header>
+          <div class="indicator-mode-bar">
+            <div><button class="is-current" id="indicatorBaselineModeButton" type="button">基线结果</button><button id="indicatorScenarioModeButton" type="button">启动情景模拟</button></div>
+            <p id="indicatorScenarioNotice"><i></i><span>基线结果只读 · Demo预置规则 V1.0</span></p>
+          </div>
+          <div class="indicator-score-overview">
+            <section class="indicator-score-hero"><span>综合得分</span><b id="indicatorOverallScore">82.4</b><i id="indicatorOverallMode">基线结果</i><small id="indicatorOverallCompare">分类得分按整数显示，综合得分使用分类未取整值计算。</small></section>
+            <div class="indicator-category-scores">
+              <button type="button" data-indicator-category="CAT-BS"><span>建筑安全</span><b id="indicatorBuildingScore">78</b><i id="indicatorBuildingCompare">权重30% · 原始77.55</i></button>
+              <button type="button" data-indicator-category="CAT-CE"><span>社区环境</span><b id="indicatorCommunityScore">84</b><i id="indicatorCommunityCompare">权重70% · 原始84.45</i></button>
+            </div>
+          </div>
+          <section class="indicator-unmet-section">
+            <header><div><span>UNMET INDICATORS</span><h3>未达标指标</h3></div><b id="indicatorUnmetCount">3项</b></header>
+            <div class="indicator-unmet-list" id="indicatorUnmetList"></div>
+          </section>
+          <section class="indicator-contribution-section">
+            <header><div><span>WEIGHTED CONTRIBUTION</span><h3 id="indicatorContributionTitle">建筑安全 · 核算构成</h3></div><b id="indicatorContributionSummary">77.55 → 78</b></header>
+            <div class="indicator-contribution-list" id="indicatorContributionList"></div>
+          </section>
+          <footer class="indicator-calculation-note"><span>综合核算</span><b id="indicatorCalculationFormula">77.55 × 30% + 84.45 × 70% = 82.38 → 82.4</b><i>非正式行政评价结果</i></footer>
+        </section>
+
+        <aside class="indicator-column indicator-detail-panel">
+          <header class="indicator-panel-heading"><div><span>EVIDENCE & TRACE</span><h2>指标详情与证据</h2></div><b id="indicatorDetailId">IND-BS-03</b></header>
+          <nav class="indicator-detail-tabs" aria-label="指标详情页签"><button class="is-current" type="button" data-indicator-tab="detail">指标详情</button><button type="button" data-indicator-tab="issues">关联问题</button><button type="button" data-indicator-tab="basis">核算依据</button><button type="button" data-indicator-tab="parameters">核算参数</button></nav>
+
+          <div class="indicator-tab-panel is-current" data-indicator-panel="detail">
+            <div class="indicator-rule-nature"><i></i><span>规则性质：Demo预置核算规则</span><b id="indicatorDetailStatus">未达标</b></div>
+            <section class="indicator-detail-primary">
+              <header><span id="indicatorDetailCategory">建筑安全</span><b id="indicatorDetailScore">72</b></header>
+              <h3 id="indicatorDetailName">外立面与附着物安全</h3>
+              <dl>
+                <div><dt>当前得分</dt><dd id="indicatorDetailScoreCompare">72 · 基线72</dd></div><div><dt>二级权重</dt><dd id="indicatorDetailWeight">40%</dd></div><div><dt>达标阈值</dt><dd id="indicatorDetailThreshold">80</dd></div><div><dt>问题扣分</dt><dd id="indicatorDetailIssueDeduction">22.00</dd></div><div><dt>GIS扣分</dt><dd id="indicatorDetailGisDeduction">6.00</dd></div><div><dt>加权贡献</dt><dd id="indicatorDetailContribution">28.80</dd></div><div><dt>关联问题</dt><dd id="indicatorDetailIssueCount">9项</dd></div><div><dt>关联GIS图层</dt><dd id="indicatorDetailLayers">问题点位、地块与建筑</dd></div><div><dt>数据更新时间</dt><dd>2026-07</dd></div>
+              </dl>
+              <p>指标得分 × 指标权重 = 加权贡献</p>
+            </section>
+            <section class="indicator-trace"><header><span>典型证据追溯链</span><b>05 / IND</b></header><div id="indicatorTraceChain"><b>IMG-XA-001</b><i>→</i><b>DEF-021</b><i>→</i><b>人工确认</b><i>→</i><b>MAP-021</b><i>→</i><strong>IND-BS-03</strong></div><small>追溯止于指标核算；报告节点尚未开发。</small></section>
+          </div>
+
+          <div class="indicator-tab-panel" data-indicator-panel="issues">
+            <div class="indicator-issue-filter"><span>关联问题</span><select id="indicatorIssueRiskFilter"><option value="all">全部风险</option><option value="high">高风险</option><option value="medium">中风险</option><option value="general">一般问题</option></select><select id="indicatorIssueTypeFilter"><option value="all">全部类型</option></select></div>
+            <div class="indicator-issue-bulk"><button id="indicatorResolveVisibleIssues" type="button">全选当前指标问题</button><button id="indicatorClearResolvedIssues" type="button">取消当前指标模拟整改</button></div>
+            <div class="indicator-issue-list" id="indicatorIssueList"></div>
+          </div>
+
+          <div class="indicator-tab-panel" data-indicator-panel="basis">
+            <div class="indicator-rule-nature"><i></i><span>依据构成均为本地固定演示数据</span><b>Demo预置</b></div>
+            <div class="indicator-basis-content" id="indicatorBasisContent"></div>
+          </div>
+          <div class="indicator-tab-panel" data-indicator-panel="parameters">
+            <div class="indicator-rule-nature"><i></i><span>当前规则版本</span><b>Demo预置规则 V1.0</b></div>
+            <div class="indicator-parameter-content">
+              <section><header><span>一级指标权重</span><b id="indicatorCategoryWeightTotal">合计100%</b></header><label>建筑安全<input id="indicatorBuildingWeight" type="range" min="20" max="80" step="1" value="30"><output id="indicatorBuildingWeightValue">30%</output></label><label>社区环境<input id="indicatorCommunityWeight" type="range" min="20" max="80" step="1" value="70"><output id="indicatorCommunityWeightValue">70%</output></label></section>
+              <section><header><span>当前类别二级权重</span><b>自动平衡</b></header><div class="indicator-secondary-weight-controls" id="indicatorSecondaryWeightControls"></div></section>
+              <section><header><span>当前指标阈值</span><b>60—95</b></header><label><span id="indicatorThresholdLabel">IND-BS-03</span><input id="indicatorThresholdControl" type="range" min="60" max="95" step="1" value="80"><output id="indicatorThresholdValue">80</output></label></section>
+              <div class="indicator-parameter-actions"><button id="indicatorResetCurrentRule" type="button">恢复当前指标默认值</button><button id="indicatorResetAllRules" type="button">恢复全部默认规则</button><button id="indicatorExitScenario" type="button">退出情景模拟</button></div>
+            </div>
+          </div>
+          <button class="workspace-next-stage" id="indicatorNextStageButton" type="button"><b>NEXT / 06</b><span>打开报告生成说明</span><small>后续阶段开发</small></button>
+        </aside>
+      </div>
+      <section class="indicator-demo-completion" id="indicatorDemoCompletion" hidden aria-label="指标核算完成汇总">
+        <span>INDICATOR CALCULATION COMPLETE</span>
+        <h2>指标核算已完成</h2>
+        <p>锁定基线结果已经恢复，情景模拟仅用于方案推演，不覆盖正式基线。</p>
+        <div>
+          <article><span>指标映射</span><b>10 / 10</b></article>
+          <article><span>问题映射</span><b>42 / 42</b></article>
+          <article><span>建筑安全</span><b>78</b></article>
+          <article><span>社区环境</span><b>84</b></article>
+          <article><span>综合得分</span><b>82.4</b></article>
+          <article><span>未达标指标</span><b>3</b></article>
+        </div>
+        <footer><i></i><span>等待进入报告生成</span><b>Demo预置规则 V1.0</b></footer>
+      </section>
+    </section>
+
+    <section class="report-workspace" id="reportWorkspace" aria-hidden="true" aria-label="报告生成工作台">
+      <header class="report-header">
+        <div class="report-heading">
+          <button class="report-back" id="reportBackButton" type="button"><svg viewBox="0 0 20 20"><path d="m12.5 4.5-5.5 5.5 5.5 5.5M7 10h9"/></svg>返回地图</button>
+          <div><span>MODULE / 06 · REPORT GENERATION</span><h1>报告生成</h1></div>
+        </div>
+        <div class="report-header-summary"><span id="reportHeaderType">综合体检报告</span><b id="reportHeaderPage">01 / 08</b><i id="reportHeaderMode">标准样张</i></div>
+        <div class="report-project"><span>当前项目</span><strong id="reportProjectName">西仪厂城市更新改造项目</strong><i id="reportDraftStatus">标准样张 · 只读</i></div>
+        <button class="report-close" id="reportCloseButton" type="button" aria-label="关闭报告生成工作台"><svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+      </header>
+      <div class="report-flow" aria-label="六阶段流程状态">
+        <article class="report-flow-step is-complete"><b>01</b><span>资料上传与治理</span><i>已完成</i></article>
+        <article class="report-flow-step is-complete"><b>02</b><span>AI智能识别</span><i>已完成</i></article>
+        <article class="report-flow-step is-complete"><b>03</b><span>人工复核</span><i>已完成</i></article>
+        <article class="report-flow-step is-complete"><b>04</b><span>GIS落图与问题清单</span><i>已完成</i></article>
+        <article class="report-flow-step is-complete"><b>05</b><span>指标核算</span><i>已完成</i></article>
+        <article class="report-flow-step is-current"><b>06</b><span>报告生成</span><i>当前阶段</i></article>
+      </div>
+      <div class="report-grid">
+        <aside class="report-column report-catalog-panel">
+          <header class="report-panel-heading"><div><span>REPORT CATALOG</span><h2>报告目录</h2></div><b>3类报告</b></header>
+          <div class="report-type-list" id="reportTypeList"></div>
+          <div class="report-special-topic" id="reportSpecialTopic" hidden><span>专项主题</span><button class="is-current" type="button" data-report-topic="building">建筑安全</button><button type="button" data-report-topic="community">社区环境</button></div>
+          <div class="report-page-list" id="reportPageList" aria-label="报告页目录"></div>
+        </aside>
+        <section class="report-column report-preview-panel">
+          <header class="report-toolbar">
+            <div><button id="reportPreviousPage" type="button">上一页</button><b id="reportPageIndicator">1 / 8</b><button id="reportNextPage" type="button">下一页</button></div>
+            <div><button id="reportZoomOut" type="button" aria-label="缩小">−</button><b id="reportZoomValue">100%</b><button id="reportZoomIn" type="button" aria-label="放大">＋</button><button id="reportFitPage" type="button">适合页面</button><button id="reportFitWidth" type="button">适合宽度</button><button id="reportActualSize" type="button">100%</button></div>
+            <div class="report-mode-tools"><button class="is-current" id="reportBaselineMode" type="button">标准样张</button><button id="reportDraftMode" type="button">编辑报告草稿</button><button id="reportPrintPreview" type="button">打印预览</button><button id="reportEvidenceToggle" type="button">证据标签</button><button id="reportFullscreen" type="button">全屏</button></div>
+          </header>
+          <div class="report-preview-viewport" id="reportPreviewViewport" tabindex="0" aria-label="A4报告预览">
+            <article class="report-a4-page" id="reportA4Page"></article>
+          </div>
+        </section>
+        <aside class="report-column report-detail-panel">
+          <header class="report-panel-heading"><div><span>DRAFT CONFIG & TRACE</span><h2>报告编排与追溯</h2></div><b id="reportDetailId">RPT-COMP-01</b></header>
+          <nav class="report-detail-tabs" aria-label="报告详情页签"><button type="button" data-report-tab="content">内容编辑</button><button class="is-current" type="button" data-report-tab="config">报告配置</button><button type="button" data-report-tab="source">数据来源</button><button type="button" data-report-tab="trace">证据追溯</button></nav>
+          <div class="report-tab-panel" data-report-panel="content"><div id="reportContentEditor"></div></div>
+          <div class="report-tab-panel is-current" data-report-panel="config"><div id="reportConfigContent"></div></div>
+          <div class="report-tab-panel" data-report-panel="source"><div class="report-source-list" id="reportSourceList"></div></div>
+          <div class="report-tab-panel" data-report-panel="trace">
+            <p class="report-trace-note">点击节点可回到相应阶段查看证据；返回06后保留报告类型、页码与页签。</p>
+            <div class="report-trace-chain" id="reportTraceChain"><button type="button" data-report-trace="IMG-XA-001">IMG-XA-001</button><i>→</i><button type="button" data-report-trace="DEF-021">DEF-021</button><i>→</i><button type="button" data-report-trace="MAP-021">MAP-021</button><i>→</i><button type="button" data-report-trace="IND-BS-03">IND-BS-03</button><i>→</i><button type="button" data-report-trace="RPT-04">RPT-04</button></div>
+            <div class="report-trace-reinclude" id="reportTraceReinclude" hidden><span>该页面当前未纳入草稿</span><button type="button" id="reportTraceReincludeButton">重新纳入并打开</button></div>
+          </div>
+        </aside>
+      </div>
+      <footer class="report-generation-footer" id="reportGenerationFooter"><span id="reportGenerationFooterStatus">报告草稿预览 · 尚未生成</span><div><button id="reportReturnOverview" type="button">返回项目总览</button><button id="reportViewGenerated" type="button" disabled>查看已生成报告</button><button id="reportRegeneratePackage" type="button">生成Demo报告包</button></div></footer>
+      <section class="report-generated-viewer" id="reportGeneratedViewer" hidden aria-label="已生成报告快照"><header><div><span>GENERATED SNAPSHOT</span><b id="reportGeneratedViewerTitle">Demo报告快照</b></div><button id="reportGeneratedViewerClose" type="button">关闭快照</button></header><div id="reportGeneratedViewerPages"></div></section>
+    </section>
+
+    <div class="report-inline-confirm" id="reportInlineConfirm" hidden role="alertdialog" aria-label="报告草稿操作确认"><div><b id="reportConfirmTitle">确认操作</b><span id="reportConfirmText"></span></div><button id="reportConfirmCancel" type="button">取消</button><button id="reportConfirmAccept" type="button">确认</button></div>
+
+    <div class="indicator-exit-confirm" id="indicatorExitConfirm" hidden role="alertdialog" aria-label="退出情景模拟确认"><div><b>退出后将清除当前模拟方案</b><span>基线82.4及默认规则不会被覆盖。</span></div><button id="indicatorExitCancel" type="button">继续模拟</button><button id="indicatorExitConfirmButton" type="button">退出并恢复基线</button></div>
+
+    <section class="report-six-stage-summary" id="reportSixStageSummary" hidden aria-label="六阶段体检完成"><span>SIX-STAGE ASSESSMENT COMPLETE</span><h2>六阶段体检完成</h2><div><article><span>综合得分</span><b>82.4</b></article><article><span>有效问题</span><b>42</b></article><article><span>风险分布</span><b>6 / 18 / 18</b></article><article><span>报告成果</span><b>3类</b></article></div><p>01—06全流程已完成，Demo报告成果已生成。</p></section>
+
+    <div class="stage-switch-shield" id="stageSwitchShield" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"><i></i><span></span></div>
+  </div>
+  <section class="report-print-surface" id="reportPrintSurface" aria-hidden="true"></section>
+  <script src="./app-v9.1.js"></script>
+</body>
+</html>

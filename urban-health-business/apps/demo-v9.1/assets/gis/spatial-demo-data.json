@@ -1,0 +1,20 @@
+{
+  "coordinateModel": "项目内相对百分比坐标",
+  "randomized": false,
+  "projectBoundary": [[16,18],[38,10],[72,15],[88,34],[84,70],[64,88],[30,84],[12,62]],
+  "parcels": [
+    { "id": "PARCEL-A", "planningUse": "居住用地" },
+    { "id": "PARCEL-B", "planningUse": "商业服务业用地" },
+    { "id": "PARCEL-C", "planningUse": "公共管理与公共服务用地" }
+  ],
+  "buildings": ["BLD-01","BLD-02","BLD-03","BLD-04","BLD-05","BLD-06"],
+  "roads": ["ROAD-01","ROAD-02","ROAD-03","WALK-01"],
+  "publicTransit": ["BUS-01","BUS-02","PARK-01"],
+  "publicServiceTypes": ["教育","医疗卫生","养老","文化","体育","社区服务"],
+  "commercialTypes": ["便利商业","菜市场","餐饮服务","综合商业"],
+  "greenHeritageTypes": ["公园","街旁绿地","水体","工业遗产"],
+  "analysisRadiiMeters": [500,800,1000],
+  "issueCount": 42,
+  "initialBindingState": { "bound": 36, "pending": 6 },
+  "note": "运行时使用app-v7.0-beta1.js中的同源固定对象，以确保工程版和单文件版完全离线且无需fetch。"
+}
