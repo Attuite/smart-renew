@@ -7,6 +7,8 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/geo+json',
   'text/csv',
   'text/plain',
+  'application/vnd.sqlite3',
+  'application/x-sqlite3',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/zip'
@@ -38,7 +40,7 @@ export async function createSourceAsset(client, repository, projectId, input, op
   const clientRequestId = clean(input?.clientRequestId, 160);
   if (!name) throw assetError('请填写资料文件名。', 400, 'SOURCE_ASSET_NAME_REQUIRED');
   if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-    throw assetError('当前资料格式不支持，请上传PDF、JSON/GeoJSON、CSV、TXT、XLSX、DOCX或ZIP。', 415, 'SOURCE_ASSET_TYPE_UNSUPPORTED');
+    throw assetError('当前资料格式不支持，请上传PDF、JSON/GeoJSON、CSV、SQLite、TXT、XLSX、DOCX或ZIP。', 415, 'SOURCE_ASSET_TYPE_UNSUPPORTED');
   }
   if (!Number.isInteger(size) || size <= 0 || size > MAX_ASSET_SIZE) {
     throw assetError('资料文件大小必须在1字节到20MB之间。', 413, 'SOURCE_ASSET_SIZE_INVALID');

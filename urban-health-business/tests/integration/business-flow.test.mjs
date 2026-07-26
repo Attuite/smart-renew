@@ -7,6 +7,10 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  buildProjectDataSqlite,
+  parseSqliteContent
+} from '../../server/services/project-data-sqlite-service.mjs';
 
 const businessRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const repositoryRoot = path.resolve(businessRoot, '..');
@@ -102,6 +106,9 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(meta.features.sourceOfTruthRegistry, true);
     assert.equal(meta.dataSources.officialIssue.primary, 'business');
     assert.equal(meta.dataSources.report.legacyRole, 'read-only-and-explicit-migration');
+    assert.equal(meta.features.projectDataSqlite, true);
+    assert.equal(meta.features.businessLegacyMigration, true);
+    assert.equal(meta.features.migratedReportsReadOnly, true);
 
     const created = await jsonRequest(businessBase, '/api/projects', {
       method: 'POST',
@@ -246,6 +253,78 @@ test('isolated local BFF completes the real manual workflow across both services
       `/api/projects/${projectId}/project-data/export`
     );
     assert.ok(projectDataExport.records.some((item) => item.sourceId === 'integration-source'));
+
+    const sqliteContent = await buildProjectDataSqlite({
+      format: 'smart-renew-project-data',
+      schemaVersion: '2.0.0',
+      project: { id: projectId, name: '集成测试项目' },
+      records: [{
+        id: `PDI-${projectId}-other-SQLITE`,
+        projectId,
+        dataType: 'other',
+        sourceId: 'sqlite-integration-source',
+        title: 'SQLite集成数据',
+        tags: ['集成测试'],
+        references: [],
+        payload: { importedFromSqlite: true }
+      }]
+    });
+    const sqliteAssetResult = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/assets`,
+      {
+        method: 'POST',
+        body: {
+          name: 'project-data-integration.sqlite',
+          mimeType: 'application/vnd.sqlite3',
+          size: sqliteContent.length,
+          category: 'other',
+          createdBy: 'integration-user',
+          clientRequestId: 'integration-sqlite-asset'
+        }
+      }
+    );
+    const sqliteAsset = sqliteAssetResult.asset;
+    await jsonRequest(
+      businessBase,
+      `/api/assets/${sqliteAsset.id}/content`,
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/vnd.sqlite3' },
+        body: sqliteContent
+      }
+    );
+    const sqliteImport = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/project-data/sqlite-import`,
+      {
+        method: 'POST',
+        body: {
+          assetId: sqliteAsset.id,
+          importedBy: 'integration-user',
+          clientRequestId: 'integration-sqlite-import',
+          mode: 'append'
+        }
+      }
+    );
+    assert.equal(sqliteImport.run.importedCount, 1);
+    assert.equal(sqliteImport.run.sourceContentHash.length, 64);
+    const projectDataImports = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/project-data/imports`
+    );
+    assert.equal(projectDataImports.items.length, 1);
+    const sqliteExportResponse = await fetch(
+      `${businessBase}/api/projects/${projectId}/project-data/sqlite-export`
+    );
+    assert.equal(sqliteExportResponse.status, 200);
+    assert.equal(sqliteExportResponse.headers.get('content-type'), 'application/vnd.sqlite3');
+    const exportedSqlite = Buffer.from(await sqliteExportResponse.arrayBuffer());
+    assert.equal(exportedSqlite.subarray(0, 15).toString('utf8'), 'SQLite format 3');
+    const parsedSqliteExport = await parseSqliteContent(exportedSqlite, projectId);
+    assert.ok(parsedSqliteExport.records.some((item) =>
+      item.sourceId === 'sqlite-integration-source'
+    ));
 
     const migrationAudit = await jsonRequest(
       businessBase,
@@ -742,7 +821,8 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(projectExport.business.boundaryRevisions.length, 2);
     assert.equal(projectExport.business.boundaryRevisions[0].sourceAssetId, sourceAsset.id);
     assert.equal(projectExport.business.collectionValidations.length, 1);
-    assert.equal(projectExport.business.sourceAssets.length, 2);
+    assert.equal(projectExport.business.sourceAssets.length, 3);
+    assert.equal(projectExport.business.sourceAssetImports.length, 1);
     assert.equal(projectExport.manifest.includesSourceAssetBinaries, false);
     assert.equal(projectExport.business.photoMetadata.length, 1);
     assert.equal(projectExport.business.reviewSessions.length, 1);

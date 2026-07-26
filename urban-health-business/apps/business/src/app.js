@@ -98,6 +98,8 @@ const elements = {
   sourceAssetGovernanceBy: document.querySelector('#sourceAssetGovernanceBy'),
   sourceAssetList: document.querySelector('#sourceAssetList'),
   sourceAssetPreview: document.querySelector('#sourceAssetPreview'),
+  rebuildProjectDataButton: document.querySelector('#rebuildProjectDataButton'),
+  exportProjectDataSqliteButton: document.querySelector('#exportProjectDataSqliteButton'),
   analysisWorkspace: document.querySelector('#analysisWorkspace'),
   backFromAnalysisButton: document.querySelector('#backFromAnalysisButton'),
   analyzablePhotoCount: document.querySelector('#analyzablePhotoCount'),
@@ -472,9 +474,10 @@ function renderCollection(state) {
         </div>
         <i class="run-status status-${escapeHtml(asset.status || 'ready')}">${asset.uploadStatus === 'duplicate' ? '重复引用' : asset.status === 'inactive' ? '已停用' : asset.uploadStatus === 'completed' ? '使用中' : '待上传'}</i>
         <span class="source-asset-actions">
-          ${asset.uploadStatus === 'completed' ? `<a class="secondary-button compact-button" href="/api/assets/${encodeURIComponent(asset.id)}/content" target="_blank" rel="noopener">下载</a>` : ''}
-          ${asset.status === 'active' && asset.uploadStatus === 'completed' && ['text/csv', 'application/json', 'application/geo+json'].includes(asset.mimeType) ? `<button class="secondary-button compact-button" type="button" data-preview-source-asset="${escapeHtml(asset.id)}">结构预览</button>` : ''}
-          ${asset.status === 'active' && asset.uploadStatus === 'completed' && asset.category === 'gis' && ['application/json', 'application/geo+json'].includes(asset.mimeType) ? `<button class="secondary-button compact-button" type="button" data-import-boundary="${escapeHtml(asset.id)}">导入为边界</button>` : ''}
+           ${asset.uploadStatus === 'completed' ? `<a class="secondary-button compact-button" href="/api/assets/${encodeURIComponent(asset.id)}/content" target="_blank" rel="noopener">下载</a>` : ''}
+           ${asset.status === 'active' && asset.uploadStatus === 'completed' && ['text/csv', 'application/json', 'application/geo+json'].includes(asset.mimeType) ? `<button class="secondary-button compact-button" type="button" data-preview-source-asset="${escapeHtml(asset.id)}">结构预览</button>` : ''}
+           ${asset.status === 'active' && asset.uploadStatus === 'completed' && ['application/vnd.sqlite3', 'application/x-sqlite3'].includes(asset.mimeType) ? `<button class="secondary-button compact-button" type="button" data-import-project-data="${escapeHtml(asset.id)}">导入ProjectData</button>` : ''}
+           ${asset.status === 'active' && asset.uploadStatus === 'completed' && asset.category === 'gis' && ['application/json', 'application/geo+json'].includes(asset.mimeType) ? `<button class="secondary-button compact-button" type="button" data-import-boundary="${escapeHtml(asset.id)}">导入为边界</button>` : ''}
           ${asset.uploadStatus === 'completed' ? `<button class="secondary-button compact-button" type="button" data-toggle-source-asset="${escapeHtml(asset.id)}" data-next-status="${asset.status === 'inactive' ? 'active' : 'inactive'}">${asset.status === 'inactive' ? '恢复' : '停用'}</button>` : ''}
         </span>
       </article>`).join('')
@@ -1172,11 +1175,25 @@ function sourceAssetMime(file) {
     json: 'application/json',
     geojson: 'application/geo+json',
     csv: 'text/csv',
+    db: 'application/vnd.sqlite3',
+    sqlite: 'application/vnd.sqlite3',
+    sqlite3: 'application/vnd.sqlite3',
     txt: 'text/plain',
     xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     zip: 'application/zip'
   }[extension] || file?.type || 'application/octet-stream';
+}
+
+function saveDownloadedFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 function parsePhotoBatchCsv(value, photos) {
@@ -2399,6 +2416,41 @@ elements.reportComparisonForm.addEventListener('submit', async (event) => {
 });
 elements.dismissErrorButton.addEventListener('click', () => setError(null));
 
+elements.rebuildProjectDataButton.addEventListener('click', async () => {
+  const state = store.get();
+  if (!state.activeProjectId) return;
+  elements.rebuildProjectDataButton.disabled = true;
+  elements.sourceAssetFormError.hidden = true;
+  try {
+    const outcome = await api.rebuildProjectData(state.activeProjectId);
+    elements.sourceAssetPreview.innerHTML = `
+      <strong>ProjectData索引已同步</strong>
+      <p class="form-note">当前共 ${Number(outcome?.stats?.total) || 0} 条记录；原生业务对象与已导入资料的引用索引已重建。</p>
+    `;
+  } catch (error) {
+    elements.sourceAssetFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.sourceAssetFormError.hidden = false;
+  } finally {
+    elements.rebuildProjectDataButton.disabled = false;
+  }
+});
+
+elements.exportProjectDataSqliteButton.addEventListener('click', async () => {
+  const state = store.get();
+  if (!state.activeProjectId) return;
+  elements.exportProjectDataSqliteButton.disabled = true;
+  elements.sourceAssetFormError.hidden = true;
+  try {
+    const file = await api.downloadProjectDataSqlite(state.activeProjectId);
+    saveDownloadedFile(file.blob, file.filename);
+  } catch (error) {
+    elements.sourceAssetFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.sourceAssetFormError.hidden = false;
+  } finally {
+    elements.exportProjectDataSqliteButton.disabled = false;
+  }
+});
+
 document.addEventListener('click', async (event) => {
   const previewSourceAssetButton = event.target.closest('[data-preview-source-asset]');
   if (previewSourceAssetButton) {
@@ -2413,6 +2465,41 @@ document.addEventListener('click', async (event) => {
       elements.sourceAssetFormError.hidden = false;
     } finally {
       previewSourceAssetButton.disabled = false;
+    }
+    return;
+  }
+
+  const importProjectDataButton = event.target.closest('[data-import-project-data]');
+  if (importProjectDataButton) {
+    const state = store.get();
+    const importedBy = elements.sourceAssetGovernanceBy.value.trim();
+    elements.sourceAssetFormError.hidden = true;
+    if (!importedBy) {
+      elements.sourceAssetFormError.textContent = '导入SQLite前，请填写资料治理人员。';
+      elements.sourceAssetFormError.hidden = false;
+      elements.sourceAssetGovernanceBy.focus();
+      return;
+    }
+    importProjectDataButton.disabled = true;
+    store.set({ collectionLoading: true });
+    try {
+      const outcome = await api.importProjectDataSqlite(state.activeProjectId, {
+        assetId: importProjectDataButton.dataset.importProjectData,
+        importedBy,
+        mode: 'append',
+        clientRequestId: crypto.randomUUID()
+      });
+      const run = outcome.run;
+      elements.sourceAssetPreview.innerHTML = `
+        <strong>${escapeHtml(run.assetName || run.assetId)} · SQLite导入完成</strong>
+        <p class="form-note">导入 ${Number(run.importedCount) || 0} 条记录；识别表：${escapeHtml((run.recognizedTables || []).join('、') || '无')}。来源哈希与资料修订已写入导入审计。</p>
+      `;
+    } catch (error) {
+      elements.sourceAssetFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+      elements.sourceAssetFormError.hidden = false;
+      importProjectDataButton.disabled = false;
+    } finally {
+      store.set({ collectionLoading: false });
     }
     return;
   }

@@ -132,6 +132,26 @@ other
 }
 ```
 
+SQLite进入ProjectData时另存`SourceAssetImportRun`审计，不把转换记录塞回SourceAsset元数据：
+
+```json
+{
+  "id": "ASSETIMP-001",
+  "projectId": "PRJ-001",
+  "assetId": "AST-001",
+  "sourceContentHash": "sha256...",
+  "sourceAssetRevision": 1,
+  "target": "projectData",
+  "format": "sqlite",
+  "mode": "append",
+  "importedCount": 120,
+  "recognizedTables": ["project_data_index"],
+  "tableStats": {"project_data_index": 120},
+  "importedBy": "",
+  "completedAt": ""
+}
+```
+
 ## 6. Photo
 
 照片是独立正式实体，不在分析记录中长期保存Base64。
@@ -328,6 +348,8 @@ reopened
 
 正式问题修改必须增加 `revision` 并保留变更记录。
 
+旧问题迁入时使用新的确定性Business ID，并增加`migration.sourceId`、`migration.sourceFingerprint`、`migratedBy`和`migratedAt`。旧`problemCode`和`indicatorCode`只保存为`legacyProblemCode`、`legacyIndicatorCode`来源字段；当前`indicatorCode`仍为`null`。
+
 ## 12. SpatialBinding
 
 保存正式问题和真实空间对象的绑定。
@@ -486,7 +508,10 @@ generated
 failed
 stale
 archived
+migrated_read_only
 ```
+
+`migrated_read_only`保存完整`migration.originalSnapshot`、来源ID和来源指纹，不允许内容PATCH，也不把旧指标统计转换成当前指标结果。
 
 ## 17. ReportArtifact
 
@@ -651,7 +676,7 @@ Demo对象不迁移为业务数据库种子数据。
 - 指标计算方案；
 - 报告模板；
 - 整改任务和销项；
-- 数据迁移任务；
+- 通用Schema升级与迁移任务队列（LegacyMigrationRun已实现）；
 - 用户、角色和项目权限。
 
 ## 27. 数据模型验收

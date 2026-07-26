@@ -34,6 +34,31 @@ async function request(pathname, options = {}) {
   return payload?.ok === true ? payload.data : payload;
 }
 
+async function download(pathname) {
+  const response = await fetch(pathname, {
+    cache: 'no-store',
+    headers: { accept: 'application/octet-stream' }
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new ApiError(
+      payload?.error?.message || payload?.message || `下载失败（${response.status}）`,
+      {
+        status: response.status,
+        code: payload?.error?.code || payload?.code,
+        details: payload?.error?.details,
+        requestId: payload?.requestId
+      }
+    );
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'project-data.sqlite';
+  return {
+    blob: await response.blob(),
+    filename
+  };
+}
+
 function itemsFrom(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.items)) return payload.items;
@@ -97,6 +122,30 @@ export const api = {
 
   async exportProjectData(projectId) {
     return request(`/api/projects/${encodeURIComponent(projectId)}/project-data/export`);
+  },
+
+  async importProjectDataSqlite(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/project-data/sqlite-import`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  async projectDataImports(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/project-data/imports`
+    ));
+  },
+
+  async rebuildProjectData(projectId) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/project-data/rebuild`, {
+      method: 'POST',
+      body: '{}'
+    });
+  },
+
+  async downloadProjectDataSqlite(projectId) {
+    return download(`/api/projects/${encodeURIComponent(projectId)}/project-data/sqlite-export`);
   },
 
   async fieldCommunities(projectId) {

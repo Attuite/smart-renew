@@ -218,7 +218,7 @@ server/adapters/smart-renew/
 
 ## 7. AB-01 ProjectData与结构化数据交换
 
-> 状态：部分完成。查询、过滤、搜索、记录数组导入和JSON Envelope导出BFF已接入；SQLite文件转换、导出及引用重建尚未完成。
+> 状态：本工作包A/B范围已完成。记录数组与JSON Envelope、跨项目ID/引用重定向、SQLite SourceAsset转换、来源追溯、真实SQLite导出及索引重建均已接入。
 
 ### 7.1 当前基线
 
@@ -261,7 +261,7 @@ ProjectData转换器负责：
 
 不得让SourceAsset解析器再独立实现一套通用ProjectData模型。
 
-当前未接线的`source-asset-import-service.mjs`必须在继续开发前对照原JSON/SQLite转换器调整设计。
+ProjectData SQLite使用独立转换服务并复用现有SourceAsset二进制、哈希与导入审计仓储；`source-asset-import-service.mjs`仍只处理小区/楼栋CSV和JSON字段映射，不再承担第二套通用ProjectData模型。
 
 ### 7.4 本次支持
 
@@ -524,7 +524,7 @@ Business已有参数化问题半径分析、结果快照、来源revision和stal
 
 ## 15. AB-09 Legacy迁移
 
-> 状态：部分完成。原迁移预检、显式执行、运行审计、失败留痕和请求幂等已接入；Business正式问题及报告迁移尚未完成。
+> 状态：本工作包A/B范围已完成。原迁移、Business问题/报告转换、只读报告、来源指纹、冲突预检、运行审计、失败留痕和请求幂等均已接入。
 
 ### 15.1 当前基线
 
@@ -586,8 +586,12 @@ POST /api/projects/{projectId}/field/tasks
 GET  /api/projects/{projectId}/field/tasks
 
 GET  /api/projects/{projectId}/project-data
-POST /api/projects/{projectId}/project-data/import
+POST /api/projects/{projectId}/project-data
 GET  /api/projects/{projectId}/project-data/export
+POST /api/projects/{projectId}/project-data/sqlite-import
+GET  /api/projects/{projectId}/project-data/imports
+POST /api/projects/{projectId}/project-data/rebuild
+GET  /api/projects/{projectId}/project-data/sqlite-export
 
 GET  /api/projects/{projectId}/legacy-migration
 POST /api/projects/{projectId}/legacy-migration

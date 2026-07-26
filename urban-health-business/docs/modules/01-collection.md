@@ -394,16 +394,16 @@ GET  /api/projects/{projectId}/collection/summary
 本次A/B复用接入状态：
 
 - CloudBase对象存储Provider；
-- 已完成ProjectData记录查询、过滤、搜索、数组导入和JSON Envelope导出；
-- 待完成SQLite文件导入导出和引用重建；
-- 待完成SourceAsset到ProjectData的来源追溯；
+- 已完成ProjectData记录查询、过滤、搜索、数组/JSON Envelope导入和JSON Envelope导出；
+- 已完成SQLite已知表与ProjectData交换表导入、真实SQLite导出和引用重建；
+- 已完成SQLite SourceAsset到ProjectData的资产ID、修订和内容哈希来源追溯；
 - 已完成外业层级查询、任务创建/读取和任务引用列表；
 - 待完成Business外业任务工作台；
 - 现有WebP原文件上传与Provider契约一致性验证；
 - 现有照片归属校验与原核心的行为对照及单一调用路径收敛；
 - 原高德地图边界绘制和范围内小区识别；
 - 已完成原Legacy迁移预检、显式执行、运行审计和请求幂等；
-- 待完成Business正式问题和报告迁移。
+- 已完成Business正式问题和只读报告迁移、来源指纹及冲突预检。
 
 C/D后续项：
 
@@ -425,15 +425,15 @@ C/D后续项：
 
 ## 24. 本次A/B开发任务
 
-- 已接入ProjectData记录查询、数组导入和JSON Envelope导出BFF；
-- 接入SQLite文件转换、导出及引用重建；
-- 调整未接线SourceAsset导入服务，避免重复实现通用转换模型；
+- 已接入ProjectData记录查询、数组/JSON Envelope导入和JSON Envelope导出BFF；
+- 已接入SQLite文件转换、导入、真实文件导出、来源追溯及引用重建；
+- 已将ProjectData转换与小区/楼栋SourceAsset映射职责分离，避免重复实现通用模型；
 - 已接入外业任务BFF、任务引用列表和上游任务读取；
 - 建设Business外业任务工作台；
 - 建立CloudBase StorageProvider；
 - 抽取项目边界地图Provider；
 - 已接入原Legacy迁移预检、显式执行、运行审计和请求幂等；
-- 接入Business正式问题和报告迁移；
+- 已接入Business正式问题和只读报告迁移；
 - 完成结构化导入、外业、对象存储Mock和地图浏览器测试。
 
 本任务列表不包含重新实现上传会话、WebP、照片哈希、小区/楼栋归属、照片治理或本地二进制持久化。

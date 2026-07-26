@@ -243,16 +243,22 @@
             </section>
 
             <section class="work-panel source-asset-panel">
-              <header><span>SOURCE ASSETS</span><h2>调查表、GIS与文档资料</h2></header>
+              <header class="source-asset-header">
+                <div><span>SOURCE ASSETS</span><h2>调查表、GIS与文档资料</h2></div>
+                <div class="module-header-actions">
+                  <button class="secondary-button compact-button" id="rebuildProjectDataButton" type="button">同步数据索引</button>
+                  <button class="secondary-button compact-button" id="exportProjectDataSqliteButton" type="button">导出SQLite</button>
+                </div>
+              </header>
               <form id="sourceAssetForm">
                 <div class="coordinate-grid">
                   <label class="form-field"><span>资料分类</span><select name="category"><option value="gis">GIS数据</option><option value="survey">调查表</option><option value="document">文档</option><option value="drone">无人机资料</option><option value="other">其他</option></select></label>
                   <label class="form-field"><span>关联小区（可选）</span><select id="sourceAssetCommunitySelect" name="communityId"><option value="">项目级资料</option></select></label>
                 </div>
                 <label class="drop-field">
-                  <input id="sourceAssetFileInput" name="asset" type="file" accept=".pdf,.json,.geojson,.csv,.txt,.xlsx,.docx,.zip">
+                  <input id="sourceAssetFileInput" name="asset" type="file" accept=".pdf,.json,.geojson,.csv,.db,.sqlite,.sqlite3,.txt,.xlsx,.docx,.zip">
                   <strong>选择真实资料文件</strong>
-                  <span>PDF、JSON/GeoJSON、CSV、TXT、XLSX、DOCX、ZIP；单个不超过20MB</span>
+                  <span>PDF、JSON/GeoJSON、CSV、SQLite、TXT、XLSX、DOCX、ZIP；单个不超过20MB</span>
                 </label>
                 <div class="upload-selection" id="sourceAssetSelection">尚未选择文件</div>
                 <label class="form-field"><span>资料备注</span><textarea name="notes" maxlength="2000" rows="2"></textarea></label>
@@ -266,7 +272,7 @@
               </label>
               <div class="source-asset-list" id="sourceAssetList"></div>
               <div class="source-asset-preview" id="sourceAssetPreview">
-                <p class="workspace-empty">选择CSV、JSON或GeoJSON资料的“结构预览”，这里显示真实字段和行数。</p>
+                <p class="workspace-empty">选择CSV、JSON或GeoJSON资料可预览结构；SQLite资料可导入ProjectData并重建引用。</p>
               </div>
             </section>
           </div>

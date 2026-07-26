@@ -1,3 +1,5 @@
+import { itemsFrom } from './client.mjs';
+
 export class LegacyMigrationAdapter {
   constructor(client) {
     this.client = client;
@@ -25,5 +27,17 @@ export class LegacyMigrationAdapter {
         reviewerName: options.reviewerName || ''
       })
     });
+  }
+
+  async listIssues(projectId) {
+    return itemsFrom(await this.client.request(
+      `/api/issues?projectId=${encodeURIComponent(projectId)}`
+    ));
+  }
+
+  async listReports(projectId) {
+    return itemsFrom(await this.client.request(
+      `/api/reports?projectId=${encodeURIComponent(projectId)}`
+    ));
   }
 }

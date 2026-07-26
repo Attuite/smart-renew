@@ -366,6 +366,8 @@ Business Candidate、ReviewSession和OfficialIssue继续作为主数据源。原
 
 当前Business已实现AnalysisCandidate列表/详情/PATCH、旧分析候选自动建档、逐条 `candidateRevision` 乐观锁、保存审计、刷新恢复、最终归档审计与归档后只读；正式问题也已支持修订和问题级审计。
 
+旧OfficialIssue已支持显式迁入Business主仓储。迁移记录保留旧问题和指标编码作为来源信息，但当前指标绑定仍为`not_integrated`，不会恢复旧问题—指标强制映射；来源指纹变化会形成迁移冲突，不覆盖Business问题。
+
 本次A/B复用接入项：
 
 - 原人工复核筛选和批量接受交互；

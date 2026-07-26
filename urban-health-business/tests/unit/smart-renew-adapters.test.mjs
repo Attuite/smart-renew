@@ -27,6 +27,7 @@ class RecordingClient {
     if (pathname.endsWith('/data-export')) return { records: [{ id: 'DATA-1' }] };
     if (pathname.startsWith('/api/migrations/legacy?')) return { applied: false };
     if (pathname === '/api/migrations/legacy') return { applied: true };
+    if (pathname.startsWith('/api/issues?')) return { items: [{ id: 'ISS-1' }] };
     if (pathname.startsWith('/api/reports?')) return { items: [{ id: 'RPT-1' }] };
     if (pathname === '/api/reports/RPT-1') return { item: { id: 'RPT-1' } };
     return {};
@@ -63,6 +64,8 @@ test('legacy migration requires explicit confirmation and report snapshots stay 
   );
   assert.equal((await adapters.legacyMigration.audit('1')).applied, false);
   assert.equal((await adapters.legacyMigration.apply('1', { confirmed: true })).applied, true);
+  assert.deepEqual(await adapters.legacyMigration.listIssues('1'), [{ id: 'ISS-1' }]);
+  assert.deepEqual(await adapters.legacyMigration.listReports('1'), [{ id: 'RPT-1' }]);
   assert.deepEqual(await adapters.reportSnapshots.list('1'), [{ id: 'RPT-1' }]);
   assert.equal((await adapters.reportSnapshots.get('RPT-1')).id, 'RPT-1');
   assert.equal(typeof adapters.reportSnapshots.generate, 'undefined');

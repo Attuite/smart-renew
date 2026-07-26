@@ -399,6 +399,8 @@ Business ReportRepository继续作为新报告唯一主写入。原`/api/reports
 
 当前Business还提供同项目两版本结构化比较，覆盖编辑内容、统计口径、正式问题集合、空间分析集合和照片证据修订；比较结果只读，不反向修改报告。
 
+原smart-renew报告快照已支持显式迁入Business版本序列。迁移版本完整保存原快照和来源指纹，状态为`migrated_read_only`，不可通过Business报告PATCH修改；旧指标统计仅作为原始快照留存，不进入当前指标结果。
+
 ## 22. 当前缺失能力
 
 当前Business已实现快照、内容编辑、修订审计、版本比较、stale、JSON下载和打印过渡，不再把“迁移报告工作台、真实数据绑定、校验和快照”列为未开始。
@@ -409,7 +411,7 @@ Business ReportRepository继续作为新报告唯一主写入。原`/api/reports
 - 原动态真实数据章节；
 - 风险统计、表格和标注照片画廊；
 - ProjectData报告引用；
-- 原报告快照只读迁移。
+- 已完成原报告快照只读迁移。
 
 C/D后续项：
 
@@ -433,7 +435,7 @@ C/D后续项：
 - 选择性抽取原report-snapshot-core中Business尚缺的来源适配算法；
 - 抽取动态报告章节Renderer和图文组件；
 - 将Renderer接入Business报告快照；
-- 建立旧报告只读迁移适配；
+- 已建立旧报告只读迁移适配；
 - 保留Business修订、比较、stale和不完整草稿；
 - 完成真实数据、旧版本迁移、指标缺失和无双写测试。
 

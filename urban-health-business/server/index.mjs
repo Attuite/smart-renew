@@ -17,6 +17,7 @@ import { CollectionValidationRepository } from './repositories/collection-valida
 import { ReportRepository } from './repositories/report-repository.mjs';
 import { ReviewSessionRepository } from './repositories/review-session-repository.mjs';
 import { SpatialAnalysisRepository } from './repositories/spatial-analysis-repository.mjs';
+import { SourceAssetImportRepository } from './repositories/source-asset-import-repository.mjs';
 import { SourceAssetRepository } from './repositories/source-asset-repository.mjs';
 import { UploadSessionRepository } from './repositories/upload-session-repository.mjs';
 import { FieldTaskReferenceRepository } from './repositories/field-task-reference-repository.mjs';
@@ -56,6 +57,11 @@ import {
   uploadSourceAssetContent
 } from './services/source-asset-service.mjs';
 import { previewSourceAsset } from './services/source-asset-preview-service.mjs';
+import {
+  buildProjectDataSqlite,
+  importProjectDataSqlite,
+  retargetProjectDataRecords
+} from './services/project-data-sqlite-service.mjs';
 import {
   cancelUploadSession,
   createUploadSession,
@@ -112,6 +118,9 @@ const collectionValidationRepository = new CollectionValidationRepository(
 const sourceAssetRepository = new SourceAssetRepository(
   path.join(businessDataRoot, 'source-assets'),
   path.join(businessDataRoot, 'source-asset-content')
+);
+const sourceAssetImportRepository = new SourceAssetImportRepository(
+  path.join(businessDataRoot, 'source-asset-imports')
 );
 const fieldTaskReferenceRepository = new FieldTaskReferenceRepository(
   path.join(businessDataRoot, 'field-task-references')
@@ -350,6 +359,9 @@ async function handleMeta(res, id) {
       requestObservability: true,
       legacyCapabilityRegistry: true,
       sourceOfTruthRegistry: true,
+      projectDataSqlite: true,
+      businessLegacyMigration: true,
+      migratedReportsReadOnly: true,
       serverPdf: false,
       workflowAggregation: true,
       demoIsolation: true
@@ -663,7 +675,8 @@ async function handleRequest(req, res) {
         spatialAnalyses,
         businessReports,
         fieldTaskReferences,
-        legacyMigrationRuns
+        legacyMigrationRuns,
+        sourceAssetImports
       ] = await Promise.all([
         smartRenewClient.getProject(projectId),
         smartRenewClient.projectCollections(projectId),
@@ -679,7 +692,8 @@ async function handleRequest(req, res) {
         spatialAnalysisRepository.list(projectId),
         reportRepository.list(projectId),
         fieldTaskReferenceRepository.list(projectId),
-        legacyMigrationRunRepository.list(projectId)
+        legacyMigrationRunRepository.list(projectId),
+        sourceAssetImportRepository.list(projectId)
       ]);
       const artifact = {
         manifest: {
@@ -714,7 +728,8 @@ async function handleRequest(req, res) {
           spatialAnalyses,
           reports: businessReports,
           fieldTaskReferences,
-          legacyMigrationRuns
+          legacyMigrationRuns,
+          sourceAssetImports
         }
       };
       const body = JSON.stringify(artifact, null, 2);
@@ -743,11 +758,14 @@ async function handleRequest(req, res) {
     if (req.method === 'POST' && projectDataMatch) {
       const projectId = decodeURIComponent(projectDataMatch[1]);
       const input = await readJsonBody(req);
+      const records = Array.isArray(input?.envelope?.records)
+        ? input.envelope.records
+        : Array.isArray(input?.records) ? input.records : [];
       const result = await projectWriteCoordinator.run(
         projectId,
         () => smartRenewAdapters.projectData.importRecords(
           projectId,
-          Array.isArray(input?.records) ? input.records : [],
+          retargetProjectDataRecords(records, projectId),
           { mode: input?.mode }
         )
       );
@@ -765,6 +783,68 @@ async function handleRequest(req, res) {
         ),
         id
       );
+    }
+
+    const projectDataSqliteImportMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/project-data\/sqlite-import$/
+    );
+    if (req.method === 'POST' && projectDataSqliteImportMatch) {
+      const projectId = decodeURIComponent(projectDataSqliteImportMatch[1]);
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(
+        projectId,
+        () => importProjectDataSqlite(
+          smartRenewAdapters.projectData,
+          sourceAssetRepository,
+          sourceAssetImportRepository,
+          projectId,
+          input
+        )
+      );
+      return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
+    }
+
+    const projectDataImportsMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/project-data\/imports$/
+    );
+    if (req.method === 'GET' && projectDataImportsMatch) {
+      return sendSuccess(res, {
+        items: await sourceAssetImportRepository.list(
+          decodeURIComponent(projectDataImportsMatch[1])
+        )
+      }, id);
+    }
+
+    const projectDataRebuildMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/project-data\/rebuild$/
+    );
+    if (req.method === 'POST' && projectDataRebuildMatch) {
+      const projectId = decodeURIComponent(projectDataRebuildMatch[1]);
+      const outcome = await projectWriteCoordinator.run(
+        projectId,
+        () => smartRenewAdapters.projectData.rebuild(projectId)
+      );
+      return sendSuccess(res, outcome, id);
+    }
+
+    const projectDataSqliteExportMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/project-data\/sqlite-export$/
+    );
+    if (req.method === 'GET' && projectDataSqliteExportMatch) {
+      const projectId = decodeURIComponent(projectDataSqliteExportMatch[1]);
+      const content = await buildProjectDataSqlite(
+        await smartRenewAdapters.projectData.export(projectId)
+      );
+      const safeProjectId = projectId.replace(/[^A-Za-z0-9_-]/g, '_');
+      res.writeHead(200, {
+        'content-type': 'application/vnd.sqlite3',
+        'content-length': content.length,
+        'content-disposition': `attachment; filename="project-data-${safeProjectId}.sqlite"`,
+        'cache-control': 'no-store',
+        'x-request-id': id
+      });
+      res.end(content);
+      return;
     }
 
     const fieldCommunitiesMatch = url.pathname.match(
@@ -845,7 +925,11 @@ async function handleRequest(req, res) {
         await auditLegacyMigration(
           smartRenewAdapters.legacyMigration,
           legacyMigrationRunRepository,
-          decodeURIComponent(legacyMigrationMatch[1])
+          decodeURIComponent(legacyMigrationMatch[1]),
+          {
+            issueRepository: officialIssueRepository,
+            reportRepository
+          }
         ),
         id
       );
@@ -859,7 +943,11 @@ async function handleRequest(req, res) {
           smartRenewAdapters.legacyMigration,
           legacyMigrationRunRepository,
           projectId,
-          input
+          input,
+          {
+            issueRepository: officialIssueRepository,
+            reportRepository
+          }
         )
       );
       return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);

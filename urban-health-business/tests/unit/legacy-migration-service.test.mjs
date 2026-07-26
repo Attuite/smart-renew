@@ -26,11 +26,52 @@ function memoryRuns() {
   };
 }
 
+function memoryEntities(initial = []) {
+  const items = [...initial];
+  return {
+    items,
+    async put(item) {
+      const index = items.findIndex((candidate) => candidate.id === item.id);
+      if (index >= 0) items[index] = item;
+      else items.push(item);
+      return item;
+    },
+    async list(projectId) {
+      return items.filter((item) => item.projectId === String(projectId));
+    }
+  };
+}
+
 test('legacy migration is explicit, audited and idempotent by client request', async () => {
   const repository = memoryRuns();
+  const issueRepository = memoryEntities();
+  const reportRepository = memoryEntities();
+  const legacyIssue = {
+    id: 'ISS-OLD-001',
+    projectId: '1001',
+    originalPhotoId: 'PHOTO-001',
+    title: '旧问题',
+    severity: 'high',
+    problemCode: 'PRB-03-08',
+    indicatorCode: 'IND-HOUSE-003'
+  };
   const adapter = {
     async audit() { return { audit: { embeddedOriginals: 2 }, applied: false }; },
-    async apply() { return { applied: true, migratedPhotos: 2 }; }
+    async apply() { return { applied: true, migratedPhotos: 2 }; },
+    async listIssues() { return [legacyIssue]; },
+    async listReports() {
+      return [{
+        id: 'RPT-OLD-001',
+        projectId: '1001',
+        version: 1,
+        title: '旧报告',
+        sourceIds: { issueIds: [legacyIssue.id] },
+        snapshot: {
+          project: { id: '1001', name: '测试项目' },
+          issues: { items: [legacyIssue], high: 1, medium: 0, low: 0 }
+        }
+      }];
+    }
   };
 
   await assert.rejects(
@@ -48,7 +89,9 @@ test('legacy migration is explicit, audited and idempotent by client request', a
   }, {
     id: 'MIGRUN-fixed-migration',
     now: '2026-07-26T00:00:00.000Z',
-    completedAt: '2026-07-26T00:00:01.000Z'
+    completedAt: '2026-07-26T00:00:01.000Z',
+    issueRepository,
+    reportRepository
   });
   const second = await applyLegacyMigration(adapter, repository, '1001', {
     clientRequestId: 'migration-001',
@@ -57,11 +100,20 @@ test('legacy migration is explicit, audited and idempotent by client request', a
   });
   assert.equal(first.item.status, 'completed');
   assert.equal(first.item.result.migratedPhotos, 2);
+  assert.equal(first.item.result.business.migratedIssues, 1);
+  assert.equal(first.item.result.business.migratedReports, 1);
+  assert.equal(issueRepository.items[0].indicatorCode, null);
+  assert.equal(reportRepository.items[0].migration.readOnly, true);
   assert.equal(second.duplicated, true);
 
-  const audit = await auditLegacyMigration(adapter, repository, '1001');
+  const audit = await auditLegacyMigration(adapter, repository, '1001', {
+    issueRepository,
+    reportRepository
+  });
   assert.equal(audit.upstream.audit.embeddedOriginals, 2);
   assert.equal(audit.runs.length, 1);
+  assert.equal(audit.businessMigration.issues.alreadyMigrated, 1);
+  assert.equal(audit.businessMigration.reports.alreadyMigrated, 1);
 });
 
 test('failed legacy migration persists a failure audit', async () => {

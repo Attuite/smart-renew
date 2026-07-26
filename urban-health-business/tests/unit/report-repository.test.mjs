@@ -69,3 +69,25 @@ test('report edit uses optimistic revision and appends audit history', async () 
   assert.equal(report.editorial.executiveSummary, '真实摘要');
   assert.equal(report.auditTrail[0].actor, '报告编辑');
 });
+
+test('migrated legacy report remains an immutable historical snapshot', async () => {
+  const repository = new ReportRepository('unused');
+  repository.get = async () => ({
+    id: 'RPT-BIZ-LEGACY-fixed',
+    title: '迁移报告',
+    reportRevision: 1,
+    migration: {
+      source: 'smart-renew',
+      sourceId: 'RPT-OLD-001',
+      readOnly: true
+    }
+  });
+  await assert.rejects(
+    () => repository.update('RPT-BIZ-LEGACY-fixed', {
+      title: '不允许修改',
+      updatedBy: '编辑员',
+      expectedRevision: 1
+    }),
+    (error) => error.code === 'MIGRATED_REPORT_READ_ONLY' && error.status === 409
+  );
+});

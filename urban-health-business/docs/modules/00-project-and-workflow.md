@@ -425,7 +425,7 @@ C/D后续项：
 - 已完成Project及相关对象主数据源注册；
 - 已完成ProjectData和外业查询适配器基础；
 - 已完成ProjectData记录接口、外业任务和原Legacy迁移BFF；
-- 下一增量接入SQLite文件转换/引用重建及Business正式问题、报告迁移；
-- 抽取高德地图边界Provider；
+- 已完成SQLite文件转换/引用重建、来源追溯及Business正式问题、只读报告迁移；
+- 下一增量抽取高德地图边界Provider和POI能力；
 - 建立CloudBase可选Repository契约；
-- 已增加适配器、主数据源不双写及本轮BFF集成测试，后续补地图与剩余增量契约测试。
+- 已增加适配器、主数据源不双写、SQLite往返及迁移契约测试，后续补地图与剩余增量契约测试。

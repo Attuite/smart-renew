@@ -50,6 +50,8 @@ GET /api/projects/{projectId}/workflow
 
 `/api/meta.dataSources`返回项目、照片、分析、Candidate、正式问题、SourceAsset、空间分析、报告、ProjectData和外业任务的唯一主数据源规则。正式问题和报告以Business为主，原数据只读兼容并仅允许显式迁移。
 
+本轮新增的`features.projectDataSqlite`、`features.businessLegacyMigration`和`features.migratedReportsReadOnly`用于声明真实接入状态；这些能力仍分别受Node运行时和smart-renew上游可用性约束。
+
 `/api/health` 是进程存活检查，不依赖上游；`/api/ready` 检查运行所需的smart-renew数据库与存储连接。AI、地图底图、指标和服务端PDF作为可选能力单独报告，不会因为未配置而把整个Business服务判为不可运行。
 
 `/api/metrics` 返回当前进程启动时间、运行秒数、请求数、错误数和HTTP状态码分布。每个请求完成后输出单行JSON日志，包含 `requestId/method/path/status/durationMs`，不记录请求体和照片内容。
@@ -124,9 +126,17 @@ Business楼栋列表包含active和inactive记录。PATCH可修正楼栋字段�
 GET  /api/projects/{projectId}/project-data
 POST /api/projects/{projectId}/project-data
 GET  /api/projects/{projectId}/project-data/export
+POST /api/projects/{projectId}/project-data/sqlite-import
+GET  /api/projects/{projectId}/project-data/imports
+POST /api/projects/{projectId}/project-data/rebuild
+GET  /api/projects/{projectId}/project-data/sqlite-export
 ```
 
-查询支持原接口的`type/tag/communityId/buildingId/referenceId/q`过滤。POST当前接入原ProjectData记录数组和`append/replace`模式；SQLite文件解析、字段转换和引用重建仍属于AB-01后续增量，不能把记录数组导入误报为SQLite接入完成。
+查询支持原接口的`type/tag/communityId/buildingId/referenceId/q`过滤。POST接收ProjectData记录数组或`envelope.records`，支持`append/replace`模式；跨项目导入时会重定向记录ID和记录间引用。
+
+SQLite文件必须先作为SourceAsset上传，再以`assetId`、`importedBy`和`clientRequestId`显式导入。服务端复用原版表映射、字段转换和引用重建规则，支持原业务已知表及`project_data_index`交换表；每个ProjectData记录保存SourceAsset ID、修订和内容哈希。导入完成后调用原ProjectData索引重建接口，运行记录可通过`imports`查询。单文件沿用SourceAsset 20MB限制，单次最多转换20000条记录。
+
+`sqlite-export`返回真实`application/vnd.sqlite3`文件，包含`project_data_meta`和`project_data_index`。服务端SQLite能力依赖Node.js 22.13或更高版本；当前使用Node内置SQLite接口，不能在更低运行时误报可用。
 
 ### 3.2 外业复用接口
 
@@ -147,7 +157,9 @@ GET  /api/projects/{projectId}/legacy-migration
 POST /api/projects/{projectId}/legacy-migration
 ```
 
-GET同时返回原迁移预检和Business运行审计。POST必须提供`clientRequestId`、`executedBy`和`confirmed: true`，相同请求编号幂等返回。当前接口执行的是原smart-renew嵌入照片、标注图和旧问题整理；旧OfficialIssue及旧报告迁入Business主仓储仍是AB-09后续增量。
+GET同时返回原迁移预检、Business迁移计划和运行审计。计划区分可迁移、已迁移和“源数据在迁移后发生变化”的冲突项。
+
+POST必须提供`clientRequestId`、`executedBy`和`confirmed: true`，相同请求编号幂等返回。执行顺序为：先调用原smart-renew整理嵌入照片、标注图和旧问题，再读取旧OfficialIssue及旧报告并迁入Business主仓储。迁移问题保留来源指纹和旧编码，但当前`indicatorCode`仍为`null`，不会恢复旧指标映射。迁移报告分配新的Business版本号，完整保留原快照并标记`migration.readOnly: true`，PATCH返回`MIGRATED_REPORT_READ_ONLY`。源指纹变化时整个Business迁移在写入前以409冲突停止，不静默覆盖。
 
 ## 4. 照片与持久化上传会话
 

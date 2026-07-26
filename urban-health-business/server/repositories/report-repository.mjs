@@ -149,6 +149,12 @@ export class ReportRepository {
       error.code = 'REPORT_NOT_FOUND';
       throw error;
     }
+    if (report.migration?.readOnly === true) {
+      const error = new Error('迁移报告为只读历史快照，不能编辑。');
+      error.status = 409;
+      error.code = 'MIGRATED_REPORT_READ_ONLY';
+      throw error;
+    }
     const expectedRevision = Number(input?.expectedRevision);
     const currentRevision = Math.max(1, Number(report.reportRevision) || 1);
     if (Number.isFinite(expectedRevision) && expectedRevision !== currentRevision) {
