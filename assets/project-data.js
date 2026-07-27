@@ -84,10 +84,10 @@
 
   window.projectDataIndexPanelHtml = function (projectId) {
     return '<div class="project-data-shell" id="projectDataIndexRoot" data-project-id="' + escape(projectId) + '">'
-      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>项目指标库</strong><p>项目档案、住宅台账、问题、照片、指标和报告统一进入指标库并生成独立编号。其他页面或外部接口可从指标库按编号直接读取。</p></div>'
+      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>数据与索引</strong><p>项目档案、住宅台账、问题、照片、指标和报告统一生成独立编号，并与下方住房安全指标使用同一个指标库。</p></div>'
       + '<div class="project-data-actions">'
       + '<label class="btn btn-primary btn-sm" for="projectDataImportFile">导入数据库</label><input id="projectDataImportFile" type="file" accept=".db,.sqlite,.sqlite3,.json,application/json" onchange="importProjectDataFile(event,\'' + escape(projectId) + '\')">'
-      + '<button class="btn btn-outline btn-sm" onclick="importCityHealthStandardLibrary(\'' + escape(projectId) + '\')">载入城市体检标准库</button>'
+      + '<button class="btn btn-outline btn-sm" onclick="importCityHealthStandardLibrary(\'' + escape(projectId) + '\')">载入标准指标</button>'
       + '<button class="btn btn-outline btn-sm" onclick="exportProjectDataJson(\'' + escape(projectId) + '\')">导出 JSON</button>'
       + '<button class="btn btn-outline btn-sm" onclick="exportProjectDataSqlite(\'' + escape(projectId) + '\')">导出 SQLite</button>'
       + '<button class="btn btn-outline btn-sm" onclick="rebuildProjectDataIndex(\'' + escape(projectId) + '\')">同步现有数据</button>'

@@ -57,6 +57,11 @@
 .project-data-note{font-size:.72rem;color:var(--editorial-muted);line-height:1.65}
 .project-data-empty{padding:42px 20px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
 .project-data-loading{padding:32px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
+.project-indicator-catalog{margin-top:24px;padding-top:24px;border-top:1px solid var(--editorial-line)}
+.project-indicator-catalog-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:14px}
+.project-indicator-catalog-heading h4{margin:0 0 5px;color:var(--editorial-ink);font-size:1rem}
+.project-indicator-catalog-heading p{margin:0;max-width:720px;color:var(--editorial-muted);font-size:.74rem;line-height:1.65}
+.project-indicator-catalog-badge{flex:none;padding:5px 9px;border:1px solid var(--editorial-line);background:var(--editorial-soft);color:var(--editorial-muted);font-size:.66rem;letter-spacing:.08em}
 .photo-archive-card img{cursor:zoom-in}
 .photo-archive-card img:focus-visible{outline:3px solid var(--spice-500);outline-offset:-3px}
 body.photo-preview-open{overflow:hidden}
@@ -87,6 +92,7 @@ body.photo-preview-open{overflow:hidden}
   .project-data-row{grid-template-columns:1fr}
   .project-data-row-actions{justify-content:flex-start}
   .project-data-pagination{align-items:flex-start;flex-direction:column}
+  .project-indicator-catalog-heading{flex-direction:column}
   .photo-preview-overlay{padding:0}
   .photo-preview-dialog{width:100%;max-height:100vh;border:0}
   .photo-preview-image{max-height:calc(100vh - 126px)}
