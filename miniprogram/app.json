@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/capture/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "智更现场采集",
+    "navigationBarBackgroundColor": "#102a43",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f3f6f8",
+    "backgroundTextStyle": "dark"
+  },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍摄智更平台现场问题照片"
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}
