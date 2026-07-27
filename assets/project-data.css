@@ -58,6 +58,7 @@
 .project-data-empty{padding:42px 20px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
 .project-data-loading{padding:32px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
 .project-indicator-catalog{margin-top:24px;padding-top:24px;border-top:1px solid var(--editorial-line)}
+.project-indicator-catalog--standalone{margin-top:0;padding-top:0;border-top:0}
 .project-indicator-catalog-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:14px}
 .project-indicator-catalog-heading h4{margin:0 0 5px;color:var(--editorial-ink);font-size:1rem}
 .project-indicator-catalog-heading p{margin:0;max-width:720px;color:var(--editorial-muted);font-size:.74rem;line-height:1.65}
