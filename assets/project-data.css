@@ -57,6 +57,21 @@
 .project-data-note{font-size:.72rem;color:var(--editorial-muted);line-height:1.65}
 .project-data-empty{padding:42px 20px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
 .project-data-loading{padding:32px;text-align:center;color:var(--editorial-muted);font-size:.8rem}
+.photo-archive-card img{cursor:zoom-in}
+.photo-archive-card img:focus-visible{outline:3px solid var(--spice-500);outline-offset:-3px}
+body.photo-preview-open{overflow:hidden}
+.photo-preview-overlay[hidden]{display:none}
+.photo-preview-overlay{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:24px;background:rgba(9,12,16,.86);backdrop-filter:blur(3px)}
+.photo-preview-dialog{position:relative;display:flex;flex-direction:column;width:min(1120px,100%);max-height:calc(100vh - 48px);background:#111820;border:1px solid rgba(255,255,255,.24);box-shadow:0 24px 80px rgba(0,0,0,.45)}
+.photo-preview-image{display:block;width:100%;min-height:0;max-height:calc(100vh - 150px);object-fit:contain;background:#080b0f}
+.photo-preview-close{position:absolute;z-index:1;top:12px;right:12px;width:42px;height:42px;border:1px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.64);color:#fff;font:300 30px/1 Arial,sans-serif;cursor:pointer}
+.photo-preview-close:hover,.photo-preview-close:focus-visible{background:#fff;color:#111;outline:none}
+.photo-preview-footer{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:14px 16px;color:#fff}
+.photo-preview-caption{min-width:0}
+.photo-preview-caption strong{display:block;margin-bottom:3px;font-size:.86rem}
+.photo-preview-caption span{display:block;overflow:hidden;color:rgba(255,255,255,.66);font-size:.7rem;text-overflow:ellipsis;white-space:nowrap}
+.photo-preview-original{flex:none;border:1px solid rgba(255,255,255,.42);padding:8px 12px;color:#fff;font-size:.72rem;text-decoration:none}
+.photo-preview-original:hover,.photo-preview-original:focus-visible{background:#fff;color:#111;outline:none}
 @media (max-width:820px){
   .indicator-residential-heading{align-items:flex-start;flex-direction:column}
   .indicator-residential-heading select{width:100%;min-width:0}
@@ -72,4 +87,8 @@
   .project-data-row{grid-template-columns:1fr}
   .project-data-row-actions{justify-content:flex-start}
   .project-data-pagination{align-items:flex-start;flex-direction:column}
+  .photo-preview-overlay{padding:0}
+  .photo-preview-dialog{width:100%;max-height:100vh;border:0}
+  .photo-preview-image{max-height:calc(100vh - 126px)}
+  .photo-preview-footer{align-items:flex-start;flex-direction:column}
 }

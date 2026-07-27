@@ -536,4 +536,104 @@
     });
   }
 
+  var activePhotoPreviewTrigger = null;
+
+  function ensurePhotoPreview() {
+    var overlay = document.getElementById('photoPreviewOverlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'photoPreviewOverlay';
+    overlay.className = 'photo-preview-overlay';
+    overlay.hidden = true;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', '照片原图预览');
+    overlay.innerHTML =
+      '<div class="photo-preview-dialog">' +
+        '<button class="photo-preview-close" type="button" aria-label="关闭照片预览">×</button>' +
+        '<img class="photo-preview-image" alt="">' +
+        '<div class="photo-preview-footer">' +
+          '<div class="photo-preview-caption"><strong></strong><span></span></div>' +
+          '<a class="photo-preview-original" target="_blank" rel="noopener noreferrer">在新窗口打开原图</a>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay || event.target.closest('.photo-preview-close')) closePhotoPreview();
+    });
+    return overlay;
+  }
+
+  function closePhotoPreview() {
+    var overlay = document.getElementById('photoPreviewOverlay');
+    if (!overlay || overlay.hidden) return;
+    overlay.hidden = true;
+    document.body.classList.remove('photo-preview-open');
+    if (activePhotoPreviewTrigger) activePhotoPreviewTrigger.focus();
+    activePhotoPreviewTrigger = null;
+  }
+
+  function openPhotoPreview(image) {
+    var source = image.currentSrc || image.src;
+    if (!source) return;
+    var overlay = ensurePhotoPreview();
+    var card = image.closest('.photo-archive-card');
+    var heading = card && card.querySelector('.photo-archive-meta strong');
+    var meta = card && card.querySelector('.photo-archive-meta');
+    var previewImage = overlay.querySelector('.photo-preview-image');
+    var title = (heading && heading.textContent.trim()) || image.alt || '现场照片';
+    previewImage.src = source;
+    previewImage.alt = image.alt || title;
+    overlay.querySelector('.photo-preview-caption strong').textContent = title;
+    overlay.querySelector('.photo-preview-caption span').textContent = (meta && meta.textContent.trim()) || '';
+    overlay.querySelector('.photo-preview-original').href = source;
+    activePhotoPreviewTrigger = image;
+    overlay.hidden = false;
+    document.body.classList.add('photo-preview-open');
+    overlay.querySelector('.photo-preview-close').focus();
+  }
+
+  function enhancePhotoArchiveImages(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    Array.prototype.forEach.call(scope.querySelectorAll('.photo-archive-card img'), function (image) {
+      if (image.dataset.previewReady === '1') return;
+      image.dataset.previewReady = '1';
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.setAttribute('aria-label', '查看原图：' + (image.alt || '现场照片'));
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var image = event.target.closest && event.target.closest('.photo-archive-card img');
+    if (!image) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPhotoPreview(image);
+  }, true);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closePhotoPreview();
+      return;
+    }
+    var image = event.target.closest && event.target.closest('.photo-archive-card img');
+    if (!image || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    openPhotoPreview(image);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { enhancePhotoArchiveImages(document); });
+  } else {
+    enhancePhotoArchiveImages(document);
+  }
+  new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
+      Array.prototype.forEach.call(mutation.addedNodes, function (node) {
+        if (node.nodeType === 1) enhancePhotoArchiveImages(node);
+      });
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
 })();
