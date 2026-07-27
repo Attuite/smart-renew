@@ -21,6 +21,7 @@ import {
   filterOfficialIssues,
   normalizeOfficialIssue
 } from './official-issue-core.js';
+import { housingProblemCatalogResponse } from './housing-problem-catalog.js';
 import {
   buildReportSnapshot
 } from './report-snapshot-core.js';
@@ -57,7 +58,6 @@ const allowedModels = new Set([
   'qwen-vl-max',
   'qwen2.5-vl-72b-instruct'
 ]);
-
 function writeJson(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -524,6 +524,10 @@ async function handleFieldCollectionApi(req, res, pathname) {
     const projectCommunitiesMatch = pathname.match(/^\/field\/projects\/(\d+)\/communities$/);
     const communityBuildingsMatch = pathname.match(/^\/field\/projects\/(\d+)\/communities\/([A-Za-z0-9_.-]+)\/buildings$/);
     const taskMatch = pathname.match(/^\/field\/collection-tasks\/([A-Za-z0-9_.-]+)$/);
+    const taskCompleteMatch = pathname.match(/^\/field\/collection-tasks\/([A-Za-z0-9_.-]+)\/complete$/);
+    if (req.method === 'GET' && pathname === '/field/problem-types') {
+      return writeJson(res, 200, { items: housingProblemCatalogResponse(), schemaVersion: '1.0.0' });
+    }
     if (req.method === 'GET' && pathname === '/field/projects') {
       const projects = (await listCollection(projectCollection)).map(fieldProjectSummary);
       return writeJson(res, 200, { items: projects, storage: 'cloudbase' });
@@ -554,6 +558,25 @@ async function handleFieldCollectionApi(req, res, pathname) {
     if (req.method === 'GET' && taskMatch) {
       const task = await getDocument(fieldTaskCollection, taskMatch[1]);
       return task ? writeJson(res, 200, { item: task, storage: 'cloudbase' }) : writeJson(res, 404, { message: '现场任务不存在' });
+    }
+    if (req.method === 'POST' && taskCompleteMatch) {
+      const task = await getDocument(fieldTaskCollection, taskCompleteMatch[1]);
+      if (!task) return writeJson(res, 404, { message: '现场任务不存在' });
+      const body = await readJson(req, 64 * 1024);
+      const uploadedPhotoCount = Math.max(0, Number(body.uploadedPhotoCount) || 0);
+      if (uploadedPhotoCount < Number(task.photoCount || 0)) {
+        return writeJson(res, 400, { message: '仍有照片未上传完成' });
+      }
+      const completed = {
+        ...task,
+        status: 'completed',
+        syncStatus: 'completed',
+        uploadedPhotoCount,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await putDocument(fieldTaskCollection, task.id, completed);
+      return writeJson(res, 200, { item: completed, storage: 'cloudbase' });
     }
     return writeJson(res, 404, { message: '现场采集接口不存在' });
   } catch (error) {
@@ -594,6 +617,20 @@ async function handlePhotoApi(req, res, url, pathname) {
       if (!projectId) return writeJson(res, 400, { message: '项目编号无效' });
       const project = await getDocument(projectCollection, projectId);
       if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      if (body.taskId) {
+        const task = await getDocument(fieldTaskCollection, String(body.taskId));
+        if (!task) return writeJson(res, 404, { message: '现场采集任务不存在' });
+        if (
+          String(task.projectId) !== String(body.projectId) ||
+          String(task.communityId) !== String(body.communityId) ||
+          String(task.buildingId) !== String(body.buildingId) ||
+          String(task.problemCode) !== String(body.problemCode)
+        ) {
+          return writeJson(res, 400, { message: '照片信息与现场采集任务不一致' });
+        }
+        body.householdCount = task.householdCount;
+        body.collectorId = task.collectorId;
+      }
       const decoded = decodePhotoDataUrl(body.dataUrl);
       const record = normalizePhotoUpload(body, project, decoded);
       const existing = await getDocument(photoRecordCollection, record.id).catch(() => null);
