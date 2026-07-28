@@ -630,20 +630,19 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 @media (max-width:900px){.capability-grid-cinematic{grid-template-columns:repeat(2,1fr)}.capability-grid-cinematic article{min-height:170px}.cap-photo{width:130px;height:82px}.home-capability-content h2{font-size:2.55rem}}
 @media (max-width:520px){.home-capability-stage{padding:86px 20px 24px;place-items:center;overflow:hidden}.home-capability-meta{left:20px;top:84px;font-size:.72rem}.home-capability-meta i{width:28px}.home-capability-content{width:100%;margin-top:58px}.home-capability-content .hero-tag{margin-bottom:10px;font-size:.68rem}.home-capability-content h2{font-size:1.72rem;line-height:1.12;margin-bottom:14px}.capability-grid-cinematic{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none;overflow:visible;padding-right:0}.capability-grid-cinematic article{min-height:148px;padding:12px}.capability-grid-cinematic span{font-size:.66rem;margin-bottom:8px}.capability-grid-cinematic h3{font-size:1.04rem;margin-bottom:7px}.capability-grid-cinematic p{font-size:.68rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.home-capability-actions{margin-top:14px;display:flex}.home-capability-actions .story-advance{padding:9px 12px;font-size:.76rem}.cap-photo{opacity:.34}.p2,.p4,.p9,.p13{display:none}}
 </style>
+<link rel="stylesheet" href="assets/site-structure.css">
 </head>
 <body>
 
 <header class="header" id="header">
 <div class="header-inner">
-<a href="#home" class="logo" data-nav="home"><span class="logo-icon">智</span><span>智更Smart Renew</span></a>
+<a href="#workbench" class="logo" data-nav="workbench"><span class="logo-icon">智</span><span>智更Smart Renew</span></a>
 <nav class="nav-links" id="navLinks">
-<a href="#home" data-nav="home" class="active">首页</a>
-<a href="#new-project" data-nav="new-project">新建项目</a>
-<a href="#projects" data-nav="projects">项目汇总</a>
-<a href="#ai-analysis" data-nav="ai-analysis">住区维度</a>
-<a href="#community" data-nav="community">社区/街区维度</a>
-<a href="#diagnostic" data-nav="diagnostic">体检报告</a>
-<a href="#analysis" data-nav="analysis">数据看板</a>
+<a href="#workbench" data-nav="workbench" class="active">工作台</a>
+<a href="#projects" data-nav="projects">项目管理</a>
+<a href="#collection" data-nav="collection">现场采集</a>
+<a href="#outcomes" data-nav="outcomes">成果中心</a>
+<a href="#settings" data-nav="settings">系统设置</a>
 </nav>
 <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="菜单">☰</button>
 </div>
@@ -725,6 +724,12 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <section class="cta-section"><div class="container"><h2 class="cta-title">从第一个体检项目开始</h2><p class="cta-desc">先建立项目档案，再选择该项目进入建筑隐患识别、社区/街区维度分析和诊断报告。</p><div class="cta-actions"><a href="#new-project" class="btn btn-white btn-lg" data-nav="new-project">新建体检项目</a><a href="#projects" class="btn btn-outline btn-lg" data-nav="projects" style="color:white;border-color:rgba(255,255,255,.4);">查看项目汇总</a></div></div></section>
 </div>
 
+<!-- PAGE: WORKBENCH -->
+<div class="page platform-shell" id="page-workbench">
+<section class="page-hero"><div class="container"><div class="section-tag">WORKBENCH</div><h1 class="page-hero-title">工作台</h1><p class="page-hero-desc">从真实项目数据出发，集中查看当前项目、待补录事项、待复核分析和最近工作。</p></div></section>
+<section class="section" style="padding-top:32px;"><div class="container" id="workbenchRoot"><div class="result-empty">正在读取工作数据...</div></div></section>
+</div>
+
 <!-- PAGE: NEW PROJECT -->
 <div class="page" id="page-new-project">
 <section class="page-hero"><div class="container"><h1 class="page-hero-title">新建体检项目</h1><p class="page-hero-desc">先建立项目基础档案。后续住区维度分析、社区/街区维度分析、数据看板和体检报告都会挂接到当前项目下。</p></div></section>
@@ -762,7 +767,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 
 <!-- PAGE: PROJECTS -->
 <div class="page" id="page-projects">
-<section class="page-hero"><div class="container"><h1 class="page-hero-title">项目汇总</h1><p class="page-hero-desc">这里汇总所有体检项目。请先选择一个当前项目，再进入住区维度、社区/街区维度和诊断报告。</p></div></section>
+<section class="page-hero"><div class="container"><div class="section-tag">PROJECT MANAGEMENT</div><h1 class="page-hero-title">项目管理</h1><p class="page-hero-desc">统一新建、搜索和打开体检项目。进入项目后，范围、台账、照片、分析、问题、指标和报告都保持在同一个项目上下文中。</p></div></section>
 <section class="section projects-section"><div class="container">
 <div class="project-summary-grid" id="projectSummaryStats">
 <div class="dash-stat"><div class="dash-stat-icon" style="color:var(--ink-700);">📁</div><div><div class="dash-stat-value">--</div><div class="dash-stat-label">体检项目</div></div></div>
@@ -778,8 +783,8 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 
 <!-- PAGE: DETAIL -->
 <div class="page" id="page-detail">
-<section class="detail-hero"><div class="container"><a class="detail-back" onclick="navigateTo('#projects')">← 返回项目列表</a><div class="detail-tags" id="detailTags"></div><h1 class="detail-title" id="detailTitle"></h1><p class="detail-location" id="detailLocation"></p></div></section>
-<section class="section"><div class="container"><div class="detail-grid"><div class="detail-main" id="detailMain"></div></div></div></section>
+<section class="detail-hero"><div class="container"><a class="detail-back" onclick="navigateTo('#projects')">← 返回项目管理</a><div class="detail-tags" id="detailTags"></div><h1 class="detail-title" id="detailTitle"></h1><p class="detail-location" id="detailLocation"></p></div></section>
+<section class="section"><div class="container"><div id="detailWorkspaceNav"></div><div class="detail-grid"><div class="detail-main" id="detailMain"></div></div></div></section>
 </div>
 
 <!-- PAGE: COMMUNITY -->
@@ -789,6 +794,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div id="communityMap"></div>
 </div>
 <aside class="community-sidebar">
+<div id="communityWorkspaceNav"></div>
 <div class="community-loc-info" id="communityProjectPanel">
 <div class="cli-name">选择分析项目</div><div class="cli-meta">请先选择项目，再定位并检索周边业态</div>
 </div>
@@ -831,6 +837,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div class="page" id="page-ai-analysis">
 <section class="page-hero"><div class="container"><h1 class="page-hero-title">住区维度</h1><p class="page-hero-desc">上传住房、小区与公共空间现场照片后，千问AI模型自动识别常见建筑隐患、设施缺损与风险等级，结果自动保存可随时回溯。</p></div></section>
 <section class="section" style="padding-top:32px;"><div class="container">
+<div id="analysisWorkspaceNav"></div>
 <div class="api-config-panel" id="activeProjectPanel" style="display:none;margin-bottom:24px;"></div>
 
 <div class="ai-workflow" id="analysisWorkflow">
@@ -1032,30 +1039,49 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <!-- PAGE: DIAGNOSTIC -->
 <div class="page" id="page-diagnostic">
 <section class="page-hero"><div class="container"><h1 class="page-hero-title">体检报告</h1><p class="page-hero-desc">基于当前项目档案、住区维度和社区/街区维度分析，生成项目级城市体检报告预览。</p></div></section>
-<section class="section" style="padding-top:32px;"><div class="container" id="diagnosticReportRoot">
+<section class="section" style="padding-top:32px;"><div class="container"><div id="diagnosticWorkspaceNav"></div><div id="diagnosticReportRoot">
 <div class="result-empty">正在生成体检报告...</div>
-</div></section>
+</div></div></section>
 </div>
 
 <!-- PAGE: ANALYSIS -->
 <div class="page" id="page-analysis">
 <section class="page-hero"><div class="container"><h1 class="page-hero-title">项目数据看板</h1><p class="page-hero-desc">仅汇总当前项目中已经保存的档案、人工复核后的住区问题和社区/街区分析结果，不展示推测或演示数据。</p></div></section>
-<section class="section" style="padding-top:32px;"><div class="container" id="analysisDashboardRoot">
+<section class="section" style="padding-top:32px;"><div class="container"><div id="dashboardWorkspaceNav"></div><div id="analysisDashboardRoot">
 <div class="result-empty">正在读取当前项目的真实数据...</div>
-</div></section>
+</div></div></section>
+</div>
+
+<!-- PAGE: FIELD COLLECTION -->
+<div class="page platform-shell" id="page-collection">
+<section class="page-hero"><div class="container"><div class="section-tag">FIELD COLLECTION</div><h1 class="page-hero-title">现场采集</h1><p class="page-hero-desc">围绕当前项目组织现场任务、住宅台账和照片档案；微信小程序接口已预留，网页端继续承担补录、查看和重新分析。</p></div></section>
+<section class="section" style="padding-top:32px;"><div class="container" id="collectionRoot"><div class="result-empty">正在读取当前项目...</div></div></section>
+</div>
+
+<!-- PAGE: OUTCOMES -->
+<div class="page platform-shell" id="page-outcomes">
+<section class="page-hero"><div class="container"><div class="section-tag">OUTCOME CENTER</div><h1 class="page-hero-title">成果中心</h1><p class="page-hero-desc">跨项目汇总已确认问题、指标结果、空间分析和报告版本；所有统计均可返回对应项目继续处理。</p></div></section>
+<section class="section" style="padding-top:32px;"><div class="container" id="outcomesRoot"><div class="result-empty">正在汇总正式成果...</div></div></section>
+</div>
+
+<!-- PAGE: SETTINGS -->
+<div class="page platform-shell" id="page-settings">
+<section class="page-hero"><div class="container"><div class="section-tag">SYSTEM SETTINGS</div><h1 class="page-hero-title">系统设置</h1><p class="page-hero-desc">集中管理 AI 服务、指标与问题编码、外部接口和运行状态；普通业务页面不再暴露密钥配置。</p></div></section>
+<section class="section" style="padding-top:32px;"><div class="container" id="settingsRoot"></div></section>
 </div>
 
 <!-- FOOTER -->
 <footer class="footer"><div class="container"><div class="footer-grid">
 <div class="footer-brand"><div class="logo"><span class="logo-icon">智</span><span>智更Smart Renew</span></div><p>智慧更新，让城市更美好</p></div>
-<div class="footer-col"><h4>流程</h4><a href="#new-project" data-nav="new-project">新建项目</a><a href="#projects" data-nav="projects">项目汇总</a><a href="#ai-analysis" data-nav="ai-analysis">住区维度</a><a href="#community" data-nav="community">社区/街区维度</a><a href="#diagnostic" data-nav="diagnostic">体检报告</a></div>
-<div class="footer-col"><h4>数据</h4><a href="#analysis" data-nav="analysis">数据看板</a><a href="#projects" data-nav="projects">项目台账</a></div>
+<div class="footer-col"><h4>平台</h4><a href="#workbench" data-nav="workbench">工作台</a><a href="#projects" data-nav="projects">项目管理</a><a href="#collection" data-nav="collection">现场采集</a></div>
+<div class="footer-col"><h4>成果与设置</h4><a href="#outcomes" data-nav="outcomes">成果中心</a><a href="#settings" data-nav="settings">系统设置</a></div>
 <div class="footer-col"><h4>服务单位</h4><a>中国建筑西北设计研究院</a></div>
 </div><div class="footer-bottom">智更 Smart Renew · 城市更新体检工作台</div></div></footer>
 
 <script src="https://webapi.amap.com/maps?v=2.0&key=5b4f587b19bf8292d7618f66f38a4765&plugin=AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.Scale,AMap.ToolBar,AMap.ControlBar,AMap.HawkEye,AMap.MouseTool,AMap.GeometryUtil"></script>
 <script src="assets/data/city-health-standard-library-v1.js"></script>
 <script src="assets/project-data.js"></script>
+<script src="assets/site-structure.js"></script>
 <script>
 /* ===== DATA ===== */
 var statusMap={'planning':'规划中','in-progress':'进行中','completed':'已完成','created':'已建档','ai-analyzed':'已分析'};
@@ -1067,16 +1093,19 @@ medium:{label:'中风险',className:'severity-medium',icon:'🟠',statColor:'var
 low:{label:'低风险',className:'severity-low',icon:'🟢',statColor:'var(--green-500)'}
 };
 
-var currentPage='home',currentFilters={type:'all',status:'all'},projectDatabaseView=(window.location.hash.indexOf('/indicator/')>=0||window.location.hash.indexOf('/data/')>=0)?'indicators':'overview';
+var currentPage='workbench',currentRoute=null,currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
 function renderFeaturedProjects(){}
-function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash,raw=targetHash.replace('#',''),page=raw.includes('/')?'detail':raw;if(window.location.hash===targetHash)showPage(page);else window.location.hash=targetHash;window.scrollTo(0,0);}
-function showPage(page){
-if((page==='analysis'||page==='diagnostic')&&!getActiveProjectId()){showToast('请先在项目汇总中选择当前项目','info');page='projects';if(window.location.hash!=='#projects')history.replaceState(null,'','#projects');}
-currentPage=page;document.body.classList.toggle('home-mode',page==='home');if(page!=='home')document.body.classList.remove('home-step-2');var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
+function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash;if(window.location.hash===targetHash)showPage();else window.location.hash=targetHash;window.scrollTo(0,0);}
+function showPage(){
+var route=SmartRenewStructure.parse(window.location.hash||'#workbench'),page=route.page;
+if(route.projectId)setActiveProjectId(route.projectId);
+if((page==='analysis'||page==='diagnostic')&&!getActiveProjectId()){showToast('请先在项目管理中选择当前项目','info');page='projects';route=SmartRenewStructure.parse('#projects');if(window.location.hash!=='#projects')history.replaceState(null,'','#projects');}
+currentRoute=route;currentPage=page;document.body.classList.toggle('home-mode',page==='home');if(page!=='home')document.body.classList.remove('home-step-2');var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
 var target=document.getElementById('page-'+page);if(target)target.classList.add('active');
 var navs=document.querySelectorAll('.nav-links a');for(var j=0;j<navs.length;j++)navs[j].classList.remove('active');
-var navActive=document.querySelector('[data-nav="'+page+'"]');if(navActive)navActive.classList.add('active');
+var navActive=document.querySelector('.nav-links [data-nav="'+route.primary+'"]');if(navActive)navActive.classList.add('active');
 if(page==='new-project')setTimeout(function(){initProjectScopeMap();},200);
+if(page==='workbench')renderWorkbenchPage();
 if(page==='projects')renderProjectsPage();
 if(page==='detail')renderDetailPage();
 if(page==='analysis')renderAnalysisPage();
@@ -1084,7 +1113,93 @@ if(page==='diagnostic')renderDiagnosticReport();
 if(page==='ai-analysis')initAiAnalysisPage();
 if(page==='ai-config')initAiConfigPage();
 if(page==='community')setTimeout(function(){initCommunityMap();initCommunityForActiveProject();},200);
+if(page==='collection')renderCollectionPage();
+if(page==='outcomes')renderOutcomesPage();
+if(page==='settings')renderSettingsPage();
+renderWorkspaceContext(route);
 document.getElementById('navLinks').classList.remove('open');
+}
+
+function projectWorkspaceNavHtml(projectId,activeView){
+if(!projectId)return'';
+return'<nav class="workspace-nav" aria-label="项目工作台目录">'+SmartRenewStructure.projectTabs.map(function(tab){return'<a href="'+SmartRenewStructure.projectHash(projectId,tab.key)+'" class="'+(tab.key===activeView?'active':'')+'">'+escapeHtml(tab.label)+'</a>';}).join('')+'</nav>';
+}
+
+async function renderWorkspaceContext(route){
+var targets={detail:'detailWorkspaceNav','ai-analysis':'analysisWorkspaceNav',community:'communityWorkspaceNav',diagnostic:'diagnosticWorkspaceNav',analysis:'dashboardWorkspaceNav'};
+Object.keys(targets).forEach(function(key){var node=document.getElementById(targets[key]);if(node)node.innerHTML='';});
+var projectId=route&&route.projectId?route.projectId:getActiveProjectId();
+if(!projectId||!targets[route.page])return;
+var view=route.projectView||({detail:'overview','ai-analysis':'analysis',community:'community',diagnostic:'reports',analysis:'overview'}[route.page]||'overview');
+var target=document.getElementById(targets[route.page]);if(!target)return;
+target.innerHTML=projectWorkspaceNavHtml(projectId,view);
+}
+
+function platformKpi(value,label,note){return'<div class="platform-kpi"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span><small>'+escapeHtml(note||'')+'</small></div>';}
+function platformAction(href,title,desc,action){return'<a class="platform-action" href="'+href+'"><span><strong>'+escapeHtml(title)+'</strong><span>'+escapeHtml(desc)+'</span></span><em>'+escapeHtml(action||'打开')+' →</em></a>';}
+function projectInventoryPending(project){var stat=getProjectScopeStats(project);return{stat:stat,pendingBuildings:stat.buildingPending?1:0,pendingHouseholds:stat.householdPending?1:0};}
+
+async function renderWorkbenchPage(){
+var root=document.getElementById('workbenchRoot');if(!root)return;
+root.innerHTML='<div class="result-empty">正在读取工作数据...</div>';
+try{
+var projects=await getAllProjects(),records=await getAllRecords(),activeId=getActiveProjectId(),active=activeId?projects.find(function(item){return String(item.id)===String(activeId);}):null;
+if(!active&&projects.length){active=projects[0];setActiveProjectId(active.id);}
+if(!active){root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">开始工作</div><h2>建立第一个体检项目</h2><p>工作台只显示真实项目和真实待办。创建并框选项目范围后，小区、台账、照片、分析和报告会在这里形成连续工作流。</p></div><a class="btn btn-primary" href="#new-project">新建项目</a></div>'+dashboardEmpty('尚无项目数据','当前没有可展示的项目记录。','#new-project','新建体检项目');return;}
+var activeRecords=records.filter(function(record){return String(record.projectId)===String(active.id);}),pendingReviews=activeRecords.filter(function(record){return record.status&&record.status!=='archived';}).length,scope=projectInventoryPending(active),communityCount=scope.stat.communityCount,latest=projects.slice().sort(function(a,b){return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt);}).slice(0,5);
+root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">当前项目</div><h2>'+escapeHtml(active.name||'未命名体检项目')+'</h2><p>'+escapeHtml(active.area||'项目位置待补充')+' · 工作台仅汇总已保存的项目档案和真实待办。</p></div><a class="btn btn-primary" href="'+SmartRenewStructure.projectHash(active.id,'overview')+'">进入项目工作台</a></div>'
++'<div class="platform-kpi-grid">'+platformKpi(projects.length+' 个','全部项目','项目管理中的真实档案')+platformKpi(communityCount+' 个','当前项目小区','来自地图范围与住宅台账')+platformKpi(pendingReviews+' 次','待复核分析','尚未正式归档的分析批次')+platformKpi(scope.stat.householdLabel,'住宅户数',scope.stat.householdPending?'仍有小区待补录':'当前项目已核实')+'</div>'
++'<div class="platform-grid"><section class="platform-panel"><h3>继续当前项目</h3><p>按实际工作顺序处理范围、台账、照片、分析和报告。</p><div class="platform-action-list">'
++platformAction(SmartRenewStructure.projectHash(active.id,'scope'),'核对档案与范围',scope.stat.hasBoundary?'地图范围已建立':'项目范围尚未框选',scope.stat.hasBoundary?'查看':'待处理')
++platformAction(SmartRenewStructure.projectHash(active.id,'ledger'),'补录住宅台账',scope.stat.buildingPending||scope.stat.householdPending?'楼栋或户数仍有待补录项':'住宅台账已核实',scope.stat.buildingPending||scope.stat.householdPending?'待处理':'查看')
++platformAction(SmartRenewStructure.projectHash(active.id,'analysis'),'住区照片体检',activeRecords.length+' 个分析批次，'+pendingReviews+' 个待复核','进入')
++platformAction(SmartRenewStructure.projectHash(active.id,'reports'),'报告成果',active.communityAnalysis?'空间分析已保存，可继续核对报告':'尚需完成社区／街区分析','查看')
++'</div></section><section class="platform-panel"><h3>最近项目</h3><p>按最近更新时间排列，点击后进入对应项目工作台。</p><div class="platform-action-list">'+latest.map(function(project){return platformAction(SmartRenewStructure.projectHash(project.id,'overview'),project.name||'未命名项目',(project.area||'位置待补充')+' · '+formatDashboardDate(project.updatedAt||project.createdAt),'打开');}).join('')+'</div></section></div>';
+}catch(error){root.innerHTML=dashboardEmpty('工作台读取失败',error.message,'#projects','进入项目管理');}
+}
+
+async function renderCollectionPage(){
+var root=document.getElementById('collectionRoot');if(!root)return;
+var id=getActiveProjectId(),project=id?await getProjectById(id):null;
+if(!project){root.innerHTML=dashboardEmpty('尚未选择当前项目','现场采集必须归属于具体项目，请先从项目管理中选择项目。','#projects','选择项目');return;}
+var scope=getProjectScopeStats(project);
+root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">当前采集项目</div><h2>'+escapeHtml(project.name||'未命名体检项目')+'</h2><p>'+escapeHtml(project.area||'项目位置待补充')+' · 网页端负责住宅台账补录、照片归档和重新分析；微信小程序继续使用已预留接口。</p></div><a class="btn btn-outline" href="'+SmartRenewStructure.projectHash(project.id,'overview')+'">返回项目工作台</a></div>'
++'<div class="platform-kpi-grid">'+platformKpi(scope.communityCount+' 个','住宅小区','范围内有效小区')+platformKpi(scope.buildingLabel,'楼栋数量',scope.buildingPending?'存在待补录项':'已核实')+platformKpi(scope.householdLabel,'住宅户数',scope.householdPending?'存在待补录项':'已核实')+platformKpi('已预留','小程序接口','后续接入微信现场采集')+'</div>'
++'<div class="platform-grid"><section class="platform-panel"><h3>网页端现场工作</h3><p>现阶段可直接执行的采集与归档任务。</p><div class="platform-action-list">'
++platformAction(SmartRenewStructure.projectHash(project.id,'ledger'),'住宅台账','核对小区、楼栋数和户数','补录')
++platformAction(SmartRenewStructure.projectHash(project.id,'photos'),'照片档案','按小区和楼栋筛选已归档照片','查看')
++platformAction(SmartRenewStructure.projectHash(project.id,'analysis'),'新增住区分析','上传照片并进行 AI 识别与人工复核','开始')
++'</div></section><section class="platform-panel"><h3>微信小程序接入</h3><p>接口已按“项目—小区—楼栋—照片”关系预留。小程序启用后，将直接写入同一照片档案，不另建数据孤岛。</p><div class="settings-status">接口结构已预留</div><div class="platform-action-list">'+platformAction('docs/FIELD_COLLECTION_API.md','现场采集接口说明','查看字段、身份和上传约定','文档')+'</div></section></div>';
+}
+
+async function renderOutcomesPage(){
+var root=document.getElementById('outcomesRoot');if(!root)return;
+root.innerHTML='<div class="result-empty">正在汇总正式成果...</div>';
+try{
+var projects=await getAllProjects(),records=await getAllRecords(),archived=records.filter(function(record){return record.status==='archived';}),issueTotal=0,reportReady=0,communityTotal=0;
+archived.forEach(function(record){issueTotal+=record.result&&Array.isArray(record.result.issues)?record.result.issues.length:0;});
+projects.forEach(function(project){if(project.communityAnalysis)communityTotal++;if(project.communityAnalysis&&archived.some(function(record){return String(record.projectId)===String(project.id);}))reportReady++;});
+root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">正式成果</div><h2>跨项目成果总览</h2><p>只汇总已保存或人工复核后归档的数据。点击项目可返回原始记录继续核对。</p></div></div>'
++'<div class="platform-kpi-grid">'+platformKpi(projects.length+' 个','项目档案','全部体检项目')+platformKpi(archived.length+' 次','已归档分析','人工复核后正式归档')+platformKpi(issueTotal+' 个','确认问题','来自正式问题记录')+platformKpi(reportReady+' 个','报告可生成','已具备住区与空间分析')+'</div>'
++'<div class="platform-grid"><section class="platform-panel"><h3>项目成果</h3><p>按最近更新时间查看项目看板、问题、指标和报告。</p><div class="platform-action-list">'+projects.slice().sort(function(a,b){return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt);}).map(function(project){var count=archived.filter(function(record){return String(record.projectId)===String(project.id);}).length;return platformAction(SmartRenewStructure.projectHash(project.id,'reports'),project.name||'未命名项目',count+' 次已归档分析 · '+(project.communityAnalysis?'空间分析已保存':'空间分析待补充'),'成果');}).join('')+'</div></section><section class="platform-panel"><h3>成果工具</h3><p>项目级看板和报告仍读取同一套正式数据。</p><div class="platform-action-list">'
++platformAction('#analysis','当前项目数据看板','查看已归档问题、风险与设施统计','查看')
++platformAction(getActiveProjectId()?SmartRenewStructure.projectHash(getActiveProjectId(),'indicators'):'#projects','项目指标库','按 PRB 编码索引问题与证据','查看')
++platformAction(getActiveProjectId()?SmartRenewStructure.projectHash(getActiveProjectId(),'reports'):'#projects','报告成果','生成和查看项目报告版本','查看')
++'</div></section></div>';
+}catch(error){root.innerHTML=dashboardEmpty('成果汇总失败',error.message,'#projects','返回项目管理');}
+}
+
+function renderSettingsPage(){
+var root=document.getElementById('settingsRoot');if(!root)return;
+var id=getActiveProjectId();
+root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">配置与标准</div><h2>系统能力集中管理</h2><p>业务人员从项目工作台处理数据；模型密钥、指标标准和外部接口只在这里维护。</p></div></div>'
++'<div class="platform-grid"><section class="platform-panel"><h3>AI 服务配置</h3><p>管理视觉模型用户、密钥、模型和调用参数。</p><div class="settings-status">服务端安全代理</div><div class="platform-action-list">'+platformAction('#ai-config','视觉模型与密钥','进入受密码保护的 AI 配置页','配置')+'</div></section>'
++'<section class="platform-panel"><h3>指标与问题编码</h3><p>PRB 编码是照片、问题、指标和报告之间的统一索引，不再建立第二套“数据索引”。</p><div class="settings-status">内置标准指标</div><div class="platform-action-list">'+platformAction(id?SmartRenewStructure.projectHash(id,'indicators'):'#projects','住房安全指标标准','查看当前项目使用的指标和细分小类编码','查看')+'</div></section>'
++'<section class="platform-panel"><h3>外部接口</h3><p>现场采集、照片档案、项目数据和报告快照使用统一项目编号。</p><div class="platform-action-list">'
++platformAction('docs/PROJECT_DATA_API.md','项目数据接口','项目档案与住宅台账','文档')
++platformAction('docs/PHOTO_ARCHIVE_API.md','照片档案接口','现场照片与分类索引','文档')
++platformAction('docs/REPORT_SNAPSHOT_API.md','报告快照接口','报告版本与来源编号','文档')
++'</div></section><section class="platform-panel"><h3>运行状态</h3><p>当前网页继续使用现有服务端存储和 CloudBase 部署方式。</p><div class="settings-status">现有数据接口保持不变</div><div class="platform-action-list">'+platformAction('#projects','项目存储状态','进入项目管理查看实时连接状态','检查')+'</div></section></div>';
 }
 
 async function renderActiveProjectPanel(){
@@ -1158,20 +1273,25 @@ var dataRecords=1+records.length+(community?1:0)+(p.residentialInventory?1:0),re
 document.getElementById('detailTags').innerHTML='<span class="detail-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="detail-tag">项目数据库</span><span class="detail-tag">当前项目</span>';
 document.getElementById('detailTitle').textContent=p.name||'未命名体检项目';
 document.getElementById('detailLocation').textContent='📍 '+(p.area||'未填写位置');
-if(main)main.innerHTML='<div class="project-db-heading"><div><div class="section-tag">PROJECT DATABASE</div><h2>'+escapeHtml(p.name||'未命名体检项目')+' 数据库</h2><p>关键数据集中展示，其余档案按工作内容分类查看，减少重复信息与长页面滚动。</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="openProjectAi('+p.id+')">新增住区分析</button><button class="btn btn-outline btn-sm" onclick="openProjectCommunity('+p.id+')">更新空间分析</button></div></div>'
-+'<div class="project-db-kpis">'+projectDatabaseKpiHtml('项目范围',scopeStats.areaLabel,scopeStats.hasBoundary?'地图框选边界':'待补充范围')+projectDatabaseKpiHtml('住宅小区',scopeStats.communityCount+' 个',scopeStats.hasInventory?'边界内有效台账':'待完成范围识别')+projectDatabaseKpiHtml('楼栋数量',scopeStats.buildingLabel,scopeStats.buildingPending?'存在待补录项':'已核实')+projectDatabaseKpiHtml('住宅户数',scopeStats.householdLabel,scopeStats.householdPending?'存在待补录项':'已核实')+projectDatabaseKpiHtml('问题数量',stat.total+' 个','高 '+stat.high+' · 中 '+stat.medium+' · 低 '+stat.low)+projectDatabaseKpiHtml('报告状态',reportReady?'可生成':'待完善',reportReady?'关键数据已具备':'需补齐住区与空间分析')+'</div>'
-+projectDatabaseTabsHtml()
-+projectDatabaseTabPanel('overview','<div class="project-db-overview-grid">'+projectDatabasePanel('项目档案',projectBasicsHtml(p))+projectDatabasePanel('风险概览',projectRiskOverviewHtml(stat))+'</div><div class="project-db-overview-grid">'+projectDatabasePanel('数据概览',projectDatabaseFactsHtml(dataRecords,records.length,stat.images,communityTotal,p))+projectDatabasePanel('工作进度',projectDatabaseWorkflowHtml(p,records,community,scopeStats))+'</div>')
-+projectDatabaseTabPanel('ledger','<div class="project-db-tab-section">'+projectDatabasePanel('项目范围与住宅台账',projectScopeDatabaseHtml(p,scopeStats))+'</div>')
-+projectDatabaseTabPanel('analysis','<div class="project-db-tab-section">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div><div class="project-db-tab-section">'+projectDatabasePanel('问题台账',projectIssueDatabaseHtml(issues))+'</div>')
-+projectDatabaseTabPanel('indicators','<div class="project-db-tab-section">'+projectDatabasePanel('项目指标库','<section class="project-indicator-catalog project-indicator-catalog--standalone" aria-labelledby="housingIndicatorHeading"><div class="project-indicator-catalog-heading"><div><h4 id="housingIndicatorHeading">住房安全指标分类</h4><p>住房安全指标是项目指标库的核心内容，AI 识别、人工复核、问题台账和报告均按这里的指标与问题编码进行索引。</p></div><span class="project-indicator-catalog-badge">内置标准指标</span></div>'+projectHousingIndicatorHtml()+'</section>')+'</div>')
-+projectDatabaseTabPanel('report','<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div>');
+var view=currentRoute&&currentRoute.projectView?currentRoute.projectView:'overview',viewTitle={overview:'项目概览',scope:'档案与范围',ledger:'住宅台账',issues:'问题台账',indicators:'指标库',reports:'报告成果'}[view]||'项目概览';
+var heading='<div class="project-db-heading"><div><div class="section-tag">PROJECT WORKSPACE</div><h2>'+escapeHtml(viewTitle)+'</h2><p>当前所有操作与数据均归属于 '+escapeHtml(p.name||'未命名体检项目')+'，切换栏目不会丢失项目上下文。</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><a class="btn btn-primary btn-sm" href="'+SmartRenewStructure.projectHash(p.id,'analysis')+'">新增住区分析</a><a class="btn btn-outline btn-sm" href="'+SmartRenewStructure.projectHash(p.id,'community')+'">更新空间分析</a></div></div>';
+var kpis='<div class="project-db-kpis">'+projectDatabaseKpiHtml('项目范围',scopeStats.areaLabel,scopeStats.hasBoundary?'地图框选边界':'待补充范围')+projectDatabaseKpiHtml('住宅小区',scopeStats.communityCount+' 个',scopeStats.hasInventory?'边界内有效台账':'待完成范围识别')+projectDatabaseKpiHtml('楼栋数量',scopeStats.buildingLabel,scopeStats.buildingPending?'存在待补录项':'已核实')+projectDatabaseKpiHtml('住宅户数',scopeStats.householdLabel,scopeStats.householdPending?'存在待补录项':'已核实')+projectDatabaseKpiHtml('问题数量',stat.total+' 个','高 '+stat.high+' · 中 '+stat.medium+' · 低 '+stat.low)+projectDatabaseKpiHtml('报告状态',reportReady?'可生成':'待完善',reportReady?'关键数据已具备':'需补齐住区与空间分析')+'</div>';
+var bodies={
+overview:kpis+'<div class="project-db-overview-grid">'+projectDatabasePanel('项目档案',projectBasicsHtml(p))+projectDatabasePanel('风险概览',projectRiskOverviewHtml(stat))+'</div><div class="project-db-overview-grid">'+projectDatabasePanel('数据概览',projectDatabaseFactsHtml(dataRecords,records.length,stat.images,communityTotal,p))+projectDatabasePanel('工作进度',projectDatabaseWorkflowHtml(p,records,community,scopeStats))+'</div>',
+scope:'<div class="project-db-overview-grid">'+projectDatabasePanel('项目档案',projectBasicsHtml(p))+projectDatabasePanel('范围状态',projectScopeOverviewHtml(p,scopeStats))+'</div>',
+ledger:'<div class="project-db-tab-section">'+projectDatabasePanel('住宅台账',projectScopeDatabaseHtml(p,scopeStats))+'</div>',
+issues:'<div class="project-db-tab-section">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div><div class="project-db-tab-section">'+projectDatabasePanel('正式问题台账',projectIssueDatabaseHtml(issues))+'</div>',
+indicators:'<div class="project-db-tab-section">'+projectDatabasePanel('项目指标库','<section class="project-indicator-catalog project-indicator-catalog--standalone" aria-labelledby="housingIndicatorHeading"><div class="project-indicator-catalog-heading"><div><h4 id="housingIndicatorHeading">住房安全指标分类</h4><p>AI 识别、人工复核、问题台账和报告统一按这里的 PRB 编码索引，不再建立第二套数据索引。</p></div><span class="project-indicator-catalog-badge">内置标准指标</span></div>'+projectHousingIndicatorHtml()+'</section>')+'</div>',
+reports:'<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div><div style="margin-top:18px;"><a class="btn btn-primary" href="'+SmartRenewStructure.projectHash(p.id,'reports')+'">进入报告成果</a></div>'
+};
+if(main)main.innerHTML=heading+(bodies[view]||bodies.overview);
 }catch(e){if(main)main.innerHTML='<div class="result-empty" style="color:var(--red-500);">项目中枢加载失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
 
 function projectHubPanel(title,body){return'<section style="background:#fff;border:1px solid var(--border-default);padding:22px;"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:14px;">'+escapeHtml(title)+'</h3>'+body+'</section>';}
 function projectDatabasePanel(title,body){return'<section class="project-db-panel"><h3>'+escapeHtml(title)+'</h3>'+body+'</section>';}
 function projectDatabaseKpiHtml(label,value,meta){return'<div class="project-db-kpi"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span><small>'+escapeHtml(meta||'')+'</small></div>';}
+function projectScopeOverviewHtml(project,stats){return'<div class="project-scope-metrics" style="grid-template-columns:repeat(2,minmax(0,1fr));">'+projectDatabaseKpiHtml('范围面积',stats.areaLabel,stats.hasBoundary?'已建立地图边界':'待框选')+projectDatabaseKpiHtml('边界内小区',stats.communityCount+' 个',stats.hasInventory?'已生成住宅清单':'待识别')+'</div><p class="scope-data-note" style="margin:18px 0;">项目范围是住宅台账、现场照片和后续分析的归属基础。重新框选前请确认不会影响已核实的小区清单。</p><button class="btn btn-primary btn-sm" onclick="editProjectScope('+project.id+')">'+(stats.hasBoundary?'编辑档案与范围':'补充档案与范围')+'</button>';}
 function projectDatabaseTabsHtml(){var tabs=[['overview','总览'],['ledger','住宅台账'],['analysis','问题分析'],['indicators','指标库'],['report','报告建议']];return'<nav class="project-db-tabs" aria-label="项目数据库栏目">'+tabs.map(function(tab){return'<button type="button" class="project-db-tab'+(projectDatabaseView===tab[0]?' active':'')+'" data-project-db-tab="'+tab[0]+'" onclick="setProjectDatabaseView(\''+tab[0]+'\')">'+tab[1]+'</button>';}).join('')+'</nav>';}
 function projectDatabaseTabPanel(view,body){return'<div class="project-db-tab-panel'+(projectDatabaseView===view?' active':'')+'" data-project-db-panel="'+view+'">'+body+'</div>';}
 function setProjectDatabaseView(view){if(view==='data')view='indicators';var allowed=['overview','ledger','analysis','indicators','report'];if(allowed.indexOf(view)<0)view='overview';projectDatabaseView=view;var tabs=document.querySelectorAll('[data-project-db-tab]'),panels=document.querySelectorAll('[data-project-db-panel]');for(var i=0;i<tabs.length;i++){var active=tabs[i].getAttribute('data-project-db-tab')===view;tabs[i].classList.toggle('active',active);tabs[i].setAttribute('aria-selected',active?'true':'false');}for(var j=0;j<panels.length;j++)panels[j].classList.toggle('active',panels[j].getAttribute('data-project-db-panel')===view);}
@@ -1393,7 +1513,7 @@ var statusFilters=document.getElementById('statusFilters');if(statusFilters){sta
 document.getElementById('mobileMenuBtn').addEventListener('click',function(){document.getElementById('navLinks').classList.toggle('open');});
 var homeForwardBtn=document.getElementById('homeForwardBtn');if(homeForwardBtn){homeForwardBtn.addEventListener('click',function(){document.body.classList.add('home-step-2');});}
 var homeBackBtn=document.getElementById('homeBackBtn');if(homeBackBtn){homeBackBtn.addEventListener('click',function(){document.body.classList.remove('home-step-2');});}
-window.addEventListener('hashchange',function(){var hash=window.location.hash||'#home',page=hash.replace('#','').split('/')[0];showPage(hash.includes('/')?'detail':(page||'home'));});
+window.addEventListener('hashchange',function(){showPage();});
 window.addEventListener('scroll',function(){var h=document.getElementById('header');if(window.scrollY>50)h.classList.add('scrolled');else h.classList.remove('scrolled');});
 
 /* ===== AI ANALYSIS ENGINE ===== */
@@ -1453,6 +1573,7 @@ else{status.innerHTML='<span class="status-missing">⚠️ 请选择用户并输
 
 function initAiAnalysisPage(){
 updateApiKeyUI();loadApiKeyUsers();renderActiveProjectPanel();initAnalysisTabs();initUploadZone();initAnalysisButtons();renderHistoryList();updateUploadGuidance();checkAiService();setAnalysisWorkflowStep(1);
+activateAnalysisTab(currentRoute&&currentRoute.projectView==='photos'?'photo-archive':'new-analysis');
 }
 
 function updateUploadGuidance(){var hint=document.getElementById('analysisUploadHint'),maxImages=getConfigMaxImages();if(hint)hint.textContent='建议至少上传 '+Math.min(3,maxImages)+' 张清晰现场照片，当前单次上限 '+maxImages+' 张，单张不超过 10MB';}
@@ -1496,22 +1617,25 @@ if(cfgSaveParamsBtn){cfgSaveParamsBtn.addEventListener('click',function(){var cf
 function initAnalysisTabs(){
 var tabs=document.querySelectorAll('.analysis-tab');
 for(var i=0;i<tabs.length;i++){
+if(tabs[i].dataset.bound==='1')continue;
 tabs[i].addEventListener('click',function(){
-var tabName=this.dataset.tab;
-for(var j=0;j<tabs.length;j++)tabs[j].classList.remove('active');
-this.classList.add('active');
-var panels=document.querySelectorAll('.analysis-panel');
-for(var k=0;k<panels.length;k++)panels[k].classList.remove('active');
-var panel=document.getElementById('panel-'+tabName);if(panel)panel.classList.add('active');
+activateAnalysisTab(this.dataset.tab);
+});
+tabs[i].dataset.bound='1';
+}
+}
+
+function activateAnalysisTab(tabName){
+var tabs=document.querySelectorAll('.analysis-tab'),panels=document.querySelectorAll('.analysis-panel');
+for(var j=0;j<tabs.length;j++)tabs[j].classList.toggle('active',tabs[j].dataset.tab===tabName);
+for(var k=0;k<panels.length;k++)panels[k].classList.toggle('active',panels[k].id==='panel-'+tabName);
 if(tabName==='history')renderHistoryList();
 if(tabName==='photo-archive')renderPhotoArchive();
-});
 }
 
 function reportVersionListHtml(items){if(!items||!items.length)return'<p style="font-size:.78rem;color:var(--text-muted);">尚未生成固定版本</p>';return'<div style="display:grid;gap:7px;">'+items.slice(0,6).map(function(item){return'<button class="btn btn-outline btn-sm" style="justify-content:space-between;" onclick="viewReportSnapshot(\''+item.id+'\')"><span>V'+item.version+'</span><span>'+escapeHtml(new Date(item.generatedAt).toLocaleDateString('zh-CN'))+'</span></button>';}).join('')+'</div>';}
 async function generateCurrentReportSnapshot(){var projectId=getActiveProjectId(),generatedBy=localStorage.getItem('smart_renew_reviewer_name')||'';if(!generatedBy){showToast('请先在住区维度填写复核人员','error');return;}try{showLoading('正在生成报告版本快照...','固定本次使用的数据与来源编号');var result=await storageApi('/api/reports/generate',{method:'POST',body:JSON.stringify({projectId:String(projectId),generatedBy:generatedBy})});showToast('报告 V'+result.item.version+' 已保存','success');renderDiagnosticReport();}catch(error){showToast('报告版本生成失败：'+error.message,'error');}finally{hideLoading();}}
 async function viewReportSnapshot(id){try{var result=await storageApi('/api/reports/'+id),report=result.item,snapshot=report.snapshot||{},issues=snapshot.issues||{};alert('报告版本：V'+report.version+'\n生成时间：'+new Date(report.generatedAt).toLocaleString('zh-CN')+'\n数据截止：'+new Date(report.dataCutoffAt).toLocaleString('zh-CN')+'\n正式问题：'+(issues.total||0)+' 个\n高风险：'+(issues.high||0)+' 个\n来源数据编号：'+Object.keys(report.sourceIds||{}).reduce(function(sum,key){return sum+((report.sourceIds[key]||[]).length);},0)+' 条');}catch(error){showToast('报告版本读取失败：'+error.message,'error');}}
-}
 
 var photoArchiveItems=[];
 function syncPhotoArchiveFilters(){var community=document.getElementById('photoArchiveCommunity'),building=document.getElementById('photoArchiveBuilding');if(!community||!building)return;var items=activeResidentialItems(analysisLocationProject),previous=community.value;community.innerHTML='<option value="">全部小区</option>'+items.map(function(item,index){return'<option value="'+escapeHtml(residentialItemId(item,index))+'">'+escapeHtml(item.name||'未命名小区')+'</option>';}).join('');if(items.some(function(item,index){return residentialItemId(item,index)===previous;}))community.value=previous;var selected=null;for(var i=0;i<items.length;i++){if(residentialItemId(items[i],i)===community.value){selected=items[i];break;}}var buildings=selected&&Array.isArray(selected.buildings)?selected.buildings.filter(function(item){return item&&item.status!=='deleted';}):[],oldBuilding=building.value;building.innerHTML='<option value="">全部楼栋</option>'+buildings.map(function(item,index){return'<option value="'+escapeHtml(String(item.id||('building-'+(index+1))))+'">'+escapeHtml(item.name||((index+1)+'号楼'))+'</option>';}).join('');if(buildings.some(function(item,index){return String(item.id||('building-'+(index+1)))===oldBuilding;}))building.value=oldBuilding;if(!community.dataset.bound){community.addEventListener('change',function(){building.value='';syncPhotoArchiveFilters();renderPhotoArchive();});community.dataset.bound='1';}}
@@ -1978,17 +2102,17 @@ renderProjectsPage();
 
 async function openProjectAi(id){
 await selectProject(id);
-navigateTo('#ai-analysis');
+navigateTo(SmartRenewStructure.projectHash(id,'analysis'));
 }
 
 async function openProjectCommunity(id){
 await selectProject(id);
-navigateTo('#community');
+navigateTo(SmartRenewStructure.projectHash(id,'community'));
 }
 
 async function openProjectHub(id){
 await selectProject(id);
-navigateTo('#project/'+id);
+navigateTo(SmartRenewStructure.projectHash(id,'overview'));
 }
 
 /* ===== COMMUNITY ===== */
@@ -2326,7 +2450,7 @@ function haversineKm(lat1,lng1,lat2,lng2){var R=6371,dLat=(lat2-lat1)*Math.PI/18
 
 document.addEventListener('DOMContentLoaded',function(){var pills=document.querySelectorAll('.csb-pill');for(var i=0;i<pills.length;i++){pills[i].addEventListener('click',function(){var km=this.getAttribute('data-km');if(!km)return;var sel=document.getElementById('communityRadius');if(sel)sel.value=km;for(var j=0;j<pills.length;j++)pills[j].classList.remove('active');this.classList.add('active');updateCommunityRadius();});}});
 
-var initialHash=window.location.hash||'#home',initialPage=initialHash.replace('#','').split('/')[0];showPage(initialHash.includes('/')?'detail':(initialPage||'home'));if((initialPage||'home')==='home'&&location.search.indexOf('homeStep=2')>-1)document.body.classList.add('home-step-2');
+if(!window.location.hash)history.replaceState(null,'','#workbench');showPage();
 </script>
 </body>
 </html>
