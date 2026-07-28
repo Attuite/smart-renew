@@ -462,8 +462,9 @@ functions/api/
 6. 工作台只读取真实项目、住宅台账和分析状态，不生成演示 KPI。
 7. 成果中心按项目汇总已归档分析、确认问题、空间分析和报告入口。
 8. 系统设置集中展示 AI 服务、指标编码和外部接口入口。
-9. 原有 `#home`、`#new-project`、`#ai-analysis`、`#community`、`#diagnostic`、`#analysis`、`#project/{id}` 和旧指标地址继续兼容。
+9. 原有 `#new-project`、`#ai-analysis`、`#community`、`#diagnostic`、`#analysis`、`#project/{id}` 和旧指标地址继续兼容。
 10. 新增 `assets/site-structure.js` 和 `assets/site-structure.css`，把路由定义、目录定义和本次新增样式从大型 `index.html` 中拆出。
+11. 原视觉首页保留在 `#home`，作为网站默认入口；点击左上角品牌返回首页，工作台继续作为业务入口。
 
 本地检查结果：
 

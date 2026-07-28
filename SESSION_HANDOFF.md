@@ -225,7 +225,8 @@ CloudBase 数据库使用的关键集合包括：
 - 一级导航已调整为：工作台、项目管理、现场采集、成果中心、系统设置。
 - 项目工作统一使用 `#project/{项目编号}/{栏目}`，栏目包括概览、范围、住宅台账、现场照片、住区分析、社区／街区、问题台账、指标库和报告成果。
 - 原住区、社区／街区、体检报告和数据看板页面继续保留，通过项目工作台地址进入时会保持当前项目上下文。
-- `#home`、`#new-project`、`#ai-analysis`、`#community`、`#diagnostic`、`#analysis`、`#project/{id}` 以及旧指标地址仍可兼容。
+- 原视觉首页已恢复为默认入口 `#home`，点击左上角品牌返回首页；工作台保留为独立业务入口。
+- `#new-project`、`#ai-analysis`、`#community`、`#diagnostic`、`#analysis`、`#project/{id}` 以及旧指标地址仍可兼容。
 - 新增 `assets/site-structure.js` 统一维护路由和目录，新增 `assets/site-structure.css` 维护平台页与项目工作台样式。
 - 完整实施方案与本地检查记录见 `docs/SITE_STRUCTURE_REFACTOR_PLAN.md`。
 - 本轮尚未合并 `main`，也未部署线上。

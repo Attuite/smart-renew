@@ -636,7 +636,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 
 <header class="header" id="header">
 <div class="header-inner">
-<a href="#workbench" class="logo" data-nav="workbench"><span class="logo-icon">智</span><span>智更Smart Renew</span></a>
+<a href="#home" class="logo" data-nav="home" aria-label="返回首页"><span class="logo-icon">智</span><span>智更Smart Renew</span></a>
 <nav class="nav-links" id="navLinks">
 <a href="#workbench" data-nav="workbench" class="active">工作台</a>
 <a href="#projects" data-nav="projects">项目管理</a>
@@ -1073,7 +1073,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <!-- FOOTER -->
 <footer class="footer"><div class="container"><div class="footer-grid">
 <div class="footer-brand"><div class="logo"><span class="logo-icon">智</span><span>智更Smart Renew</span></div><p>智慧更新，让城市更美好</p></div>
-<div class="footer-col"><h4>平台</h4><a href="#workbench" data-nav="workbench">工作台</a><a href="#projects" data-nav="projects">项目管理</a><a href="#collection" data-nav="collection">现场采集</a></div>
+<div class="footer-col"><h4>平台</h4><a href="#home" data-nav="home">首页</a><a href="#workbench" data-nav="workbench">工作台</a><a href="#projects" data-nav="projects">项目管理</a><a href="#collection" data-nav="collection">现场采集</a></div>
 <div class="footer-col"><h4>成果与设置</h4><a href="#outcomes" data-nav="outcomes">成果中心</a><a href="#settings" data-nav="settings">系统设置</a></div>
 <div class="footer-col"><h4>服务单位</h4><a>中国建筑西北设计研究院</a></div>
 </div><div class="footer-bottom">智更 Smart Renew · 城市更新体检工作台</div></div></footer>
@@ -1097,7 +1097,7 @@ var currentPage='workbench',currentRoute=null,currentFilters={type:'all',status:
 function renderFeaturedProjects(){}
 function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash;if(window.location.hash===targetHash)showPage();else window.location.hash=targetHash;window.scrollTo(0,0);}
 function showPage(){
-var route=SmartRenewStructure.parse(window.location.hash||'#workbench'),page=route.page;
+var route=SmartRenewStructure.parse(window.location.hash||'#home'),page=route.page;
 if(route.projectId)setActiveProjectId(route.projectId);
 if((page==='analysis'||page==='diagnostic')&&!getActiveProjectId()){showToast('请先在项目管理中选择当前项目','info');page='projects';route=SmartRenewStructure.parse('#projects');if(window.location.hash!=='#projects')history.replaceState(null,'','#projects');}
 currentRoute=route;currentPage=page;document.body.classList.toggle('home-mode',page==='home');if(page!=='home')document.body.classList.remove('home-step-2');var allPages=document.querySelectorAll('.page');for(var i=0;i<allPages.length;i++)allPages[i].classList.remove('active');
@@ -2450,7 +2450,7 @@ function haversineKm(lat1,lng1,lat2,lng2){var R=6371,dLat=(lat2-lat1)*Math.PI/18
 
 document.addEventListener('DOMContentLoaded',function(){var pills=document.querySelectorAll('.csb-pill');for(var i=0;i<pills.length;i++){pills[i].addEventListener('click',function(){var km=this.getAttribute('data-km');if(!km)return;var sel=document.getElementById('communityRadius');if(sel)sel.value=km;for(var j=0;j<pills.length;j++)pills[j].classList.remove('active');this.classList.add('active');updateCommunityRadius();});}});
 
-if(!window.location.hash)history.replaceState(null,'','#workbench');showPage();
+if(!window.location.hash)history.replaceState(null,'','#home');showPage();
 </script>
 </body>
 </html>

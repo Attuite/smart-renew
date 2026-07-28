@@ -27,7 +27,7 @@
 
   function parse(hash) {
     var raw = cleanHash(hash);
-    if (!raw || raw === 'home') raw = 'workbench';
+    if (!raw) raw = 'home';
     var parts = raw.split('/');
     if (parts[0] === 'project' && parts[1]) {
       var view = parts[2] || 'overview';
@@ -48,6 +48,7 @@
     }
 
     var primaryByPage = {
+      home: 'home',
       workbench: 'workbench',
       projects: 'projects',
       'new-project': 'projects',
@@ -60,7 +61,7 @@
       settings: 'settings',
       'ai-config': 'settings'
     };
-    if (!primaryByPage[raw]) raw = 'workbench';
+    if (!primaryByPage[raw]) raw = 'home';
     return {
       raw: raw,
       page: raw,
