@@ -2,7 +2,6 @@
   'use strict';
 
   var primaryNav = [
-    { key: 'workbench', label: '工作台', hash: '#workbench' },
     { key: 'projects', label: '项目管理', hash: '#projects' },
     { key: 'collection', label: '现场采集', hash: '#collection' },
     { key: 'outcomes', label: '成果中心', hash: '#outcomes' },
@@ -28,6 +27,7 @@
   function parse(hash) {
     var raw = cleanHash(hash);
     if (!raw) raw = 'home';
+    if (raw === 'workbench') raw = 'projects';
     var parts = raw.split('/');
     if (parts[0] === 'project' && parts[1]) {
       var view = parts[2] || 'overview';
@@ -49,7 +49,6 @@
 
     var primaryByPage = {
       home: 'home',
-      workbench: 'workbench',
       projects: 'projects',
       'new-project': 'projects',
       collection: 'collection',
@@ -65,7 +64,7 @@
     return {
       raw: raw,
       page: raw,
-      primary: primaryByPage[raw] || 'workbench',
+      primary: primaryByPage[raw] || 'home',
       projectId: null,
       projectView: null,
       isProject: false

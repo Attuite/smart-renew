@@ -639,7 +639,6 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <a href="#home" class="logo" data-nav="home" aria-label="返回首页"><span class="logo-icon">智</span><span>智更Smart Renew</span></a>
 <nav class="nav-links" id="navLinks">
 <a href="#home" data-nav="home" class="active">首页</a>
-<a href="#workbench" data-nav="workbench">工作台</a>
 <a href="#projects" data-nav="projects">项目管理</a>
 <a href="#collection" data-nav="collection">现场采集</a>
 <a href="#outcomes" data-nav="outcomes">成果中心</a>
@@ -723,12 +722,6 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div class="type-card" onclick="navigateTo('#diagnostic')"><div class="type-bg" style="background:linear-gradient(135deg,#312e81,#7c3aed);"></div><div class="type-content"><h3>04 体检报告</h3><p>形成项目级综合诊断</p></div></div>
 </div></div></section>
 <section class="cta-section"><div class="container"><h2 class="cta-title">从第一个体检项目开始</h2><p class="cta-desc">先建立项目档案，再选择该项目进入建筑隐患识别、社区/街区维度分析和诊断报告。</p><div class="cta-actions"><a href="#new-project" class="btn btn-white btn-lg" data-nav="new-project">新建体检项目</a><a href="#projects" class="btn btn-outline btn-lg" data-nav="projects" style="color:white;border-color:rgba(255,255,255,.4);">查看项目汇总</a></div></div></section>
-</div>
-
-<!-- PAGE: WORKBENCH -->
-<div class="page platform-shell" id="page-workbench">
-<section class="page-hero"><div class="container"><div class="section-tag">WORKBENCH</div><h1 class="page-hero-title">工作台</h1><p class="page-hero-desc">从真实项目数据出发，集中查看当前项目、待补录事项、待复核分析和最近工作。</p></div></section>
-<section class="section" style="padding-top:32px;"><div class="container" id="workbenchRoot"><div class="result-empty">正在读取工作数据...</div></div></section>
 </div>
 
 <!-- PAGE: NEW PROJECT -->
@@ -1074,7 +1067,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <!-- FOOTER -->
 <footer class="footer"><div class="container"><div class="footer-grid">
 <div class="footer-brand"><div class="logo"><span class="logo-icon">智</span><span>智更Smart Renew</span></div><p>智慧更新，让城市更美好</p></div>
-<div class="footer-col"><h4>平台</h4><a href="#home" data-nav="home">首页</a><a href="#workbench" data-nav="workbench">工作台</a><a href="#projects" data-nav="projects">项目管理</a><a href="#collection" data-nav="collection">现场采集</a></div>
+<div class="footer-col"><h4>平台</h4><a href="#home" data-nav="home">首页</a><a href="#projects" data-nav="projects">项目管理</a><a href="#collection" data-nav="collection">现场采集</a></div>
 <div class="footer-col"><h4>成果与设置</h4><a href="#outcomes" data-nav="outcomes">成果中心</a><a href="#settings" data-nav="settings">系统设置</a></div>
 <div class="footer-col"><h4>服务单位</h4><a>中国建筑西北设计研究院</a></div>
 </div><div class="footer-bottom">智更 Smart Renew · 城市更新体检工作台</div></div></footer>
@@ -1094,7 +1087,7 @@ medium:{label:'中风险',className:'severity-medium',icon:'🟠',statColor:'var
 low:{label:'低风险',className:'severity-low',icon:'🟢',statColor:'var(--green-500)'}
 };
 
-var currentPage='workbench',currentRoute=null,currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
+var currentPage='home',currentRoute=null,currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
 function renderFeaturedProjects(){}
 function navigateTo(hash,params){if(params)Object.assign(currentFilters,params);var targetHash=hash.charAt(0)==='#'?hash:'#'+hash;if(window.location.hash===targetHash)showPage();else window.location.hash=targetHash;window.scrollTo(0,0);}
 function showPage(){
@@ -1106,7 +1099,6 @@ var target=document.getElementById('page-'+page);if(target)target.classList.add(
 var navs=document.querySelectorAll('.nav-links a');for(var j=0;j<navs.length;j++)navs[j].classList.remove('active');
 var navActive=document.querySelector('.nav-links [data-nav="'+route.primary+'"]');if(navActive)navActive.classList.add('active');
 if(page==='new-project')setTimeout(function(){initProjectScopeMap();},200);
-if(page==='workbench')renderWorkbenchPage();
 if(page==='projects')renderProjectsPage();
 if(page==='detail')renderDetailPage();
 if(page==='analysis')renderAnalysisPage();
@@ -1138,27 +1130,6 @@ target.innerHTML=projectWorkspaceNavHtml(projectId,view);
 
 function platformKpi(value,label,note){return'<div class="platform-kpi"><strong>'+escapeHtml(value)+'</strong><span>'+escapeHtml(label)+'</span><small>'+escapeHtml(note||'')+'</small></div>';}
 function platformAction(href,title,desc,action){return'<a class="platform-action" href="'+href+'"><span><strong>'+escapeHtml(title)+'</strong><span>'+escapeHtml(desc)+'</span></span><em>'+escapeHtml(action||'打开')+' →</em></a>';}
-function projectInventoryPending(project){var stat=getProjectScopeStats(project);return{stat:stat,pendingBuildings:stat.buildingPending?1:0,pendingHouseholds:stat.householdPending?1:0};}
-
-async function renderWorkbenchPage(){
-var root=document.getElementById('workbenchRoot');if(!root)return;
-root.innerHTML='<div class="result-empty">正在读取工作数据...</div>';
-try{
-var projects=await getAllProjects(),records=await getAllRecords(),activeId=getActiveProjectId(),active=activeId?projects.find(function(item){return String(item.id)===String(activeId);}):null;
-if(!active&&projects.length){active=projects[0];setActiveProjectId(active.id);}
-if(!active){root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">开始工作</div><h2>建立第一个体检项目</h2><p>工作台只显示真实项目和真实待办。创建并框选项目范围后，小区、台账、照片、分析和报告会在这里形成连续工作流。</p></div><a class="btn btn-primary" href="#new-project">新建项目</a></div>'+dashboardEmpty('尚无项目数据','当前没有可展示的项目记录。','#new-project','新建体检项目');return;}
-var activeRecords=records.filter(function(record){return String(record.projectId)===String(active.id);}),pendingReviews=activeRecords.filter(function(record){return record.status&&record.status!=='archived';}).length,scope=projectInventoryPending(active),communityCount=scope.stat.communityCount,latest=projects.slice().sort(function(a,b){return new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt);}).slice(0,5);
-root.innerHTML='<div class="platform-page-heading"><div><div class="section-tag">当前项目</div><h2>'+escapeHtml(active.name||'未命名体检项目')+'</h2><p>'+escapeHtml(active.area||'项目位置待补充')+' · 工作台仅汇总已保存的项目档案和真实待办。</p></div><a class="btn btn-primary" href="'+SmartRenewStructure.projectHash(active.id,'overview')+'">进入项目工作台</a></div>'
-+'<div class="platform-kpi-grid">'+platformKpi(projects.length+' 个','全部项目','项目管理中的真实档案')+platformKpi(communityCount+' 个','当前项目小区','来自地图范围与住宅台账')+platformKpi(pendingReviews+' 次','待复核分析','尚未正式归档的分析批次')+platformKpi(scope.stat.householdLabel,'住宅户数',scope.stat.householdPending?'仍有小区待补录':'当前项目已核实')+'</div>'
-+'<div class="platform-grid"><section class="platform-panel"><h3>继续当前项目</h3><p>按实际工作顺序处理范围、台账、照片、分析和报告。</p><div class="platform-action-list">'
-+platformAction(SmartRenewStructure.projectHash(active.id,'scope'),'核对档案与范围',scope.stat.hasBoundary?'地图范围已建立':'项目范围尚未框选',scope.stat.hasBoundary?'查看':'待处理')
-+platformAction(SmartRenewStructure.projectHash(active.id,'ledger'),'补录住宅台账',scope.stat.buildingPending||scope.stat.householdPending?'楼栋或户数仍有待补录项':'住宅台账已核实',scope.stat.buildingPending||scope.stat.householdPending?'待处理':'查看')
-+platformAction(SmartRenewStructure.projectHash(active.id,'analysis'),'住区照片体检',activeRecords.length+' 个分析批次，'+pendingReviews+' 个待复核','进入')
-+platformAction(SmartRenewStructure.projectHash(active.id,'reports'),'报告成果',active.communityAnalysis?'空间分析已保存，可继续核对报告':'尚需完成社区／街区分析','查看')
-+'</div></section><section class="platform-panel"><h3>最近项目</h3><p>按最近更新时间排列，点击后进入对应项目工作台。</p><div class="platform-action-list">'+latest.map(function(project){return platformAction(SmartRenewStructure.projectHash(project.id,'overview'),project.name||'未命名项目',(project.area||'位置待补充')+' · '+formatDashboardDate(project.updatedAt||project.createdAt),'打开');}).join('')+'</div></section></div>';
-}catch(error){root.innerHTML=dashboardEmpty('工作台读取失败',error.message,'#projects','进入项目管理');}
-}
-
 async function renderCollectionPage(){
 var root=document.getElementById('collectionRoot');if(!root)return;
 var id=getActiveProjectId(),project=id?await getProjectById(id):null;
