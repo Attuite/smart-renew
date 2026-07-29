@@ -215,10 +215,22 @@ CloudBase 数据库使用的关键集合包括：
 
 技术债务：
 
-- `index.html` 已超过 250 KB，HTML、CSS 和 JavaScript 高度集中，后续宜逐步拆分为模块。
+- `index.html` 已超过 250 KB，HTML、CSS 和 JavaScript 仍高度集中；本轮已先拆出 `assets/site-structure.js` 和 `assets/site-structure.css`，后续继续按业务模块拆分。
 - 当前仍是原生单页应用，不是最初设想的 React + Tailwind 架构；重构前需评估数据迁移和部署影响。
 - 高德地图、视觉模型和报告模块需要更系统的错误提示、加载状态和回归测试。
 - 需要补充团队协作说明，例如分支策略、提交规范、CloudBase 环境初始化和本地运行步骤。
+
+## 7.1 2026-07-28 网站目录重构
+
+- 顶部导航为：首页、项目管理、现场采集、成果中心、系统设置。
+- 项目工作统一使用 `#project/{项目编号}/{栏目}`，栏目包括概览、范围、住宅台账、现场照片、住区分析、社区／街区、问题台账、指标库和报告成果。
+- 原住区、社区／街区、体检报告和数据看板页面继续保留，通过项目工作台地址进入时会保持当前项目上下文。
+- 原视觉首页是默认入口 `#home`，点击左上角品牌返回首页。
+- 平台级“工作台”因与项目管理重复已删除；旧地址 `#workbench` 会兼容进入项目管理。
+- `#new-project`、`#ai-analysis`、`#community`、`#diagnostic`、`#analysis`、`#project/{id}` 以及旧指标地址仍可兼容。
+- 新增 `assets/site-structure.js` 统一维护路由和目录，新增 `assets/site-structure.css` 维护平台页与项目工作台样式。
+- 完整实施方案与本地检查记录见 `docs/SITE_STRUCTURE_REFACTOR_PLAN.md`。
+- 本轮尚未合并 `main`，也未部署线上。
 
 ## 8. 参考文件
 
