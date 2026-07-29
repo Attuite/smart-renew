@@ -1096,7 +1096,7 @@ xian-city-map.jpg
 
 现有基线只有在行为对照、回归测试和独立变更审查通过后才允许收敛代码；不得以“复用”为理由直接覆盖或另建平行实现。
 
-AB-00、AB-03和AB-04已完成。ProjectData记录/JSON Envelope/SQLite交换、来源追溯、外业任务、原Legacy与Business正式问题/只读报告迁移，以及高德地图、地址定位、GCJ-02边界绘制和POI清洗快照均已接入；当前下一增量为AI自动拆批、跨批合并与候选去重。
+AB-00至AB-10的A/B范围已完成。ProjectData/SQLite交换、外业任务工作台、Legacy迁移、高德与POI、AI拆批去重、人工复核与标注图、动态报告Renderer、CloudBase可选Provider代码及标准库目录均已接入。真实CloudBase生产验证仍依赖外部环境和凭据；指标引擎、服务端PDF等C/D能力继续保持明确待接入状态。
 
 完整范围、主数据源、接口、测试和完成条件见[A/B等级复用优先开发大纲](docs/reuse-first-ab-development-outline.md)。
 
@@ -1211,4 +1211,4 @@ cd urban-health-business
 npm run verify
 ```
 
-`verify` 包含语法检查、108项单元测试、双服务隔离全过程集成测试、Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。
+`verify` 包含语法检查、131项单元测试、双服务隔离全过程集成测试、Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。

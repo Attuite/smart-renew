@@ -10,6 +10,8 @@ test('business official issue does not require indicator mapping', () => {
     title: '现场可见问题',
     severity: 'medium',
     confidence: 0.74,
+    annotatedPhotoId: 'PHOTO-ANNOTATED-001',
+    annotationUploadSessionId: 'UPL-annotation-session',
     reviewStatus: 'accepted'
   }, {
     id: '170000000000004',
@@ -22,6 +24,8 @@ test('business official issue does not require indicator mapping', () => {
   assert.equal(issue.indicatorCode, null);
   assert.equal(issue.indicatorBindingStatus, 'not_integrated');
   assert.equal(issue.originalPhotoId, 'PHOTO-REAL-001');
+  assert.equal(issue.annotatedPhotoId, 'PHOTO-ANNOTATED-001');
+  assert.equal(issue.annotationUploadSessionId, 'UPL-annotation-session');
   assert.equal(issue.reviewStatus, 'confirmed');
 });
 

@@ -3,8 +3,33 @@ import assert from 'node:assert/strict';
 import {
   markAnalysisStaleness,
   markReportStaleness,
-  markSpatialStaleness
+  markSpatialStaleness,
+  sourceEvidencePhotos,
+  sourceUploadSessions
 } from '../../server/services/workflow-service.mjs';
+
+test('annotated derivatives do not become new source evidence or block collection uploads', () => {
+  const sessions = [{
+    id: 'UPL-ORIGINAL',
+    kind: 'original',
+    status: 'completed',
+    photoId: 'PHOTO-1'
+  }, {
+    id: 'UPL-ANNOTATED',
+    kind: 'annotated',
+    status: 'completed',
+    photoId: 'PHOTO-ANNOTATED'
+  }];
+  assert.deepEqual(
+    sourceEvidencePhotos([
+      { id: 'PHOTO-1' },
+      { id: 'PHOTO-ANNOTATED' },
+      { id: 'PHOTO-LEGACY' }
+    ], sessions).map((photo) => photo.id),
+    ['PHOTO-1', 'PHOTO-LEGACY']
+  );
+  assert.deepEqual(sourceUploadSessions(sessions).map((session) => session.id), ['UPL-ORIGINAL']);
+});
 
 test('photo metadata revision or deactivation makes dependent AI jobs stale', () => {
   const jobs = [{

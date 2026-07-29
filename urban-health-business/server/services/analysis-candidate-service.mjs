@@ -33,6 +33,9 @@ export async function updateAnalysisCandidate(
   if (analysis?.status === 'archived') {
     throw candidateError('已归档分析的候选不能继续修改。', 409, 'ANALYSIS_ALREADY_ARCHIVED');
   }
+  if (typeof options.assertAnalysisFresh === 'function') {
+    await options.assertAnalysisFresh(analysis);
+  }
   if (!candidate) {
     const source = candidatesFrom(analysis).find((item) => String(item.id) === id);
     if (!source) throw candidateError('AI候选不存在。', 404, 'ANALYSIS_CANDIDATE_NOT_FOUND');

@@ -178,7 +178,11 @@ export async function runAnalysis(client, projectId, input, options = {}) {
     status: 'running',
     createdAt: now,
     timestamp: now,
-    promptVersion: 'business-residential-v1',
+    analysisJobId: String(options.jobId || '') || null,
+    analysisBatchId: String(options.batchId || '') || null,
+    batchIndex: Number(options.batchIndex) || 1,
+    batchCount: Number(options.batchCount) || 1,
+    promptVersion: String(options.promptVersion || 'business-residential-v1'),
     schemaVersion: '1.0.0'
   };
   await client.putAnalysis(baseRecord);

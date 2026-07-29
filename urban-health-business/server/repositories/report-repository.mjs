@@ -1,5 +1,9 @@
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  buildReportContentSnapshot,
+  buildReportSections
+} from '../services/report-renderer-service.mjs';
 
 function clean(value, maxLength = 2000) {
   return String(value ?? '').trim().slice(0, maxLength);
@@ -31,7 +35,7 @@ export function buildReportDraft(project, issues, analyses, existing, input, opt
     medium: officialIssues.filter((item) => item.severity === 'medium').length,
     low: officialIssues.filter((item) => item.severity === 'low').length
   };
-  return {
+  const report = {
     id: `RPT-BIZ-${projectId}-${String(version).padStart(4, '0')}`,
     projectId,
     version,
@@ -95,8 +99,11 @@ export function buildReportDraft(project, issues, analyses, existing, input, opt
       '本报告快照仅使用生成时已持久化的真实业务数据。',
       '指标引擎尚未接入，本版本不包含指标值、权重、扣分或综合得分。'
     ],
-    schemaVersion: '1.0.0'
+    contentSnapshot: buildReportContentSnapshot(project, officialIssues, analysisRuns, options),
+    schemaVersion: '1.1.0'
   };
+  report.sections = buildReportSections(report);
+  return report;
 }
 
 export class ReportRepository {

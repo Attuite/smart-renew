@@ -405,11 +405,11 @@ Business ReportRepository继续作为新报告唯一主写入。原`/api/reports
 
 当前Business已实现快照、内容编辑、修订审计、版本比较、stale、JSON下载和打印过渡，不再把“迁移报告工作台、真实数据绑定、校验和快照”列为未开始。
 
-本次A/B复用接入项：
+本次A/B复用接入已完成：
 
 - 原报告来源快照适配和现有版本算法行为对照；
-- 原动态真实数据章节；
-- 风险统计、表格和标注照片画廊；
+- 动态真实数据章节与固定章节索引；
+- 风险统计、问题/小区表格、标注照片画廊和来源索引；
 - ProjectData报告引用；
 - 已完成原报告快照只读迁移。
 
@@ -432,9 +432,9 @@ C/D后续项：
 
 ## 24. 本次A/B开发任务
 
-- 选择性抽取原report-snapshot-core中Business尚缺的来源适配算法；
-- 抽取动态报告章节Renderer和图文组件；
-- 将Renderer接入Business报告快照；
+- 已选择性抽取原report-snapshot-core中Business尚缺的来源适配算法；
+- 已抽取动态报告章节Renderer和图文组件；
+- 已将Renderer接入Business报告快照；
 - 已建立旧报告只读迁移适配；
 - 保留Business修订、比较、stale和不完整草稿；
 - 完成真实数据、旧版本迁移、指标缺失和无双写测试。

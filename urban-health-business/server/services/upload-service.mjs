@@ -57,6 +57,58 @@ export async function createUploadSession(client, repository, input, options = {
   if (buildingId && !building) {
     throw uploadError('所选楼栋不属于当前小区或已删除。', 400, 'UPLOAD_BUILDING_INVALID');
   }
+  const kind = clean(input?.kind, 30).toLowerCase() || 'original';
+  if (!['original', 'annotated'].includes(kind)) {
+    throw uploadError('照片归档类型无效。', 400, 'UPLOAD_KIND_INVALID');
+  }
+  let derivation = null;
+  if (kind === 'annotated') {
+    const analysisId = clean(input?.analysisId, 120);
+    const sourcePhotoId = clean(input?.sourcePhotoId, 120);
+    const candidateIds = [...new Set(
+      (Array.isArray(input?.candidateIds) ? input.candidateIds : [])
+        .map((item) => clean(item, 120))
+        .filter(Boolean)
+    )];
+    if (!analysisId || !sourcePhotoId || !candidateIds.length) {
+      throw uploadError(
+        '标注图必须关联分析、原始照片和至少一个候选问题。',
+        400,
+        'ANNOTATION_DERIVATION_REQUIRED'
+      );
+    }
+    const analysis = await client.getAnalysis(analysisId);
+    if (String(analysis?.projectId) !== projectId) {
+      throw uploadError('标注图分析不属于当前项目。', 400, 'ANNOTATION_ANALYSIS_INVALID');
+    }
+    if (analysis?.status !== 'reviewing') {
+      throw uploadError('只有复核中的分析可生成标注图。', 409, 'ANNOTATION_ANALYSIS_READ_ONLY');
+    }
+    if (typeof options.assertAnalysisFresh === 'function') {
+      await options.assertAnalysisFresh(analysis);
+    }
+    const sourcePhotoIds = (Array.isArray(analysis.photoIds) ? analysis.photoIds : []).map(String);
+    if (!sourcePhotoIds.includes(sourcePhotoId)) {
+      throw uploadError('标注图原始照片不属于当前分析。', 400, 'ANNOTATION_SOURCE_PHOTO_INVALID');
+    }
+    const candidateIdSet = new Set(
+      (Array.isArray(analysis.reviewIssues)
+        ? analysis.reviewIssues
+        : Array.isArray(analysis?.result?.issues) ? analysis.result.issues : [])
+        .map((candidate) => String(candidate.id || ''))
+    );
+    if (candidateIds.some((candidateId) => !candidateIdSet.has(candidateId))) {
+      throw uploadError('标注图包含不属于当前分析的候选问题。', 400, 'ANNOTATION_CANDIDATE_INVALID');
+    }
+    derivation = {
+      kind,
+      analysisId,
+      sourcePhotoId,
+      candidateIds,
+      imageIndex: Math.max(1, Math.trunc(Number(input?.imageIndex) || 1)),
+      createdBy: clean(input?.createdBy, 120)
+    };
+  }
 
   const now = options.now || new Date().toISOString();
   const session = {
@@ -67,6 +119,8 @@ export async function createUploadSession(client, repository, input, options = {
     communityName: clean(community.name, 160),
     buildingId: buildingId || '',
     buildingName: clean(building?.name, 160),
+    kind,
+    derivation,
     file: {
       name,
       mimeType,
@@ -120,7 +174,15 @@ export async function uploadSessionContent(client, repository, sessionId, bytes,
   try {
     const contentHash = createHash('sha256').update(bytes).digest('hex');
     const exif = extractPhotoExif(bytes, session.file.mimeType);
-    const photoSeed = `${session.projectId}|${session.communityId}|${session.buildingId}|${contentHash}`;
+    const photoSeed = [
+      session.projectId,
+      session.communityId,
+      session.buildingId,
+      session.kind || 'original',
+      session.derivation?.analysisId || '',
+      session.derivation?.sourcePhotoId || '',
+      contentHash
+    ].join('|');
     const photoId = `PHOTO-${createHash('sha256').update(photoSeed).digest('hex').slice(0, 24)}`;
     const payload = await client.uploadPhoto({
       photoId,
@@ -128,6 +190,11 @@ export async function uploadSessionContent(client, repository, sessionId, bytes,
       communityId: session.communityId,
       buildingId: session.buildingId,
       name: session.file.name,
+      analysisId: session.derivation?.analysisId || '',
+      imageIndex: session.derivation?.imageIndex || null,
+      description: session.kind === 'annotated'
+        ? `人工复核标注图，来源照片 ${session.derivation.sourcePhotoId}`
+        : '',
       capturedAt: exif.capturedAt || session.file.lastModified || now,
       dataUrl: `data:${session.file.mimeType};base64,${bytes.toString('base64')}`
     });

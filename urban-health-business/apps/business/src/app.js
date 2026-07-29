@@ -1,5 +1,10 @@
 import { api } from './api/client.js';
 import { AmapMapController } from './gis/amap-map-controller.js';
+import {
+  bboxPercentStyle,
+  createAnnotatedImageFile,
+  normalizeBbox
+} from './review/annotation.js';
 import { createStore } from './store/app-store.js';
 import { stageCatalog, statusLabels } from './workflow/stages.js';
 
@@ -7,6 +12,7 @@ const store = createStore();
 const pendingUploadFiles = new Map();
 let pendingSourceAssetRequestId = crypto.randomUUID();
 let analysisPollTimer = null;
+let reviewRiskFilter = 'all';
 let boundaryMapController = null;
 let boundaryMapProjectSignature = '';
 let boundaryMapInitializing = false;
@@ -112,6 +118,12 @@ const elements = {
   sourceAssetGovernanceBy: document.querySelector('#sourceAssetGovernanceBy'),
   sourceAssetList: document.querySelector('#sourceAssetList'),
   sourceAssetPreview: document.querySelector('#sourceAssetPreview'),
+  fieldTaskForm: document.querySelector('#fieldTaskForm'),
+  fieldTaskCommunitySelect: document.querySelector('#fieldTaskCommunitySelect'),
+  fieldTaskBuildingSelect: document.querySelector('#fieldTaskBuildingSelect'),
+  createFieldTaskButton: document.querySelector('#createFieldTaskButton'),
+  fieldTaskFormError: document.querySelector('#fieldTaskFormError'),
+  fieldTaskList: document.querySelector('#fieldTaskList'),
   rebuildProjectDataButton: document.querySelector('#rebuildProjectDataButton'),
   exportProjectDataSqliteButton: document.querySelector('#exportProjectDataSqliteButton'),
   analysisWorkspace: document.querySelector('#analysisWorkspace'),
@@ -137,6 +149,9 @@ const elements = {
   excludedReviewCount: document.querySelector('#excludedReviewCount'),
   reviewForm: document.querySelector('#reviewForm'),
   reviewBatchTitle: document.querySelector('#reviewBatchTitle'),
+  reviewRiskFilter: document.querySelector('#reviewRiskFilter'),
+  reviewFilterSummary: document.querySelector('#reviewFilterSummary'),
+  acceptVisibleCandidatesButton: document.querySelector('#acceptVisibleCandidatesButton'),
   reviewCandidateList: document.querySelector('#reviewCandidateList'),
   finalizeReviewButton: document.querySelector('#finalizeReviewButton'),
   reviewFormError: document.querySelector('#reviewFormError'),
@@ -181,6 +196,11 @@ const elements = {
   indicatorIssueCount: document.querySelector('#indicatorIssueCount'),
   indicatorLocatedCount: document.querySelector('#indicatorLocatedCount'),
   indicatorContractStatus: document.querySelector('#indicatorContractStatus'),
+  standardIndicatorCount: document.querySelector('#standardIndicatorCount'),
+  standardRemediationCount: document.querySelector('#standardRemediationCount'),
+  standardLibrarySummary: document.querySelector('#standardLibrarySummary'),
+  standardIndicatorList: document.querySelector('#standardIndicatorList'),
+  standardRemediationList: document.querySelector('#standardRemediationList'),
   reportWorkspace: document.querySelector('#reportWorkspace'),
   backFromReportButton: document.querySelector('#backFromReportButton'),
   reportVersionCount: document.querySelector('#reportVersionCount'),
@@ -687,6 +707,30 @@ function renderCollection(state) {
       </article>`).join('')
     : '<p class="workspace-empty">尚无调查表、GIS或文档资料。</p>';
 
+  const previousFieldCommunityId = elements.fieldTaskCommunitySelect.value;
+  const activeFieldCommunities = state.communities.filter((community) => community.status !== 'inactive');
+  elements.fieldTaskCommunitySelect.innerHTML = activeFieldCommunities
+    .map((community) => `<option value="${escapeHtml(community.id)}">${escapeHtml(community.name)}</option>`)
+    .join('');
+  if (activeFieldCommunities.some((community) => String(community.id) === previousFieldCommunityId)) {
+    elements.fieldTaskCommunitySelect.value = previousFieldCommunityId;
+  }
+  renderFieldTaskBuildingOptions(state);
+  elements.createFieldTaskButton.disabled = state.collectionLoading || !activeFieldCommunities.length;
+  elements.fieldTaskList.innerHTML = state.fieldTasks.length
+    ? state.fieldTasks.map((task) => `<article class="field-task-row">
+        <div><strong>${escapeHtml(task.clientTaskId || task.id)}</strong><span>${escapeHtml(task.description || '未填写任务说明')}</span></div>
+        <small>${escapeHtml(task.communityName || task.communityId || '未关联小区')}${task.buildingName || task.buildingId ? ` · ${escapeHtml(task.buildingName || task.buildingId)}` : ''} · ${escapeHtml(task.collectorId || task.collector || '采集人员未记录')}</small>
+        <i class="run-status status-${escapeHtml(task.status || 'created')}">${escapeHtml(task.status || 'created')}</i>
+      </article>`).join('')
+    : '<p class="workspace-empty">尚无外业采集任务。</p>';
+  if (state.fieldTaskErrors.length) {
+    elements.fieldTaskList.insertAdjacentHTML(
+      'beforeend',
+      `<p class="form-error">有${state.fieldTaskErrors.length}个任务暂时无法从上游读取，引用记录已保留。</p>`
+    );
+  }
+
   const buildingCommunityId = elements.buildingCommunitySelect.value;
   const buildings = state.buildingsByCommunity[buildingCommunityId] || [];
   elements.buildingList.innerHTML = buildings.length
@@ -828,6 +872,20 @@ function renderUploadBuildingOptions(state) {
   elements.uploadBuildingSelect.disabled = !communityId;
 }
 
+function renderFieldTaskBuildingOptions(state) {
+  const previous = elements.fieldTaskBuildingSelect.value;
+  const communityId = elements.fieldTaskCommunitySelect.value;
+  const buildings = (state.buildingsByCommunity[communityId] || [])
+    .filter((building) => building.status !== 'inactive');
+  elements.fieldTaskBuildingSelect.innerHTML = '<option value="">小区级任务</option>' + buildings
+    .map((building) => `<option value="${escapeHtml(building.id)}">${escapeHtml(building.name)}</option>`)
+    .join('');
+  if (buildings.some((building) => String(building.id) === previous)) {
+    elements.fieldTaskBuildingSelect.value = previous;
+  }
+  elements.fieldTaskBuildingSelect.disabled = !communityId;
+}
+
 function isAnalysisWorkspace(state) {
   const query = new URLSearchParams(location.search);
   return state.selectedStageId === 'ai-analysis' && query.get('view') === 'workspace' && Boolean(state.activeProjectId);
@@ -940,8 +998,8 @@ function renderAnalysis(state) {
             : '';
         return `<article class="history-row">
           <div><strong>${escapeHtml(job.analysisType || '综合巡检分析')}</strong><span>${time ? new Date(time).toLocaleString() : '时间未记录'}</span></div>
-          <span>${job.photoIds?.length || 0} 张照片 · ${Number(job.progress?.percent) || 0}%</span>
-          <span>${Number(job.candidateCount) || 0} 个候选</span>
+          <span>${job.photoIds?.length || 0} 张照片 · ${Number(job.batchCount) || 1} 批 · ${Number(job.progress?.percent) || 0}%</span>
+          <span>${Number(job.candidateCount) || 0} 个候选${Number(job.duplicateCandidateCount) ? ` · 合并${Number(job.duplicateCandidateCount)}项重复` : ''}</span>
           <i class="run-status status-${escapeHtml(job.status || 'unknown')}">${escapeHtml(analysisJobStatusLabel(job.status))}</i>
           <span class="history-actions">${actions}</span>
         </article>`;
@@ -972,6 +1030,15 @@ function activeReviewAnalysis(analyses) {
   return sorted.find((item) => item.status === 'reviewing') || sorted.find((item) => item.status === 'archived') || null;
 }
 
+function reviewBboxHtml(candidate) {
+  const style = bboxPercentStyle(candidate?.bbox);
+  if (!style) return '';
+  const confidence = candidate.confidence == null
+    ? ''
+    : ` · ${(Number(candidate.confidence) * 100).toFixed(0)}%`;
+  return `<span class="review-bbox risk-${escapeHtml(candidate.severity || 'medium')}" style="${style}"><span>${escapeHtml(candidate.categoryName || candidate.title || '问题')}${confidence}</span></span>`;
+}
+
 function renderReview(state) {
   const visible = isReviewWorkspace(state);
   elements.reviewWorkspace.hidden = !visible;
@@ -983,21 +1050,40 @@ function renderReview(state) {
   const accepted = candidates.filter((item) => ['accepted', 'modified'].includes(item.reviewStatus)).length;
   const excluded = candidates.filter((item) => ['excluded', 'rejected'].includes(item.reviewStatus)).length;
   const archived = analysis?.status === 'archived';
+  const visibleCandidates = reviewRiskFilter === 'all'
+    ? candidates
+    : candidates.filter((candidate) => candidate.severity === reviewRiskFilter);
   elements.pendingReviewCount.textContent = pending;
   elements.acceptedReviewCount.textContent = accepted;
   elements.excludedReviewCount.textContent = excluded;
   elements.reviewBatchTitle.textContent = analysis
     ? `${analysis.analysisType || '综合巡检分析'} · ${analysis.id}`
     : '没有可复核分析';
+  elements.reviewRiskFilter.value = reviewRiskFilter;
+  elements.reviewRiskFilter.disabled = !analysis;
+  elements.reviewFilterSummary.textContent = reviewRiskFilter === 'all'
+    ? `显示全部 ${candidates.length} 个候选`
+    : `当前显示 ${visibleCandidates.length} 个${{ high: '高', medium: '中', low: '低' }[reviewRiskFilter]}风险候选`;
+  elements.acceptVisibleCandidatesButton.disabled = !analysis
+    || archived
+    || state.reviewLoading
+    || !visibleCandidates.some((candidate) => !candidate.reviewStatus || candidate.reviewStatus === 'pending');
 
   elements.reviewCandidateList.innerHTML = !analysis
     ? '<p class="workspace-empty">请先在阶段02完成一次真实AI分析。</p>'
-    : candidates.length
-      ? candidates.map((candidate, index) => {
+    : visibleCandidates.length
+      ? visibleCandidates.map((candidate, index) => {
           const photo = state.photos.find((item) => String(item.id) === String(candidate.photoId));
           const current = candidate.reviewStatus === 'rejected' ? 'excluded' : candidate.reviewStatus || 'pending';
+          const imageIndex = Math.max(1, Math.trunc(Number(candidate.imageIndex) || 1));
+          const imageMeta = analysis.imageMeta?.[imageIndex - 1] || {};
+          const imageWidth = Number(photo?.width || imageMeta.width);
+          const imageHeight = Number(photo?.height || imageMeta.height);
+          const mediaStyle = imageWidth > 0 && imageHeight > 0
+            ? ` style="aspect-ratio:${imageWidth}/${imageHeight}"`
+            : '';
           return `<article class="review-card">
-            <div class="review-media">${photo?.url ? `<img src="${escapeHtml(photo.url)}" alt="${escapeHtml(photo.name || '证据照片')}">` : '<span>无照片预览</span>'}</div>
+            <div class="review-media"${mediaStyle}>${photo?.url ? `<img src="${escapeHtml(photo.url)}" alt="${escapeHtml(photo.name || '证据照片')}">${reviewBboxHtml(candidate)}` : '<span>无照片预览</span>'}</div>
             <div class="review-content">
               <header><span class="risk-${escapeHtml(candidate.severity)}">${escapeHtml(candidate.severity || 'unknown')}</span><small>${candidate.confidence == null ? '置信度未返回' : `${(Number(candidate.confidence) * 100).toFixed(1)}%`}</small></header>
               <strong>${escapeHtml(candidate.title || `候选问题 ${index + 1}`)}</strong>
@@ -1026,7 +1112,9 @@ function renderReview(state) {
             </div>
           </article>`;
         }).join('')
-      : '<p class="workspace-empty">本次真实分析返回0个候选问题，可由复核人员直接归档零问题结论。</p>';
+      : candidates.length
+        ? '<p class="workspace-empty">当前风险筛选下没有候选问题。</p>'
+        : '<p class="workspace-empty">本次真实分析返回0个候选问题，可由复核人员直接归档零问题结论。</p>';
 
   elements.finalizeReviewButton.disabled = !analysis || archived || state.reviewLoading;
   elements.finalizeReviewButton.textContent = archived ? '本批次已归档' : state.reviewLoading ? '正在归档…' : '完成复核并归档';
@@ -1292,6 +1380,26 @@ function renderIndicator(state) {
   elements.indicatorIssueCount.textContent = state.issues.length;
   elements.indicatorLocatedCount.textContent = state.issues.filter(hasIssueGeometry).length;
   elements.indicatorContractStatus.textContent = state.indicatorMeta?.reason || 'indicator_engine_not_integrated';
+  const summary = state.standardLibrary?.summary;
+  elements.standardIndicatorCount.textContent = summary?.sourceTables?.indicator || 0;
+  elements.standardRemediationCount.textContent = summary?.sourceTables?.remediation || 0;
+  elements.standardLibrarySummary.textContent = summary
+    ? `${summary.name} · ${summary.recordCount} 条记录 · Schema ${summary.schemaVersion}`
+    : '标准库不可用。';
+  elements.standardIndicatorList.innerHTML = state.standardIndicators.length
+    ? state.standardIndicators.map((record) => `<article class="standard-record">
+        <span>${escapeHtml(record.code || record.sourceId)}</span>
+        <strong>${escapeHtml(record.title)}</strong>
+        <small>${escapeHtml(record.payload?.['维度'] || '未分维度')} · ${escapeHtml(record.payload?.['单位'] || '无单位')} · ${record.payload?.['是否核心'] ? '核心指标' : '一般指标'}</small>
+      </article>`).join('')
+    : '<p class="workspace-empty">没有可展示的标准指标。</p>';
+  elements.standardRemediationList.innerHTML = state.standardRemediations.length
+    ? state.standardRemediations.map((record) => `<article class="standard-record">
+        <span>${escapeHtml(record.payload?.['问题编码'] || record.sourceId)}</span>
+        <strong>${escapeHtml(record.payload?.['整治建议'] || '未提供整改建议')}</strong>
+        <small>${escapeHtml(record.payload?.['建议类型'] || '未分类')} · ${escapeHtml(record.payload?.['责任单位'] || '责任单位未指定')}</small>
+      </article>`).join('')
+    : '<p class="workspace-empty">没有可展示的整改建议。</p>';
 }
 
 function isReportWorkspace(state) {
@@ -1318,8 +1426,12 @@ function renderReports(state) {
         <div>
           <strong>${Number(latest.dataSnapshot?.officialIssueCount) || 0}<small>正式问题</small></strong>
           <strong>${Number(latest.dataSnapshot?.locatedIssueCount) || 0}<small>已定位</small></strong>
-          <strong>—<small>指标得分</small></strong>
+          <strong>${Number(latest.contentSnapshot?.annotatedPhotos?.length) || 0}<small>标注照片</small></strong>
         </div>
+        <section class="report-section-index">
+          ${(latest.sections || []).map((section) => `<span>${escapeHtml(section.title)} <b>${Number(section.itemCount) || 0}</b></span>`).join('')}
+        </section>
+        <p class="report-source-summary">来源：${Number(latest.contentSnapshot?.sourceIds?.analysisIds?.length) || 0}次分析 · ${Number(latest.contentSnapshot?.sourceIds?.officialIssueIds?.length) || 0}个正式问题 · ${Number(latest.contentSnapshot?.sourceIds?.spatialAnalysisIds?.length) || 0}次空间分析</p>
       </article>`
     : '<p class="workspace-empty">尚无报告版本。完成阶段03复核后可生成真实数据快照。</p>';
   elements.reportEditForm.hidden = !latest;
@@ -1545,6 +1657,8 @@ async function loadProject(projectId) {
     store.set({
       photos: [],
       sourceAssets: [],
+      fieldTasks: [],
+      fieldTaskErrors: [],
       boundaryRevisions: [],
       uploadSessions: [],
       analyses: [],
@@ -1589,11 +1703,20 @@ async function loadProject(projectId) {
 async function loadIndicator(projectId = store.get().activeProjectId) {
   if (!projectId) return;
   try {
-    const [indicatorMeta, issues] = await Promise.all([
+    const [indicatorMeta, issues, standardLibrary, indicatorResult, remediationResult] = await Promise.all([
       api.indicatorMeta(),
-      api.issues(projectId)
+      api.issues(projectId),
+      api.standardLibrary(),
+      api.standardIndicators(),
+      api.standardRemediations()
     ]);
-    store.set({ indicatorMeta, issues });
+    store.set({
+      indicatorMeta,
+      issues,
+      standardLibrary,
+      standardIndicators: indicatorResult.items || [],
+      standardRemediations: remediationResult.items || []
+    });
   } catch (error) {
     setError(error);
   }
@@ -1692,7 +1815,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
       boundaryRevisions,
       collectionValidation,
       collectionValidationRuns,
-      sourceAssets
+      sourceAssets,
+      fieldTaskResult
     ] = await Promise.all([
       api.communities(projectId),
       api.photos(projectId, true),
@@ -1700,7 +1824,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
       api.boundaryRevisions(projectId),
       api.collectionValidation(projectId),
       api.collectionValidationRuns(projectId),
-      api.sourceAssets(projectId, true)
+      api.sourceAssets(projectId, true),
+      api.fieldTasks(projectId)
     ]);
     const buildingEntries = await Promise.all(communities
       .filter((community) => community.status !== 'inactive')
@@ -1716,6 +1841,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
       collectionValidation,
       collectionValidationRuns,
       sourceAssets,
+      fieldTasks: fieldTaskResult.items || [],
+      fieldTaskErrors: fieldTaskResult.errors || [],
       buildingsByCommunity: Object.fromEntries(buildingEntries)
     });
   } catch (error) {
@@ -2313,6 +2440,34 @@ elements.sourceAssetForm.addEventListener('submit', async (event) => {
   }
 });
 
+elements.fieldTaskCommunitySelect.addEventListener('change', () => {
+  renderFieldTaskBuildingOptions(store.get());
+});
+
+elements.fieldTaskForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const state = store.get();
+  const form = new FormData(elements.fieldTaskForm);
+  elements.fieldTaskFormError.hidden = true;
+  elements.createFieldTaskButton.disabled = true;
+  try {
+    await api.createFieldTask(state.activeProjectId, {
+      clientTaskId: form.get('clientTaskId'),
+      communityId: form.get('communityId'),
+      buildingId: form.get('buildingId'),
+      description: form.get('description'),
+      collectorId: form.get('collectorId')
+    });
+    elements.fieldTaskForm.reset();
+    await loadCollection();
+  } catch (error) {
+    elements.fieldTaskFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.fieldTaskFormError.hidden = false;
+  } finally {
+    elements.createFieldTaskButton.disabled = false;
+  }
+});
+
 elements.photoUploadForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const files = [...elements.photoFileInput.files];
@@ -2408,13 +2563,8 @@ elements.analysisHistoryList.addEventListener('click', async (event) => {
   }
 });
 
-elements.reviewForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const analysis = activeReviewAnalysis(store.get().analyses);
-  if (!analysis || analysis.status === 'archived') return;
-  const form = new FormData(elements.reviewForm);
-  const candidates = candidatesFromAnalysis(analysis);
-  const decisions = candidates.map((candidate) => {
+function buildReviewDecisions(form, candidates) {
+  return candidates.map((candidate) => {
     const changes = {};
     const edited = {
       title: form.get(`candidateTitle:${candidate.id}`),
@@ -2427,16 +2577,158 @@ elements.reviewForm.addEventListener('submit', async (event) => {
     }
     return {
       candidateId: candidate.id,
-      status: form.get(`decision:${candidate.id}`),
+      status: form.get(`decision:${candidate.id}`) || candidate.reviewStatus || 'pending',
       ...(Object.keys(changes).length ? { changes } : {})
     };
   });
+}
+
+function candidatesAfterDecisions(candidates, decisions) {
+  const byId = new Map(decisions.map((decision) => [String(decision.candidateId), decision]));
+  return candidates.map((candidate) => {
+    const decision = byId.get(String(candidate.id));
+    const status = decision?.status === 'rejected' ? 'excluded' : decision?.status || 'pending';
+    return { ...candidate, ...(decision?.changes || {}), reviewStatus: status };
+  });
+}
+
+function sourcePhotoIdForReviewCandidate(candidate, analysis) {
+  const imageIndex = Math.max(1, Math.trunc(Number(candidate?.imageIndex) || 1));
+  return String(candidate?.photoId || analysis?.photoIds?.[imageIndex - 1] || '');
+}
+
+async function annotationRequestId(analysis, sourcePhotoId, candidates) {
+  const signature = [
+    analysis.id,
+    sourcePhotoId,
+    ...candidates.map((candidate) => `${candidate.id}:${Number(candidate.candidateRevision) || 1}`)
+  ].join('|');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signature));
+  const hash = [...new Uint8Array(digest)]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
+  return `review-annotation:${hash}`;
+}
+
+async function archiveReviewAnnotations(state, analysis, reviewedCandidates, reviewerName) {
+  const accepted = reviewedCandidates.filter((candidate) =>
+    ['accepted', 'modified'].includes(candidate.reviewStatus) && normalizeBbox(candidate.bbox)
+  );
+  const grouped = new Map();
+  for (const candidate of accepted) {
+    const sourcePhotoId = sourcePhotoIdForReviewCandidate(candidate, analysis);
+    if (!sourcePhotoId) continue;
+    if (!grouped.has(sourcePhotoId)) grouped.set(sourcePhotoId, []);
+    grouped.get(sourcePhotoId).push(candidate);
+  }
+
+  const annotatedPhotos = [];
+  for (const [sourcePhotoId, candidates] of grouped) {
+    const photo = state.photos.find((item) => String(item.id) === sourcePhotoId);
+    if (!photo) throw new Error(`找不到原始照片 ${sourcePhotoId}，无法生成标注图。`);
+    const file = await createAnnotatedImageFile(photo, candidates);
+    const imageIndex = Math.max(1, Math.trunc(Number(candidates[0].imageIndex) || 1));
+    const created = await api.createUploadSession({
+      projectId: state.activeProjectId,
+      communityId: photo.communityId || candidates[0].communityId || analysis.communityId,
+      buildingId: photo.buildingId || candidates[0].buildingId || analysis.buildingId || '',
+      name: file.name,
+      mimeType: file.type,
+      size: file.size,
+      lastModified: file.lastModified,
+      clientRequestId: await annotationRequestId(analysis, sourcePhotoId, candidates),
+      kind: 'annotated',
+      analysisId: analysis.id,
+      sourcePhotoId,
+      candidateIds: candidates.map((candidate) => candidate.id),
+      imageIndex,
+      createdBy: reviewerName
+    });
+    const uploaded = await api.uploadSessionContent(created.session.id, file);
+    annotatedPhotos.push({
+      sourcePhotoId,
+      annotatedPhotoId: uploaded.session.photoId,
+      uploadSessionId: uploaded.session.id,
+      candidateIds: candidates.map((candidate) => candidate.id)
+    });
+  }
+  return annotatedPhotos;
+}
+
+elements.reviewRiskFilter.addEventListener('change', () => {
+  reviewRiskFilter = elements.reviewRiskFilter.value;
+  renderReview(store.get());
+});
+
+elements.acceptVisibleCandidatesButton.addEventListener('click', async () => {
+  const state = store.get();
+  const analysis = activeReviewAnalysis(state.analyses);
+  if (!analysis || analysis.status === 'archived') return;
+  const reviewerName = new FormData(elements.reviewForm).get('reviewerName')?.trim();
   elements.reviewFormError.hidden = true;
+  if (!reviewerName) {
+    elements.reviewFormError.textContent = '批量接受前，请先填写复核人员。';
+    elements.reviewFormError.hidden = false;
+    elements.reviewForm.elements.reviewerName.focus();
+    return;
+  }
+  const candidates = candidatesFromAnalysis(analysis).filter((candidate) =>
+    (reviewRiskFilter === 'all' || candidate.severity === reviewRiskFilter)
+    && (!candidate.reviewStatus || candidate.reviewStatus === 'pending')
+  );
+  if (!candidates.length) return;
+
   store.set({ reviewLoading: true });
   try {
+    for (const candidate of candidates) {
+      await api.updateAnalysisCandidate(candidate.id, {
+        analysisId: analysis.id,
+        projectId: state.activeProjectId,
+        reviewStatus: 'accepted',
+        changes: {},
+        updatedBy: reviewerName,
+        expectedRevision: Number(candidate.candidateRevision) || 1
+      });
+    }
+    await loadReview();
+  } catch (error) {
+    elements.reviewFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.reviewFormError.hidden = false;
+  } finally {
+    store.set({ reviewLoading: false });
+  }
+});
+
+elements.reviewForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const state = store.get();
+  const analysis = activeReviewAnalysis(state.analyses);
+  if (!analysis || analysis.status === 'archived') return;
+  const form = new FormData(elements.reviewForm);
+  const candidates = candidatesFromAnalysis(analysis);
+  const decisions = buildReviewDecisions(form, candidates);
+  const reviewedCandidates = candidatesAfterDecisions(candidates, decisions);
+  const pendingCandidates = reviewedCandidates.filter((candidate) => candidate.reviewStatus === 'pending');
+  elements.reviewFormError.hidden = true;
+  if (pendingCandidates.length) {
+    elements.reviewFormError.textContent = `仍有${pendingCandidates.length}个候选问题待复核。`;
+    elements.reviewFormError.hidden = false;
+    return;
+  }
+  elements.finalizeReviewButton.disabled = true;
+  elements.finalizeReviewButton.textContent = '正在生成标注图并归档…';
+  elements.acceptVisibleCandidatesButton.disabled = true;
+  try {
+    const annotatedPhotos = await archiveReviewAnnotations(
+      state,
+      analysis,
+      reviewedCandidates,
+      form.get('reviewerName')
+    );
     await api.finalizeReview(analysis.id, {
       reviewerName: form.get('reviewerName'),
-      decisions
+      decisions,
+      annotatedPhotos
     });
     const [summary, workflow] = await Promise.all([
       api.summary(store.get().activeProjectId),
@@ -2448,7 +2740,15 @@ elements.reviewForm.addEventListener('submit', async (event) => {
     elements.reviewFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
     elements.reviewFormError.hidden = false;
   } finally {
-    store.set({ reviewLoading: false });
+    const current = activeReviewAnalysis(store.get().analyses);
+    const archived = current?.status === 'archived';
+    const hasVisiblePending = candidatesFromAnalysis(current).some((candidate) =>
+      (reviewRiskFilter === 'all' || candidate.severity === reviewRiskFilter)
+      && (!candidate.reviewStatus || candidate.reviewStatus === 'pending')
+    );
+    elements.finalizeReviewButton.disabled = !current || archived;
+    elements.finalizeReviewButton.textContent = archived ? '本批次已归档' : '完成复核并归档';
+    elements.acceptVisibleCandidatesButton.disabled = !current || archived || !hasVisiblePending;
   }
 });
 

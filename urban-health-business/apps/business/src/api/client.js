@@ -483,6 +483,18 @@ export const api = {
     return request('/api/indicator-engine/meta');
   },
 
+  async standardLibrary() {
+    return request('/api/standards?limit=1');
+  },
+
+  async standardIndicators(limit = 12) {
+    return request(`/api/standards/indicators?limit=${encodeURIComponent(limit)}`);
+  },
+
+  async standardRemediations(limit = 12) {
+    return request(`/api/standards/remediations?limit=${encodeURIComponent(limit)}`);
+  },
+
   async reports(projectId) {
     return itemsFrom(await request(`/api/reports?projectId=${encodeURIComponent(projectId)}`));
   },

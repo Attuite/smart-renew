@@ -114,6 +114,23 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(meta.features.migratedReportsReadOnly, true);
     assert.equal(meta.features.amapProvider, true);
     assert.equal(meta.features.poiAnalysis, true);
+    assert.equal(meta.features.analysisBatching, true);
+    assert.equal(meta.features.analysisCandidateDeduplication, true);
+    assert.equal(meta.features.cloudBaseProvider, true);
+    assert.equal(meta.features.standardLibrary, true);
+    assert.equal(meta.providers.selected, 'local');
+    assert.equal(meta.providers.cloudbase.productionVerified, false);
+
+    const standards = await jsonRequest(businessBase, '/api/standards?limit=1');
+    assert.equal(standards.summary.recordCount, 412);
+    assert.equal(standards.summary.sourceTables.indicator, 61);
+    assert.equal(standards.summary.sourceTables.problem_type, 124);
+    assert.equal(standards.summary.sourceTables.remediation, 124);
+    const standardIndicator = await jsonRequest(
+      businessBase,
+      '/api/standards/indicators/IND-HOUSE-001'
+    );
+    assert.equal(standardIndicator.item.code, 'IND-HOUSE-001');
     const gisConfig = await jsonRequest(businessBase, '/api/gis/config');
     assert.equal(gisConfig.provider, 'amap');
     assert.equal(gisConfig.coordinateSystem, 'GCJ-02');
@@ -399,6 +416,15 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(uploaded.session.exifApplyStatus, 'applied');
 
     const photoId = uploaded.session.photoId;
+    const proxiedPhotoResponse = await fetch(
+      `${businessBase}/api/photos/${encodeURIComponent(photoId)}/content`
+    );
+    assert.equal(proxiedPhotoResponse.status, 200);
+    assert.equal(proxiedPhotoResponse.headers.get('content-type'), 'image/jpeg');
+    assert.deepEqual(
+      Buffer.from(await proxiedPhotoResponse.arrayBuffer()),
+      photoBytes
+    );
     const exifGovernedPhotos = await jsonRequest(
       businessBase,
       `/api/photos?projectId=${projectId}&includeInactive=true`
@@ -770,7 +796,10 @@ test('isolated local BFF completes the real manual workflow across both services
 
     const printResponse = await fetch(`${businessBase}/api/reports/${report.id}/print`);
     assert.equal(printResponse.status, 200);
-    assert.match(await printResponse.text(), /集成测试体检报告（修订）/);
+    const printHtml = await printResponse.text();
+    assert.match(printHtml, /集成测试体检报告（修订）/);
+    assert.match(printHtml, /AI识别与人工复核问题/);
+    assert.match(printHtml, /来源索引/);
 
     await jsonRequest(businessBase, `/api/projects/${projectId}/photos/${photoId}`, {
       method: 'PATCH',

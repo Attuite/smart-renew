@@ -58,6 +58,23 @@ test('accepted candidate field corrections are whitelisted and marked modified',
   assert.equal(outcome.accepted[0].reviewStatus, 'modified');
 });
 
+test('bbox correction must stay normalized with a positive rectangle', () => {
+  assert.throws(
+    () => applyReviewDecisions(record, {
+      reviewerName: '复核员',
+      decisions: [{
+        candidateId: 'CAND-1',
+        status: 'accepted',
+        changes: { bbox: [500, 100, 200, 800] }
+      }, {
+        candidateId: 'CAND-2',
+        status: 'excluded'
+      }]
+    }),
+    (error) => error.code === 'INVALID_BBOX'
+  );
+});
+
 test('zero accepted candidates do not call the legacy issue finalizer', async () => {
   let finalizerCalled = false;
   let saved = null;
@@ -138,4 +155,123 @@ test('repeated archived review finalization is idempotent', async () => {
   assert.equal(outcome.acceptedCount, 1);
   assert.equal(outcome.officialIssues[0].id, 'ISS-CAND-1');
   assert.equal(putCalled, false);
+});
+
+test('accepted bbox candidate requires a completed annotated upload before archive', async () => {
+  const bboxRecord = {
+    ...record,
+    photoIds: ['PHOTO-SOURCE'],
+    result: {
+      ...record.result,
+      issues: [{
+        id: 'CAND-1',
+        photoId: 'PHOTO-SOURCE',
+        imageIndex: 1,
+        bbox: [100, 100, 400, 400],
+        reviewStatus: 'pending',
+        title: '外墙问题'
+      }]
+    }
+  };
+  let saved = false;
+  await assert.rejects(
+    () => finalizeReview({
+      async getAnalysis() { return bboxRecord; },
+      async putAnalysis() { saved = true; }
+    }, {
+      async createFromCandidates() { return []; }
+    }, bboxRecord.id, {
+      reviewerName: '复核员',
+      decisions: [{ candidateId: 'CAND-1', status: 'accepted' }]
+    }, {
+      uploadSessionRepository: { async get() { return null; } }
+    }),
+    (error) => error.code === 'ANNOTATED_EVIDENCE_INCOMPLETE'
+  );
+  assert.equal(saved, false);
+});
+
+test('completed annotated upload is attached to archived analysis and official issue candidate', async () => {
+  const bboxRecord = {
+    ...record,
+    photoIds: ['PHOTO-SOURCE'],
+    result: {
+      ...record.result,
+      issues: [{
+        id: 'CAND-1',
+        photoId: 'PHOTO-SOURCE',
+        imageIndex: 1,
+        bbox: [100, 100, 400, 400],
+        reviewStatus: 'pending',
+        title: '外墙问题'
+      }]
+    }
+  };
+  let saved = null;
+  let officialCandidate = null;
+  const outcome = await finalizeReview({
+    async getAnalysis() { return bboxRecord; },
+    async putAnalysis(value) { saved = value; }
+  }, {
+    async createFromCandidates(candidates) {
+      [officialCandidate] = candidates;
+      return [{ id: 'ISS-CAND-1' }];
+    }
+  }, bboxRecord.id, {
+    reviewerName: '复核员',
+    decisions: [{ candidateId: 'CAND-1', status: 'accepted' }],
+    annotatedPhotos: [{
+      sourcePhotoId: 'PHOTO-SOURCE',
+      annotatedPhotoId: 'PHOTO-ANNOTATED',
+      uploadSessionId: 'UPL-annotation-session'
+    }]
+  }, {
+    uploadSessionRepository: {
+      async get() {
+        return {
+          id: 'UPL-annotation-session',
+          status: 'completed',
+          kind: 'annotated',
+          projectId: bboxRecord.projectId,
+          photoId: 'PHOTO-ANNOTATED',
+          derivation: {
+            analysisId: bboxRecord.id,
+            sourcePhotoId: 'PHOTO-SOURCE',
+            candidateIds: ['CAND-1']
+          }
+        };
+      }
+    }
+  });
+
+  assert.equal(officialCandidate.annotatedPhotoId, 'PHOTO-ANNOTATED');
+  assert.deepEqual(saved.annotatedPhotoIds, ['PHOTO-ANNOTATED']);
+  assert.equal(saved.annotationEvidence[0].uploadSessionId, 'UPL-annotation-session');
+  assert.equal(outcome.acceptedCount, 1);
+});
+
+test('stale analysis blocks final archive before official issue creation', async () => {
+  let officialIssueCreated = false;
+  let analysisSaved = false;
+  await assert.rejects(
+    () => finalizeReview({
+      async getAnalysis() { return record; },
+      async putAnalysis() { analysisSaved = true; }
+    }, {
+      async createFromCandidates() { officialIssueCreated = true; return []; }
+    }, record.id, {
+      reviewerName: '复核员',
+      decisions: [
+        { candidateId: 'CAND-1', status: 'accepted' },
+        { candidateId: 'CAND-2', status: 'excluded' }
+      ]
+    }, {
+      async assertAnalysisFresh() {
+        throw Object.assign(new Error('stale'), { code: 'AI_ANALYSIS_STALE' });
+      }
+    }),
+    (error) => error.code === 'AI_ANALYSIS_STALE'
+  );
+  assert.equal(officialIssueCreated, false);
+  assert.equal(analysisSaved, false);
 });

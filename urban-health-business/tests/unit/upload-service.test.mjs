@@ -120,3 +120,54 @@ test('failed storage attempt remains retryable and cancel is explicit', async ()
   const canceled = await cancelUploadSession(repository, 'UPL-fixed-failure');
   assert.equal(canceled.status, 'canceled');
 });
+
+test('annotated upload session preserves analysis, source photo and candidate lineage', async () => {
+  const repository = memoryRepository();
+  let uploadedInput = null;
+  const client = {
+    async getProject() { return project; },
+    async getAnalysis() {
+      return {
+        id: '170000000000004',
+        projectId: project.id,
+        status: 'reviewing',
+        photoIds: ['PHOTO-SOURCE'],
+        reviewIssues: [{ id: 'CAND-1' }]
+      };
+    },
+    async uploadPhoto(input) {
+      uploadedInput = input;
+      return { item: { id: input.photoId, storage: 'server-filesystem' } };
+    }
+  };
+  const created = await createUploadSession(client, repository, {
+    projectId: project.id,
+    communityId: 'COMM-1',
+    buildingId: 'BLD-1',
+    name: '现场照片-annotated.jpg',
+    mimeType: 'image/jpeg',
+    size: 4,
+    clientRequestId: 'annotation-1',
+    kind: 'annotated',
+    analysisId: '170000000000004',
+    sourcePhotoId: 'PHOTO-SOURCE',
+    candidateIds: ['CAND-1'],
+    imageIndex: 1,
+    createdBy: '复核员'
+  }, { id: 'UPL-annotation-session' });
+
+  assert.equal(created.session.kind, 'annotated');
+  assert.equal(created.session.derivation.sourcePhotoId, 'PHOTO-SOURCE');
+  assert.deepEqual(created.session.derivation.candidateIds, ['CAND-1']);
+
+  const uploaded = await uploadSessionContent(
+    client,
+    repository,
+    created.session.id,
+    Buffer.from([1, 2, 3, 4]),
+    'image/jpeg'
+  );
+  assert.equal(uploaded.session.status, 'completed');
+  assert.equal(uploadedInput.analysisId, '170000000000004');
+  assert.equal(uploadedInput.imageIndex, 1);
+});

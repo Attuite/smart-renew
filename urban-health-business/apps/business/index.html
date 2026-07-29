@@ -289,6 +289,24 @@
                 <p class="workspace-empty">选择CSV、JSON或GeoJSON资料可预览结构；SQLite资料可导入ProjectData并重建引用。</p>
               </div>
             </section>
+
+            <section class="work-panel field-task-panel">
+              <header><span>FIELD COLLECTION</span><h2>外业采集任务</h2></header>
+              <form id="fieldTaskForm">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>任务编号 <b>*</b></span><input name="clientTaskId" maxlength="80" required placeholder="例如：SURVEY-2026-001"></label>
+                  <label class="form-field"><span>采集人员 <b>*</b></span><input name="collectorId" maxlength="120" required></label>
+                </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>关联小区 <b>*</b></span><select id="fieldTaskCommunitySelect" name="communityId" required></select></label>
+                  <label class="form-field"><span>关联楼栋（可选）</span><select id="fieldTaskBuildingSelect" name="buildingId"><option value="">小区级任务</option></select></label>
+                </div>
+                <label class="form-field"><span>任务说明</span><textarea name="description" maxlength="1000" rows="2"></textarea></label>
+                <button class="primary-button" id="createFieldTaskButton" type="submit">创建外业任务</button>
+                <p class="form-error" id="fieldTaskFormError" hidden></p>
+              </form>
+              <div class="field-task-list" id="fieldTaskList"></div>
+            </section>
           </div>
 
           <section class="work-panel photo-library">
@@ -332,7 +350,7 @@
 
           <aside class="deferred-capabilities">
             <strong>本模块尚待接入</strong>
-            <span>高德GCJ-02边界绘制和地址定位已接入。仍待WebP EXIF、时区校正、对象存储直传、断点续传和复杂资料内容解析；缺失或解析失败时不会生成假值。</span>
+            <span>高德GCJ-02边界绘制、地址定位和外业任务工作台已接入。仍待WebP EXIF、时区校正、对象存储直传、断点续传和复杂资料内容解析；缺失或解析失败时不会生成假值。</span>
           </aside>
         </section>
 
@@ -427,6 +445,19 @@
           <form id="reviewForm">
             <section class="work-panel review-candidates">
               <header><span>ANALYSIS CANDIDATES</span><h2 id="reviewBatchTitle">待复核候选</h2></header>
+              <div class="review-toolbar">
+                <label class="form-field">
+                  <span>风险筛选</span>
+                  <select id="reviewRiskFilter">
+                    <option value="all">全部风险</option>
+                    <option value="high">仅高风险</option>
+                    <option value="medium">仅中风险</option>
+                    <option value="low">仅低风险</option>
+                  </select>
+                </label>
+                <span id="reviewFilterSummary">显示全部候选</span>
+                <button class="secondary-button compact-button" id="acceptVisibleCandidatesButton" type="button">接受当前筛选中的待复核项</button>
+              </div>
               <div id="reviewCandidateList"></div>
             </section>
 
@@ -477,7 +508,7 @@
 
           <aside class="deferred-capabilities">
             <strong>后续增强</strong>
-            <span>已支持候选字段修正、逐条保存与修订审计、人工补录问题和人工零问题结论。仍待补充附件、多人协作锁、批次级完整审计查询和问题合并拆分。</span>
+            <span>已支持风险筛选、批量接受、BBox预览、标注图归档、候选字段修正、逐条保存与修订审计、人工补录问题和人工零问题结论。仍待补充附件、多人协作锁、批次级完整审计查询和问题合并拆分。</span>
           </aside>
         </section>
 
@@ -594,6 +625,8 @@
             <div class="module-stat-strip">
               <article><span>正式问题输入</span><strong id="indicatorIssueCount">0</strong></article>
               <article><span>已定位输入</span><strong id="indicatorLocatedCount">0</strong></article>
+              <article><span>标准指标</span><strong id="standardIndicatorCount">0</strong></article>
+              <article><span>整改建议</span><strong id="standardRemediationCount">0</strong></article>
               <article><span>引擎状态</span><strong>待接入</strong></article>
             </div>
           </header>
@@ -618,9 +651,22 @@
             </section>
           </div>
 
+          <div class="standard-library-grid">
+            <section class="work-panel">
+              <header><span>STANDARD LIBRARY</span><h2>国家标准指标目录</h2></header>
+              <p class="standard-library-note" id="standardLibrarySummary">正在读取标准库…</p>
+              <div class="standard-record-list" id="standardIndicatorList"></div>
+            </section>
+            <section class="work-panel">
+              <header><span>REMEDIATION</span><h2>问题整改建议</h2></header>
+              <p class="standard-library-note">只读展示原标准库内容，不自动映射正式问题，不参与评分。</p>
+              <div class="standard-record-list" id="standardRemediationList"></div>
+            </section>
+          </div>
+
           <aside class="deferred-capabilities">
             <strong>外部依赖</strong>
-            <span>等待其他人员完成指标引擎后，按当前契约接入；届时补充认证、异步运行、结果Schema、版本与过期传播。</span>
+            <span>标准库与整改建议已作为只读依据接入。指标计算仍等待外部引擎；届时补充认证、异步运行、结果Schema、版本与过期传播。</span>
           </aside>
         </section>
 
@@ -693,7 +739,7 @@
 
           <aside class="deferred-capabilities">
             <strong>尚待接入</strong>
-            <span>已支持摘要与建议编辑、修订审计、版本比较、JSON下载和独立打印版。仍待接入多模板、自由章节、服务端PDF、图表地图排版、审批签发、发布和指标结果章节。</span>
+            <span>已支持来源快照、动态章节、风险统计、问题与社区表格、标注照片画廊、摘要与建议编辑、修订审计、版本比较、JSON下载和打印版。仍待接入多模板、自由章节、服务端PDF、审批签发、发布和指标结果章节。</span>
           </aside>
         </section>
       </section>

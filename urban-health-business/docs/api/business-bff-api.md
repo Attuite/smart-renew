@@ -195,8 +195,11 @@ POST /api/uploads/{uploadId}/cancel
 - 可以进一步绑定该小区中的真实楼栋；
 - `clientRequestId` 支持幂等创建；
 - 会话持久化 `ready/uploading/completed/failed/canceled`、尝试次数、已接收字节、文件哈希和稳定照片ID；
+- `kind: annotated` 会话额外保存 `analysisId/sourcePhotoId/candidateIds/imageIndex/createdBy` 派生关系，并校验分析、原图和候选归属；
 - 失败会话保留且允许使用同一会话重试；
 - 刷新页面后可恢复查看上传队列；
+- BFF同源代理 `GET /api/photos/{photoId}/content`，供照片预览和Canvas安全读取；
+- 标注派生照片默认不进入现场原图列表、资料完成度、AI照片选择和报告原始证据快照；治理查询可显式使用`includeDerived=true`读取并追溯；
 - 文件保存到原smart-renew本地文件存储；
 - 最终仍应把BFF存储适配器替换为对象存储分片或预签名直传。
 
@@ -266,7 +269,10 @@ POST /api/analysis-jobs/{jobId}/retry
 
 限制：
 
-- 单批1—20张；
+- 单个任务至少1张，服务端按每20张自动拆批；
+- 每批状态、照片证据快照、模型、requestId、usage和promptVersion写入AnalysisJob；
+- 全部批次成功后跨批合并，并按同照片、同分类、BBox IoU或标题归一化去重；
+- 任一批次失败时整个任务失败，部分结果不会进入人工复核；
 - AI未配置时返回 `AI_NOT_CONFIGURED`；
 - 模型非JSON结果返回 `AI_RESPONSE_INVALID`；
 - 不生成回退候选；
@@ -309,15 +315,24 @@ POST /api/projects/{projectId}/manual-reviews
       "candidateId": "CAND-...",
       "status": "excluded"
     }
-  ]
+  ],
+  "annotatedPhotos": [{
+    "sourcePhotoId": "PHOTO-...",
+    "annotatedPhotoId": "PHOTO-ANNOTATED-...",
+    "uploadSessionId": "UPL-..."
+  }]
 }
 ```
 
 所有候选均可排除，0个正式问题是合法归档结果。
 
+接受且含有效BBox的候选必须按原始照片生成Canvas标注图，并先通过持久化上传会话完成归档。finalize会再次校验上传会话状态和分析/原图/候选来源；缺失或失败时保持分析为`reviewing`，相同客户端请求可继续重试。成功后分析保存`annotationEvidence/annotatedPhotoIds`，正式问题保存`annotatedPhotoId/annotationUploadSessionId`。
+
 候选归档请求允许在 `changes` 中修正标题、描述、证据、分类、风险等级、位置、建议和标注框；后端使用字段白名单，发生修正的接受项记录为 `modified`。
 
 候选PATCH用于归档前逐条保存，要求 `analysisId`、`updatedBy` 和 `expectedRevision`，可同时保存字段修正与 `pending|accepted|excluded` 结论。每次保存递增 `candidateRevision` 并追加审计轨迹；旧分析记录中的候选会在第一次保存时建立独立候选记录并同步回分析，刷新页面不会丢失。分析归档后候选不可再修改，最终归档会再追加 `candidate_archived` 审计。
+
+风险筛选仅改变前端可见候选；“接受当前筛选中的待复核项”逐条调用同一Candidate PATCH，不绕过乐观修订和审计。照片证据已stale时，逐条保存、标注图会话创建和最终归档均返回`AI_ANALYSIS_STALE`。
 
 AI不可用或漏检时可人工补录正式问题。人工复核结论必须显式归档；当正式问题为0时，必须传 `zeroIssueConfirmed: true`，不能把空数据静默当成零问题。正式问题PATCH使用 `expectedRevision` 检测冲突，并追加问题级审计记录。
 
@@ -404,6 +419,20 @@ INDICATOR_ENGINE_NOT_INTEGRATED
 
 不得返回演示指标、权重、扣分或综合得分。
 
+### 8.1 标准库只读目录
+
+```http
+GET /api/standards?sourceTable={type}&dimension={code}&q={keyword}&limit={1..200}&offset={n}
+GET /api/standards/indicators
+GET /api/standards/indicators/{code}
+GET /api/standards/problem-types
+GET /api/standards/problem-types/{code}
+GET /api/standards/categories
+GET /api/standards/remediations
+```
+
+目录直接读取原 `city-health-standard-library-v1.js`，当前汇总为412条记录：61个指标、35个问题分类、124个问题类型和124条整改建议，另含维度、要素、严重度和码表记录。查询最多返回200条并保留原记录与`payload`，不会把目录转换成指标运行、综合分或整改任务。
+
 ## 9. 报告快照
 
 ```http
@@ -438,7 +467,7 @@ GET  /api/reports/{reportId}/print
 }
 ```
 
-报告可修订标题、执行摘要、建议和内部备注；PATCH使用 `expectedRevision` 检测并发冲突，并追加修订审计。`/json` 返回下载附件；`/print` 返回独立打印页面，可由浏览器打印或另存为PDF。服务端稳定PDF渲染尚未接入。
+报告可修订标题、执行摘要、建议和内部备注；PATCH使用 `expectedRevision` 检测并发冲突，并追加修订审计。新报告的`contentSnapshot`冻结项目、小区/楼栋、正式问题、分析、空间结果、原始照片、标注照片和来源ID，`sections`保存动态章节索引。`/json` 返回下载附件；`/print`只读取该版本冻结快照，动态渲染概况、风险、问题、小区、空间、研判、建议、标注照片画廊、指标缺失说明和来源索引，可由浏览器打印或另存为PDF。服务端稳定PDF渲染尚未接入。
 
 新报告保存项目修订、正式问题修订、空间分析引用、照片集合和照片治理修订；这些输入变化后报告列表和阶段06返回 `stale`。旧报告文件仍保留并显示原因；使用当前证据生成更高版本后，最新报告恢复有效，历史过期版本不会被覆盖。
 
@@ -455,9 +484,14 @@ SMART_RENEW_API_TIMEOUT_MS
 AMAP_JS_KEY
 AMAP_JS_SECURITY_CODE
 AMAP_WEB_SERVICE_KEY
+URBAN_HEALTH_PROVIDER
+TCB_ENV
+SCF_NAMESPACE
 ```
 
 `AMAP_JS_KEY`和`AMAP_JS_SECURITY_CODE`是高德JS SDK的浏览器端运行凭据；`AMAP_WEB_SERVICE_KEY`只供BFF地址解析和POI查询使用，不通过接口返回。只配置浏览器凭据时可以显示和绘制地图，但地址解析与POI保持不可用；只配置Web服务Key时可以调用BFF地理服务，但前端不显示底图。
+
+`URBAN_HEALTH_PROVIDER`默认是`local`。CloudBase Provider代码支持数据库基础CRUD、文件上传、下载和临时URL，但真实运行还需要`TCB_ENV`或`SCF_NAMESPACE`、CloudBase SDK、Collection、存储权限和部署凭据。`/api/meta.providers`分别报告本地与CloudBase状态，未实际探测生产环境时`productionVerified`始终为`false`。
 
 Business扩展数据默认写入：
 

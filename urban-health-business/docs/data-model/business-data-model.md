@@ -227,26 +227,43 @@ derived
 
 ```json
 {
-  "id": "ANL-001",
+  "id": "AJOB-001",
   "projectId": "PRJ-001",
   "status": "running",
-  "photoIds": ["PHOTO-001"],
-  "model": "qwen3-vl-plus",
-  "promptVersion": "1.0.0",
+  "photoIds": ["PHOTO-001", "PHOTO-002"],
+  "photoSnapshot": [],
+  "batchSize": 20,
+  "batchCount": 1,
+  "batches": [{
+    "id": "BATCH-001",
+    "batchIndex": 1,
+    "photoIds": ["PHOTO-001", "PHOTO-002"],
+    "photoSnapshot": [],
+    "status": "running",
+    "analysisId": null,
+    "model": "qwen3-vl-plus",
+    "requestId": null,
+    "usage": null,
+    "promptVersion": null
+  }],
   "progress": {
-    "total": 1,
-    "processed": 0,
-    "failed": 0,
+    "total": 2,
+    "completed": 0,
     "percent": 0
   },
-  "candidateSummary": {
-    "total": 0,
-    "averageConfidence": null,
-    "riskCounts": {}
-  },
-  "inputSnapshotId": "SNAP-AI-001"
+  "analysisId": null,
+  "analysisIds": [],
+  "candidateCount": 0,
+  "rawCandidateCount": 0,
+  "duplicateCandidateCount": 0,
+  "models": ["qwen3-vl-plus"],
+  "requestIds": [],
+  "usage": null,
+  "promptVersions": []
 }
 ```
+
+照片超过20张时由服务端执行器自动拆批。每批保存自己的照片证据快照、运行状态和模型元数据；全部批次成功后才形成一个可复核的聚合分析记录。聚合候选按同照片、同分类以及BBox IoU或标题归一化结果去重。任一批次失败时整个任务失败，已完成批次的部分结果不会进入人工复核。
 
 状态：
 
@@ -284,6 +301,10 @@ AI候选问题保留模型原始输出。
     "matchedProblemCode": null
   },
   "reviewStatus": "pending",
+  "candidateRevision": 1,
+  "bbox": [100, 120, 650, 760],
+  "annotatedPhotoId": null,
+  "annotationUploadSessionId": null,
   "officialIssueId": null
 }
 ```
@@ -336,8 +357,9 @@ reopened
   "severityLabel": "严重",
   "reviewStatus": "confirmed",
   "reviewer": "",
-  "photoIds": ["PHOTO-001"],
-  "annotatedPhotoIds": [],
+  "originalPhotoId": "PHOTO-001",
+  "annotatedPhotoId": "PHOTO-ANNOTATED-001",
+  "annotationUploadSessionId": "UPL-001",
   "communityId": null,
   "buildingId": null,
   "geometryStatus": "pending",

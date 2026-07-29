@@ -368,12 +368,15 @@ Business Candidate、ReviewSession和OfficialIssue继续作为主数据源。原
 
 旧OfficialIssue已支持显式迁入Business主仓储。迁移记录保留旧问题和指标编码作为来源信息，但当前指标绑定仍为`not_integrated`，不会恢复旧问题—指标强制映射；来源指纹变化会形成迁移冲突，不覆盖Business问题。
 
-本次A/B复用接入项：
+本次A/B复用接入项已完成：
 
-- 原人工复核筛选和批量接受交互；
-- BBox可视化显示；
-- Canvas标注图派生；
-- 标注图片归档步骤。
+- 原人工复核筛选和批量接受交互已接入Candidate PATCH；
+- BBox按0—999坐标映射百分比显示；
+- Canvas按原图自然尺寸派生JPEG标注图；
+- 标注图经持久化上传会话归档，并保存分析、原图、候选来源；
+- finalize校验派生资产完整性，失败保持可重试；
+- 照片内容由Business BFF同源代理，预览和Canvas不跨源；
+- stale分析在候选保存、标注上传和最终归档入口均被阻塞。
 
 C/D后续项：
 
@@ -391,10 +394,10 @@ C/D后续项：
 - `docs/original-smart-renew-reuse-audit.md`；
 - `docs/reuse-first-ab-development-outline.md`。
 
-## 24. 本次A/B开发任务
+## 24. AB-06完成记录
 
-- 抽取原BBox渲染和Canvas标注图生成模块；
-- 将原复核筛选、接受和批量接受交互接到Business Candidate API；
-- 标注图通过当前上传和照片治理链路归档；
-- 保持Candidate revision、审计、零问题、幂等和归档只读；
-- 增加标注坐标、派生图、刷新恢复和无双写测试。
+- 已抽取 `apps/business/src/review/annotation.js`；
+- 已增加风险筛选和“接受当前筛选中的待复核项”；
+- 已通过当前上传会话归档标注图并关联OfficialIssue；
+- 已保持Candidate revision、审计、零问题、幂等、stale阻塞和归档只读；
+- 已增加BBox几何、派生来源、失败可恢复、stale和同源照片内容测试。

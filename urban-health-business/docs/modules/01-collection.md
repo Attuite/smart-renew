@@ -393,12 +393,12 @@ GET  /api/projects/{projectId}/collection/summary
 
 本次A/B复用接入状态：
 
-- CloudBase对象存储Provider；
+- 已完成CloudBase对象存储Provider代码、能力声明和Mock契约；真实环境待凭据验证；
 - 已完成ProjectData记录查询、过滤、搜索、数组/JSON Envelope导入和JSON Envelope导出；
 - 已完成SQLite已知表与ProjectData交换表导入、真实SQLite导出和引用重建；
 - 已完成SQLite SourceAsset到ProjectData的资产ID、修订和内容哈希来源追溯；
 - 已完成外业层级查询、任务创建/读取和任务引用列表；
-- 待完成Business外业任务工作台；
+- 已完成Business外业任务工作台；
 - 现有WebP原文件上传与Provider契约一致性验证；
 - 现有照片归属校验与原核心的行为对照及单一调用路径收敛；
 - 原高德地图边界绘制和范围内小区识别；
@@ -429,8 +429,8 @@ C/D后续项：
 - 已接入SQLite文件转换、导入、真实文件导出、来源追溯及引用重建；
 - 已将ProjectData转换与小区/楼栋SourceAsset映射职责分离，避免重复实现通用模型；
 - 已接入外业任务BFF、任务引用列表和上游任务读取；
-- 建设Business外业任务工作台；
-- 建立CloudBase StorageProvider；
+- 已建设Business外业任务工作台；
+- 已建立CloudBase StorageProvider及与本地Provider一致的契约测试；
 - 抽取项目边界地图Provider；
 - 已接入原Legacy迁移预检、显式执行、运行审计和请求幂等；
 - 已接入Business正式问题和只读报告迁移；

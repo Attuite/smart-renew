@@ -63,6 +63,19 @@ function projectDataByType(items, type) {
   return items.filter((item) => item?.dataType === type || item?.type === type);
 }
 
+export function sourceEvidencePhotos(photos, uploadSessions) {
+  const derivedPhotoIds = new Set(
+    uploadSessions
+      .filter((session) => session.kind === 'annotated' && session.status === 'completed')
+      .map((session) => String(session.photoId || ''))
+  );
+  return photos.filter((photo) => !derivedPhotoIds.has(String(photo.id)));
+}
+
+export function sourceUploadSessions(uploadSessions) {
+  return uploadSessions.filter((session) => session.kind !== 'annotated');
+}
+
 export function markSpatialStaleness(runs, project, issues) {
   const issueMap = new Map(issues.map((issue) => [String(issue.id), issue]));
   return runs.map((run) => {
@@ -211,7 +224,11 @@ export async function getProjectWorkflow(
   });
   const rawSpatialAnalyses = [...projectDataByType(projectData, 'spatialAnalysis'), ...businessSpatialAnalyses];
   const spatialAnalyses = markSpatialStaleness(rawSpatialAnalyses, project, officialIssues);
-  const governedPhotosAll = mergePhotoMetadata(collections.photos.items, photoMetadata, true);
+  const governedPhotosAll = sourceEvidencePhotos(
+    mergePhotoMetadata(collections.photos.items, photoMetadata, true),
+    uploadSessions
+  );
+  const collectionUploadSessions = sourceUploadSessions(uploadSessions);
   const governedAssets = [
     ...projectDataByType(projectData, 'sourceAsset'),
     ...businessAssets.filter((item) => item.status === 'active' && item.uploadStatus === 'completed')
@@ -249,7 +266,7 @@ export async function getProjectWorkflow(
     projectId,
     project,
     photos: governedPhotos,
-    uploadSessions,
+    uploadSessions: collectionUploadSessions,
     assets: governedAssets,
     fieldRecords: collections.fieldRecords.items
   });
@@ -260,7 +277,7 @@ export async function getProjectWorkflow(
     assets: governedAssets,
     fieldRecords: collections.fieldRecords.items,
     analyses: workflowAnalyses,
-    uploadSessions,
+    uploadSessions: collectionUploadSessions,
     reviewConclusions,
     officialIssues,
     spatialAnalyses,
@@ -315,12 +332,16 @@ export async function getProjectSummary(
     businessItems: businessReports,
     legacyItems: collections.reports.items
   });
-  const governedPhotos = mergePhotoMetadata(collections.photos.items, photoMetadata);
+  const governedPhotos = sourceEvidencePhotos(
+    mergePhotoMetadata(collections.photos.items, photoMetadata),
+    uploadSessions
+  );
+  const collectionUploadSessions = sourceUploadSessions(uploadSessions);
   const collectionValidation = assessCollection({
     projectId,
     project,
     photos: governedPhotos,
-    uploadSessions,
+    uploadSessions: collectionUploadSessions,
     assets: [
       ...projectDataByType(collections.projectData.items, 'sourceAsset'),
       ...businessAssets.filter((item) => item.status === 'active' && item.uploadStatus === 'completed')

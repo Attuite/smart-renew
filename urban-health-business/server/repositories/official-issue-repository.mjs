@@ -35,6 +35,8 @@ export function officialIssueFromCandidate(candidate, analysis, reviewerName, op
     candidateId,
     source: 'ai-reviewed',
     originalPhotoId: sourcePhotoId,
+    annotatedPhotoId: clean(candidate?.annotatedPhotoId, 120) || null,
+    annotationUploadSessionId: clean(candidate?.annotationUploadSessionId, 160) || null,
     communityId: clean(candidate?.communityId || analysis?.communityId, 120),
     buildingId: clean(candidate?.buildingId || analysis?.buildingId, 120),
     categoryCode: clean(candidate?.categoryCode, 50),

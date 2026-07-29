@@ -8,6 +8,7 @@ import { SmartRenewClient } from './adapters/smart-renew/client.mjs';
 import { createSmartRenewAdapters } from './adapters/smart-renew/index.mjs';
 import { mergePrimaryReadModel } from './adapters/smart-renew/read-model-policy.mjs';
 import { sourceOfTruthSnapshot } from './adapters/smart-renew/source-of-truth.mjs';
+import { cloudBaseProviderCapability } from './providers/cloudbase-provider.mjs';
 import { OfficialIssueRepository } from './repositories/official-issue-repository.mjs';
 import { PhotoMetadataRepository } from './repositories/photo-metadata-repository.mjs';
 import { AnalysisCandidateRepository } from './repositories/analysis-candidate-repository.mjs';
@@ -48,6 +49,14 @@ import { mergePhotoMetadata, updatePhotoMetadata } from './services/photo-metada
 import { batchUpdatePhotoMetadata } from './services/photo-metadata-batch-service.mjs';
 import { getCollectionValidation } from './services/collection-validation-service.mjs';
 import { compareReports } from './services/report-comparison-service.mjs';
+import { renderReportHtml } from './services/report-renderer-service.mjs';
+import {
+  assertStandardRecord,
+  findStandardRecord,
+  loadStandardLibrary,
+  queryStandardLibrary,
+  summarizeStandardLibrary
+} from './services/standard-library-service.mjs';
 import { importBoundaryFromSourceAsset } from './services/geojson-boundary-service.mjs';
 import { bindIssueGeometry } from './services/spatial-binding-service.mjs';
 import { runIssueRadiusAnalysis } from './services/spatial-analysis-service.mjs';
@@ -83,7 +92,8 @@ import {
   getProjectWorkflow,
   markAnalysisStaleness,
   markReportStaleness,
-  markSpatialStaleness
+  markSpatialStaleness,
+  sourceEvidencePhotos
 } from './services/workflow-service.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -134,6 +144,27 @@ const fieldTaskReferenceRepository = new FieldTaskReferenceRepository(
 const legacyMigrationRunRepository = new LegacyMigrationRunRepository(
   path.join(businessDataRoot, 'legacy-migration-runs')
 );
+
+async function assertAnalysisReviewFresh(analysis) {
+  const jobId = String(analysis?.analysisJobId || '');
+  if (!jobId) return;
+  const job = await analysisJobRepository.get(jobId);
+  if (!job) return;
+  const [photos, metadata] = await Promise.all([
+    smartRenewClient.listPhotos({ projectId: analysis.projectId }),
+    photoMetadataRepository.list(analysis.projectId)
+  ]);
+  const current = markAnalysisStaleness(
+    [job],
+    mergePhotoMetadata(photos.items, metadata, true)
+  )[0];
+  if (current?.status !== 'stale') return;
+  const error = new Error('分析所依赖的照片已变化，请重新运行AI分析后再复核。');
+  error.status = 409;
+  error.code = 'AI_ANALYSIS_STALE';
+  error.details = { analysisId: String(analysis.id), jobId, staleReasons: current.staleReasons };
+  throw error;
+}
 const analysisJobRunner = new AnalysisJobRunner({
   client: smartRenewClient,
   jobRepository: analysisJobRepository,
@@ -185,35 +216,6 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function reportPrintHtml(report) {
-  const severity = report.dataSnapshot?.severity || {};
-  return `<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(report.title)}</title>
-<style>
-body{font-family:"Microsoft YaHei",sans-serif;color:#17252b;max-width:900px;margin:40px auto;line-height:1.75}
-h1{border-bottom:3px solid #1593a3;padding-bottom:12px}h2{margin-top:32px;color:#126b78}
-.meta{color:#60747b}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.metrics div{border:1px solid #c9d6d9;padding:12px}.notice{background:#fff7dc;border-left:4px solid #d9a820;padding:10px 14px}
-@media print{body{margin:18mm}.no-print{display:none}}
-</style></head><body>
-<button class="no-print" onclick="window.print()">打印 / 另存为PDF</button>
-<h1>${escapeHtml(report.title)}</h1>
-<p class="meta">版本 V${Number(report.version) || 1} · 修订 ${Number(report.reportRevision) || 1} · ${escapeHtml(report.generatedAt || '')}</p>
-<h2>项目概况</h2>
-<p>${escapeHtml(report.projectSnapshot?.name || '')} · ${escapeHtml(report.projectSnapshot?.area || '')}</p>
-<div class="metrics">
-<div>正式问题<br><strong>${Number(report.dataSnapshot?.officialIssueCount) || 0}</strong></div>
-<div>高风险<br><strong>${Number(severity.high) || 0}</strong></div>
-<div>中风险<br><strong>${Number(severity.medium) || 0}</strong></div>
-<div>低风险<br><strong>${Number(severity.low) || 0}</strong></div>
-</div>
-<h2>执行摘要</h2><p>${escapeHtml(report.editorial?.executiveSummary || '尚未编辑执行摘要。')}</p>
-<h2>建议</h2><p>${escapeHtml(report.editorial?.recommendations || '尚未编辑建议。')}</p>
-<h2>数据快照</h2><p>已定位问题 ${Number(report.dataSnapshot?.locatedIssueCount) || 0}；AI分析 ${Number(report.dataSnapshot?.analysisRunCount) || 0}；人工复核 ${Number(report.dataSnapshot?.manualReviewCount) || 0}；空间分析 ${Number(report.dataSnapshot?.spatialAnalysisCount) || 0}。</p>
-<p class="notice">${escapeHtml((report.notices || []).join(' '))}</p>
-</body></html>`;
 }
 
 function sendError(res, error, id) {
@@ -350,6 +352,7 @@ async function handleMeta(res, id) {
       legacy: services.legacy
     },
     dataSources: sourceOfTruthSnapshot(),
+    providers: cloudBaseProviderCapability(),
     features: {
       optimisticConcurrency: true,
       localJsonPersistence: true,
@@ -357,10 +360,14 @@ async function handleMeta(res, id) {
       directUpload: false,
       localFileStorage: true,
       objectStorage: false,
+      cloudBaseProvider: true,
+      standardLibrary: true,
       resumableUploadSessions: true,
       sourceAssets: true,
       geoJsonBoundaryImport: true,
       asyncAnalysis: true,
+      analysisBatching: true,
+      analysisCandidateDeduplication: true,
       persistentAnalysisCandidates: true,
       clickToLocateIssues: true,
       requestObservability: true,
@@ -422,18 +429,45 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && url.pathname === '/api/photos') {
       const projectId = url.searchParams.get('projectId') || '';
-      const [photos, metadata] = await Promise.all([
+      const [photos, metadata, uploadSessions] = await Promise.all([
         smartRenewClient.listPhotos(Object.fromEntries(url.searchParams)),
-        photoMetadataRepository.list(projectId)
+        photoMetadataRepository.list(projectId),
+        projectId ? uploadSessionRepository.list(projectId) : []
       ]);
+      const derivations = new Map(
+        uploadSessions
+          .filter((session) => session.kind === 'annotated' && session.status === 'completed')
+          .map((session) => [String(session.photoId), session.derivation])
+      );
+      const includeDerived = url.searchParams.get('includeDerived') === 'true';
+      const items = mergePhotoMetadata(
+        photos.items,
+        metadata,
+        url.searchParams.get('includeInactive') === 'true'
+      )
+        .map((photo) => derivations.has(String(photo.id))
+          ? { ...photo, assetKind: 'annotated', derivation: derivations.get(String(photo.id)) }
+          : { ...photo, assetKind: 'original' })
+        .filter((photo) => includeDerived || photo.assetKind !== 'annotated');
       return sendSuccess(res, {
-        items: mergePhotoMetadata(
-          photos.items,
-          metadata,
-          url.searchParams.get('includeInactive') === 'true'
-        ),
+        items,
         storage: 'legacy-files-with-business-metadata'
       }, id);
+    }
+
+    const photoContentMatch = url.pathname.match(/^\/api\/photos\/([^/]+)\/content$/);
+    if (req.method === 'GET' && photoContentMatch) {
+      const content = await smartRenewClient.getPhotoContent(
+        decodeURIComponent(photoContentMatch[1])
+      );
+      res.writeHead(200, {
+        'content-type': content.contentType,
+        'content-length': content.bytes.length,
+        'cache-control': 'private, max-age=3600',
+        'x-content-type-options': 'nosniff'
+      });
+      res.end(content.bytes);
+      return;
     }
 
     const projectPhotoMetadataMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/photos\/([^/]+)$/);
@@ -573,7 +607,8 @@ async function handleRequest(req, res) {
       const outcome = await createUploadSession(
         smartRenewClient,
         uploadSessionRepository,
-        await readJsonBody(req)
+        await readJsonBody(req),
+        { assertAnalysisFresh: assertAnalysisReviewFresh }
       );
       return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
     }
@@ -1234,7 +1269,8 @@ async function handleRequest(req, res) {
         smartRenewClient,
         analysisCandidateRepository,
         decodeURIComponent(analysisCandidateMatch[1]),
-        await readJsonBody(req)
+        await readJsonBody(req),
+        { assertAnalysisFresh: assertAnalysisReviewFresh }
       );
       return sendSuccess(res, { item: candidate }, id);
     }
@@ -1267,7 +1303,10 @@ async function handleRequest(req, res) {
         officialIssueRepository,
         decodeURIComponent(reviewFinalizeMatch[1]),
         await readJsonBody(req),
-        {},
+        {
+          uploadSessionRepository,
+          assertAnalysisFresh: assertAnalysisReviewFresh
+        },
         analysisCandidateRepository
       );
       return sendSuccess(res, outcome, id);
@@ -1418,6 +1457,40 @@ async function handleRequest(req, res) {
       }, id);
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/standards') {
+      const library = await loadStandardLibrary();
+      const result = queryStandardLibrary(library, Object.fromEntries(url.searchParams));
+      return sendSuccess(res, {
+        summary: summarizeStandardLibrary(library),
+        ...result
+      }, id);
+    }
+
+    const standardListMatch = url.pathname.match(/^\/api\/standards\/(indicators|problem-types|remediations|categories)$/);
+    if (req.method === 'GET' && standardListMatch) {
+      const sourceTableByRoute = {
+        indicators: 'indicator',
+        'problem-types': 'problem_type',
+        remediations: 'remediation',
+        categories: 'problem_category'
+      };
+      const library = await loadStandardLibrary();
+      return sendSuccess(res, queryStandardLibrary(library, {
+        ...Object.fromEntries(url.searchParams),
+        sourceTable: sourceTableByRoute[standardListMatch[1]]
+      }), id);
+    }
+
+    const standardItemMatch = url.pathname.match(/^\/api\/standards\/(indicators|problem-types)\/([^/]+)$/);
+    if (req.method === 'GET' && standardItemMatch) {
+      const sourceTable = standardItemMatch[1] === 'indicators' ? 'indicator' : 'problem_type';
+      const code = decodeURIComponent(standardItemMatch[2]);
+      const library = await loadStandardLibrary();
+      return sendSuccess(res, {
+        item: assertStandardRecord(findStandardRecord(library, sourceTable, code), sourceTable, code)
+      }, id);
+    }
+
     const indicatorRunMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/indicator-runs$/);
     if (req.method === 'POST' && indicatorRunMatch) {
       const error = new Error('指标引擎尚未接入，当前不会生成演示指标或分数。');
@@ -1472,7 +1545,7 @@ async function handleRequest(req, res) {
         throw error;
       }
       if (reportArtifactMatch[2] === 'print') {
-        const body = reportPrintHtml(report);
+        const body = renderReportHtml(report);
         res.writeHead(200, {
           'content-type': 'text/html; charset=utf-8',
           'content-length': Buffer.byteLength(body),
@@ -1530,14 +1603,16 @@ async function handleRequest(req, res) {
           legacyIssues,
           spatialAnalyses,
           photos,
-          photoMetadata
+          photoMetadata,
+          uploadSessions
         ] = await Promise.all([
           smartRenewClient.getProject(projectId),
           officialIssueRepository.list(projectId),
           smartRenewClient.listIssues({ projectId }),
           spatialAnalysisRepository.list(projectId),
           smartRenewClient.listPhotos({ projectId }),
-          photoMetadataRepository.list(projectId)
+          photoMetadataRepository.list(projectId),
+          uploadSessionRepository.list(projectId)
         ]);
         const mergedIssues = mergePrimaryReadModel('officialIssue', {
           businessItems: businessIssues,
@@ -1548,7 +1623,10 @@ async function handleRequest(req, res) {
           project,
           mergedIssues,
           spatialAnalyses,
-          mergePhotoMetadata(photos.items, photoMetadata, true)
+          sourceEvidencePhotos(
+            mergePhotoMetadata(photos.items, photoMetadata, true),
+            uploadSessions
+          )
         );
       }
       return sendSuccess(res, {
@@ -1568,7 +1646,8 @@ async function handleRequest(req, res) {
         manualReviews,
         spatialAnalyses,
         photos,
-        photoMetadata
+        photoMetadata,
+        uploadSessions
       ] = await Promise.all([
         smartRenewClient.getProject(projectId),
         officialIssueRepository.list(projectId),
@@ -1577,7 +1656,8 @@ async function handleRequest(req, res) {
         reviewSessionRepository.list(projectId),
         spatialAnalysisRepository.list(projectId),
         smartRenewClient.listPhotos({ projectId }),
-        photoMetadataRepository.list(projectId)
+        photoMetadataRepository.list(projectId),
+        uploadSessionRepository.list(projectId)
       ]);
       const issues = mergePrimaryReadModel('officialIssue', {
         businessItems: businessIssues,
@@ -1600,7 +1680,10 @@ async function handleRequest(req, res) {
         {
           reviewConclusions: manualReviews,
           spatialAnalyses,
-          photos: mergePhotoMetadata(photos.items, photoMetadata)
+          photos: sourceEvidencePhotos(
+            mergePhotoMetadata(photos.items, photoMetadata),
+            uploadSessions
+          )
         }
       );
       return sendSuccess(res, { item: report }, id, 201);

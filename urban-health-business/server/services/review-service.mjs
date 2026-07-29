@@ -16,6 +16,89 @@ function candidatesFrom(record) {
   return [];
 }
 
+function sourcePhotoIdFor(candidate, record) {
+  const imageIndex = Math.max(1, Math.trunc(Number(candidate?.imageIndex) || 1));
+  return clean(candidate?.photoId || record?.photoIds?.[imageIndex - 1], 120);
+}
+
+function hasValidBbox(candidate) {
+  return Array.isArray(candidate?.bbox)
+    && candidate.bbox.length === 4
+    && candidate.bbox.map(Number).every(Number.isFinite);
+}
+
+async function attachAnnotationEvidence(record, outcome, input, uploadSessionRepository) {
+  const requiringAnnotation = outcome.accepted.filter((candidate) =>
+    hasValidBbox(candidate) && sourcePhotoIdFor(candidate, record)
+  );
+  if (!requiringAnnotation.length) return { reviewed: outcome.reviewed, accepted: outcome.accepted, evidence: [] };
+  if (!uploadSessionRepository) {
+    throw reviewError('标注图归档服务不可用，当前复核尚未归档。', 503, 'ANNOTATION_ARCHIVE_UNAVAILABLE');
+  }
+
+  const submitted = Array.isArray(input?.annotatedPhotos) ? input.annotatedPhotos : [];
+  const bySourcePhotoId = new Map(
+    submitted.map((item) => [clean(item?.sourcePhotoId, 120), item])
+  );
+  const grouped = new Map();
+  for (const candidate of requiringAnnotation) {
+    const sourcePhotoId = sourcePhotoIdFor(candidate, record);
+    if (!grouped.has(sourcePhotoId)) grouped.set(sourcePhotoId, []);
+    grouped.get(sourcePhotoId).push(candidate);
+  }
+
+  const evidence = [];
+  for (const [sourcePhotoId, candidates] of grouped) {
+    const submittedItem = bySourcePhotoId.get(sourcePhotoId);
+    const sessionId = clean(submittedItem?.uploadSessionId, 160);
+    const annotatedPhotoId = clean(submittedItem?.annotatedPhotoId, 120);
+    const session = sessionId ? await uploadSessionRepository.get(sessionId) : null;
+    const expectedCandidateIds = candidates.map((candidate) => String(candidate.id));
+    const archivedCandidateIds = new Set(
+      (Array.isArray(session?.derivation?.candidateIds) ? session.derivation.candidateIds : []).map(String)
+    );
+    const valid = session?.status === 'completed'
+      && session?.kind === 'annotated'
+      && String(session.projectId) === String(record.projectId)
+      && String(session.derivation?.analysisId) === String(record.id)
+      && String(session.derivation?.sourcePhotoId) === sourcePhotoId
+      && String(session.photoId) === annotatedPhotoId
+      && expectedCandidateIds.every((candidateId) => archivedCandidateIds.has(candidateId));
+    if (!valid) {
+      throw reviewError(
+        `原始照片${sourcePhotoId}的标注图尚未成功归档，可重试后再完成复核。`,
+        409,
+        'ANNOTATED_EVIDENCE_INCOMPLETE',
+        { sourcePhotoId, candidateIds: expectedCandidateIds }
+      );
+    }
+    evidence.push({
+      sourcePhotoId,
+      annotatedPhotoId,
+      uploadSessionId: session.id,
+      candidateIds: expectedCandidateIds
+    });
+  }
+
+  const evidenceByCandidateId = new Map();
+  for (const item of evidence) {
+    for (const candidateId of item.candidateIds) evidenceByCandidateId.set(candidateId, item);
+  }
+  const decorate = (candidate) => {
+    const item = evidenceByCandidateId.get(String(candidate.id));
+    return item ? {
+      ...candidate,
+      annotatedPhotoId: item.annotatedPhotoId,
+      annotationUploadSessionId: item.uploadSessionId
+    } : candidate;
+  };
+  return {
+    reviewed: outcome.reviewed.map(decorate),
+    accepted: outcome.accepted.map(decorate),
+    evidence
+  };
+}
+
 export function normalizeCandidateChanges(changes) {
   if (!changes || typeof changes !== 'object') return {};
   const result = {};
@@ -39,8 +122,13 @@ export function normalizeCandidateChanges(changes) {
   }
   if (Object.hasOwn(changes, 'bbox')) {
     const bbox = Array.isArray(changes.bbox) ? changes.bbox.map(Number) : [];
-    if (bbox.length !== 4 || bbox.some((value) => !Number.isFinite(value))) {
-      throw reviewError('候选标注框必须包含4个数字。', 400, 'INVALID_BBOX');
+    if (
+      bbox.length !== 4
+      || bbox.some((value) => !Number.isFinite(value) || value < 0 || value > 999)
+      || bbox[2] <= bbox[0]
+      || bbox[3] <= bbox[1]
+    ) {
+      throw reviewError('候选标注框必须是0—999范围内且右下角大于左上角的4个数字。', 400, 'INVALID_BBOX');
     }
     result.bbox = bbox;
   }
@@ -128,7 +216,28 @@ export async function finalizeReview(
       duplicated: true
     };
   }
+  if (typeof options.assertAnalysisFresh === 'function') {
+    await options.assertAnalysisFresh(record);
+  }
   const outcome = applyReviewDecisions(record, input, options);
+  const annotated = await attachAnnotationEvidence(
+    record,
+    outcome,
+    input,
+    options.uploadSessionRepository
+  );
+  outcome.reviewed = annotated.reviewed;
+  outcome.accepted = annotated.accepted;
+  outcome.archivedRecord = {
+    ...outcome.archivedRecord,
+    reviewIssues: annotated.reviewed,
+    result: {
+      ...(outcome.archivedRecord.result || {}),
+      issues: annotated.accepted
+    },
+    annotationEvidence: annotated.evidence,
+    annotatedPhotoIds: annotated.evidence.map((item) => item.annotatedPhotoId)
+  };
   let officialIssues = [];
   if (outcome.accepted.length) {
     officialIssues = await issueRepository.createFromCandidates(

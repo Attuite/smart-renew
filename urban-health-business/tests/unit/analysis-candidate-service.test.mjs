@@ -89,3 +89,23 @@ test('archived analysis candidates are immutable', async () => {
     (error) => error.code === 'ANALYSIS_ALREADY_ARCHIVED'
   );
 });
+
+test('stale analysis blocks individual and batch candidate review writes', async () => {
+  let repositoryWritten = false;
+  const staleError = Object.assign(new Error('stale'), { code: 'AI_ANALYSIS_STALE' });
+  await assert.rejects(
+    () => updateAnalysisCandidate(clientFixture(), {
+      async get() { return null; },
+      async put() { repositoryWritten = true; }
+    }, 'CAND-1', {
+      analysisId: 'ANL-1',
+      reviewStatus: 'accepted',
+      updatedBy: '复核员',
+      expectedRevision: 1
+    }, {
+      async assertAnalysisFresh() { throw staleError; }
+    }),
+    (error) => error.code === 'AI_ANALYSIS_STALE'
+  );
+  assert.equal(repositoryWritten, false);
+});
