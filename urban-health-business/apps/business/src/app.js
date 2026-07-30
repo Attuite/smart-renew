@@ -1,6 +1,19 @@
 import { api } from './api/client.js';
 import { AmapMapController } from './gis/amap-map-controller.js';
 import {
+  createGisViewState,
+  gisUrlState,
+  mapViewQueryFromState,
+  serializeGisLayerSelection
+} from './modules/gis/gis-view-model.js';
+import { filterOfficialIssues } from './modules/gis/gis-filters.js';
+import {
+  hasPointGeometry,
+  haversineMeters,
+  parseIssueGeometryBatch,
+  pointInsideSimplePolygon
+} from './modules/gis/gis-geometry.js';
+import {
   bboxPercentStyle,
   createAnnotatedImageFile,
   normalizeBbox
@@ -9,6 +22,16 @@ import { createStore } from './store/app-store.js';
 import { stageCatalog, statusLabels } from './workflow/stages.js';
 
 const store = createStore();
+function loadGisDisplayPreference() {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem('urban-health-business:gis-display-preference') || 'null'
+    );
+    return value && typeof value === 'object' ? value : {};
+  } catch {
+    return {};
+  }
+}
 const pendingUploadFiles = new Map();
 let pendingSourceAssetRequestId = crypto.randomUUID();
 let analysisPollTimer = null;
@@ -19,6 +42,12 @@ let boundaryMapInitializing = false;
 let gisMapController = null;
 let gisMapProjectSignature = '';
 let gisMapInitializing = false;
+let gisViewportTimer = null;
+let gisViewportRequest = 0;
+let gisFilterTimer = null;
+let gisViewState = createGisViewState(
+  gisUrlState(location.search, loadGisDisplayPreference())
+);
 const elements = {
   projectSelect: document.querySelector('#projectSelect'),
   serviceStrip: document.querySelector('#serviceStrip'),
@@ -77,6 +106,10 @@ const elements = {
   boundaryGeocodeForm: document.querySelector('#boundaryGeocodeForm'),
   locateBoundaryAddressButton: document.querySelector('#locateBoundaryAddressButton'),
   drawBoundaryButton: document.querySelector('#drawBoundaryButton'),
+  editBoundaryButton: document.querySelector('#editBoundaryButton'),
+  undoBoundaryButton: document.querySelector('#undoBoundaryButton'),
+  redoBoundaryButton: document.querySelector('#redoBoundaryButton'),
+  finishBoundaryEditButton: document.querySelector('#finishBoundaryEditButton'),
   clearBoundaryDraftButton: document.querySelector('#clearBoundaryDraftButton'),
   boundaryMapStatus: document.querySelector('#boundaryMapStatus'),
   boundaryMapCanvas: document.querySelector('#boundaryMapCanvas'),
@@ -169,10 +202,42 @@ const elements = {
   locatedIssueCount: document.querySelector('#locatedIssueCount'),
   unlocatedIssueCount: document.querySelector('#unlocatedIssueCount'),
   gisIssueList: document.querySelector('#gisIssueList'),
+  gisIssueSearch: document.querySelector('#gisIssueSearch'),
+  gisRiskFilter: document.querySelector('#gisRiskFilter'),
+  gisTypeFilter: document.querySelector('#gisTypeFilter'),
+  gisStatusFilter: document.querySelector('#gisStatusFilter'),
+  gisBindingFilter: document.querySelector('#gisBindingFilter'),
+  gisStaleFilter: document.querySelector('#gisStaleFilter'),
+  gisVisibleCount: document.querySelector('#gisVisibleCount'),
+  gisLayout: document.querySelector('#gisLayout'),
+  gisShowListButton: document.querySelector('#gisShowListButton'),
+  gisShowMapButton: document.querySelector('#gisShowMapButton'),
+  gisMapStyle: document.querySelector('#gisMapStyle'),
+  gisPointTarget: document.querySelector('#gisPointTarget'),
+  gisFitVisibleButton: document.querySelector('#gisFitVisibleButton'),
+  gisFullscreenButton: document.querySelector('#gisFullscreenButton'),
+  gisMeasureDistanceButton: document.querySelector('#gisMeasureDistanceButton'),
+  gisMeasureAreaButton: document.querySelector('#gisMeasureAreaButton'),
+  gisClearMeasureButton: document.querySelector('#gisClearMeasureButton'),
+  gisTransformOperator: document.querySelector('#gisTransformOperator'),
+  gisPrepareDisplayButton: document.querySelector('#gisPrepareDisplayButton'),
+  gisLayerControl: document.querySelector('#gisLayerControl'),
+  gisMapLegend: document.querySelector('#gisMapLegend'),
   geometryForm: document.querySelector('#geometryForm'),
   geometryIssueSelect: document.querySelector('#geometryIssueSelect'),
+  geometryComparison: document.querySelector('#geometryComparison'),
+  cancelGeometryDraftButton: document.querySelector('#cancelGeometryDraftButton'),
   saveGeometryButton: document.querySelector('#saveGeometryButton'),
   geometryFormError: document.querySelector('#geometryFormError'),
+  geometryBatchForm: document.querySelector('#geometryBatchForm'),
+  geometryBatchSubmitButton: document.querySelector('#geometryBatchSubmitButton'),
+  geometryBatchFormError: document.querySelector('#geometryBatchFormError'),
+  photoGeometryForm: document.querySelector('#photoGeometryForm'),
+  photoGeometrySelect: document.querySelector('#photoGeometrySelect'),
+  photoGeometryComparison: document.querySelector('#photoGeometryComparison'),
+  cancelPhotoGeometryDraftButton: document.querySelector('#cancelPhotoGeometryDraftButton'),
+  savePhotoGeometryButton: document.querySelector('#savePhotoGeometryButton'),
+  photoGeometryFormError: document.querySelector('#photoGeometryFormError'),
   issueEditForm: document.querySelector('#issueEditForm'),
   issueEditSelect: document.querySelector('#issueEditSelect'),
   updateIssueButton: document.querySelector('#updateIssueButton'),
@@ -191,6 +256,26 @@ const elements = {
   runPoiAnalysisButton: document.querySelector('#runPoiAnalysisButton'),
   poiAnalysisFormError: document.querySelector('#poiAnalysisFormError'),
   poiAnalysisHistory: document.querySelector('#poiAnalysisHistory'),
+  surveyRouteCount: document.querySelector('#surveyRouteCount'),
+  surveyRouteForm: document.querySelector('#surveyRouteForm'),
+  surveyRouteAssetSelect: document.querySelector('#surveyRouteAssetSelect'),
+  createSurveyRouteButton: document.querySelector('#createSurveyRouteButton'),
+  surveyRouteFormError: document.querySelector('#surveyRouteFormError'),
+  surveyRouteSelect: document.querySelector('#surveyRouteSelect'),
+  surveyRouteOperator: document.querySelector('#surveyRouteOperator'),
+  cleanSurveyRouteButton: document.querySelector('#cleanSurveyRouteButton'),
+  detectSurveyStopsButton: document.querySelector('#detectSurveyStopsButton'),
+  suggestPhotoBindingsButton: document.querySelector('#suggestPhotoBindingsButton'),
+  confirmSurveyRouteButton: document.querySelector('#confirmSurveyRouteButton'),
+  surveyRouteActionError: document.querySelector('#surveyRouteActionError'),
+  surveyRouteDetail: document.querySelector('#surveyRouteDetail'),
+  surveyStopList: document.querySelector('#surveyStopList'),
+  photoRouteBindingList: document.querySelector('#photoRouteBindingList'),
+  mapSnapshotForm: document.querySelector('#mapSnapshotForm'),
+  mapSnapshotReportSelect: document.querySelector('#mapSnapshotReportSelect'),
+  createMapSnapshotButton: document.querySelector('#createMapSnapshotButton'),
+  mapSnapshotFormError: document.querySelector('#mapSnapshotFormError'),
+  mapSnapshotList: document.querySelector('#mapSnapshotList'),
   indicatorWorkspace: document.querySelector('#indicatorWorkspace'),
   backFromIndicatorButton: document.querySelector('#backFromIndicatorButton'),
   indicatorIssueCount: document.querySelector('#indicatorIssueCount'),
@@ -406,6 +491,40 @@ function resetMapControllers() {
   gisMapProjectSignature = '';
   boundaryMapInitializing = false;
   gisMapInitializing = false;
+  if (gisViewportTimer) clearTimeout(gisViewportTimer);
+  gisViewportTimer = null;
+  if (gisFilterTimer) clearTimeout(gisFilterTimer);
+  gisFilterTimer = null;
+  gisViewportRequest += 1;
+}
+
+function scheduleGisViewportLoad(bounds, zoom) {
+  if (!Array.isArray(bounds) || bounds.length !== 4) return;
+  gisViewState.viewport = { bounds, zoom };
+  if (gisViewportTimer) clearTimeout(gisViewportTimer);
+  const requestSequence = ++gisViewportRequest;
+  const projectId = String(store.get().activeProjectId || '');
+  gisViewportTimer = setTimeout(async () => {
+    try {
+      const query = mapViewQueryFromState(gisViewState, { bounds, limit: 2000 });
+      query.set('zoom', String(zoom || ''));
+      const mapView = await api.projectMapView(projectId, query);
+      if (
+        requestSequence !== gisViewportRequest
+        || String(store.get().activeProjectId) !== projectId
+      ) return;
+      store.set({ mapView });
+    } catch (error) {
+      if (requestSequence === gisViewportRequest) {
+        gisViewState.errorByLayer = { ...gisViewState.errorByLayer, viewport: error.message };
+        setProviderStatus(
+          elements.gisMapStatus,
+          `视口数据加载失败：${error.message}`,
+          'warning'
+        );
+      }
+    }
+  }, 350);
 }
 
 async function syncBoundaryMap(state) {
@@ -414,6 +533,13 @@ async function syncBoundaryMap(state) {
   const browserReady = Boolean(config?.browser?.ready);
   elements.boundaryMapCanvas.hidden = !browserReady;
   elements.drawBoundaryButton.disabled = !browserReady || state.collectionLoading;
+  elements.editBoundaryButton.disabled = !browserReady
+    || state.collectionLoading
+    || normalizedCrs(state.activeProject?.scopeBoundaryCrs) !== 'GCJ02'
+    || !state.activeProject?.scopeBoundary?.length;
+  elements.undoBoundaryButton.disabled = !browserReady || state.collectionLoading;
+  elements.redoBoundaryButton.disabled = !browserReady || state.collectionLoading;
+  elements.finishBoundaryEditButton.disabled = !browserReady || state.collectionLoading;
   elements.clearBoundaryDraftButton.disabled = !browserReady || state.collectionLoading;
   elements.locateBoundaryAddressButton.disabled = !config?.geocoding?.ready || state.collectionLoading;
   if (!browserReady) {
@@ -439,7 +565,7 @@ async function syncBoundaryMap(state) {
       elements.boundaryMapStatus,
       canOverlay
         ? '高德地图已连接，绘制结果将以GCJ-02草稿回填，保存仍由Business后端校验。'
-        : '当前已保存边界为WGS84；坐标转换接入前不在GCJ-02底图上叠加，避免位置误导。',
+        : '当前边界为WGS84且尚无匹配的GCJ-02显示转换记录；暂不叠加到底图。',
       canOverlay ? 'ready' : 'warning'
     );
     return;
@@ -478,7 +604,7 @@ async function syncBoundaryMap(state) {
       elements.boundaryMapStatus,
       canOverlay
         ? '高德地图已连接，绘制结果将以GCJ-02草稿回填，保存仍由Business后端校验。'
-        : '当前已保存边界为WGS84；坐标转换接入前不在GCJ-02底图上叠加，避免位置误导。',
+        : '当前边界为WGS84且尚无匹配的GCJ-02显示转换记录；暂不叠加到底图。',
       canOverlay ? 'ready' : 'warning'
     );
   } catch (error) {
@@ -495,8 +621,12 @@ async function syncGisMap(state) {
   if (!isGisWorkspace(state)) return;
   const project = state.activeProject;
   const browserReady = Boolean(state.gisConfig?.browser?.ready);
-  const gcjProject = normalizedCrs(project?.scopeBoundaryCrs) === 'GCJ02';
-  const hasBoundary = Array.isArray(project?.scopeBoundary) && project.scopeBoundary.length >= 3;
+  const mapView = state.mapView;
+  const gcjProject = mapView
+    ? Boolean(mapView.coordinateCompatibility?.onlineMapOverlayReady)
+    : normalizedCrs(project?.scopeBoundaryCrs) === 'GCJ02';
+  const hasBoundary = Boolean(mapView?.boundary)
+    || (Array.isArray(project?.scopeBoundary) && project.scopeBoundary.length >= 3);
   const usable = browserReady && gcjProject && hasBoundary;
   elements.gisMapCanvas.hidden = !usable;
   if (!usable) {
@@ -504,18 +634,43 @@ async function syncGisMap(state) {
       ? '高德浏览器地图未配置；下方继续显示真实经纬度矢量预览。'
       : !hasBoundary
         ? '项目尚无真实边界，地图不会创建默认范围。'
-        : '项目边界不是GCJ-02；坐标转换接入前不在高德底图叠加，避免错位。';
+        : '项目边界尚无匹配的GCJ-02显示转换记录；暂不叠加到高德底图。';
     setProviderStatus(elements.gisMapStatus, message, 'warning');
     return;
   }
+  const filteredIssues = filterGisIssues(state.issues);
+  const filteredIssueIds = new Set(filteredIssues.map((issue) => String(issue.id)));
+  const visibleMapView = mapView ? {
+    ...mapView,
+    issues: {
+      ...mapView.issues,
+      items: (mapView.issues?.items || []).filter((item) => filteredIssueIds.has(String(item.id)))
+    }
+  } : null;
   const signature = `${state.activeProjectId}:${Number(project.revision) || 0}:${state.issues
     .map((issue) => `${issue.id}:${Number(issue.geometryRevision) || 0}`)
-    .join('|')}`;
+    .join('|')}:${mapView?.photos?.total || 0}:${mapView?.routes?.total || 0}:${mapView?.spatialAnalyses?.items?.[0]?.id || ''}:${[
+      gisViewState.filters.search,
+      gisViewState.filters.issueRisk,
+      gisViewState.filters.issueType,
+      gisViewState.filters.issueStatus,
+      gisViewState.filters.bindingStatus,
+      gisViewState.filters.staleStatus
+    ].join(':')}`;
+  const viewportSignature = (mapView?.viewport?.requestedBounds || []).join(',');
+  const completeSignature = `${signature}:${viewportSignature}`;
   if (gisMapController) {
-    if (signature !== gisMapProjectSignature) {
-      gisMapController.setBoundary(project.scopeBoundary);
-      gisMapController.setIssues(state.issues);
-      gisMapProjectSignature = signature;
+    if (completeSignature !== gisMapProjectSignature) {
+      if (visibleMapView) gisMapController.setMapView(visibleMapView);
+      else {
+        gisMapController.setBoundary(project.scopeBoundaryGeometry || project.scopeBoundary);
+        gisMapController.setIssues(filteredIssues);
+      }
+      gisMapController.setSelectedIssue(gisViewState.selectedIssueId);
+      for (const [layer, visible] of Object.entries(gisViewState.visibleLayers)) {
+        gisMapController.setLayerVisibility(layer, visible);
+      }
+      gisMapProjectSignature = completeSignature;
     }
     gisMapController.resize();
     setProviderStatus(elements.gisMapStatus, '高德地图已连接；点击边界内位置可回填当前问题的GCJ-02坐标。', 'ready');
@@ -530,9 +685,58 @@ async function syncGisMap(state) {
       elements.gisMapCanvas,
       state.gisConfig.browser,
       {
-        boundary: project.scopeBoundary,
+        mapView: visibleMapView,
+        boundary: project.scopeBoundaryGeometry || project.scopeBoundary,
         issues: state.issues,
+        mapStyle: gisViewState.mapStyle,
+        onIssueSelected(issueId) {
+          const issue = store.get().issues.find((item) => String(item.id) === String(issueId));
+          if (!issue) return;
+          elements.geometryIssueSelect.value = issueId;
+          elements.issueEditSelect.value = issueId;
+          populateIssueEditForm(issue);
+          renderGeometryAudit(issue);
+          elements.geometryIssueSelect.dispatchEvent(new Event('change'));
+        },
+        onIssueGeometryDraft(issueId, point) {
+          const issue = store.get().issues.find((item) => String(item.id) === String(issueId));
+          if (!issue) return;
+          elements.geometryIssueSelect.value = issueId;
+          showIssueGeometryDraft(issue, point, 'GCJ02');
+          setProviderStatus(
+            elements.gisMapStatus,
+            `已拖拽形成 ${point[0].toFixed(6)}, ${point[1].toFixed(6)} 草稿；服务端校验成功后才会保存。`,
+            'ready'
+          );
+        },
+        onPhotoSelected(photoId) {
+          const photo = store.get().photos.find((item) => String(item.id) === String(photoId));
+          if (!photo) return;
+          gisViewState.selectedPhotoId = photoId;
+          elements.photoGeometrySelect.value = photoId;
+          populatePhotoGeometryForm(photo);
+        },
+        onPhotoGeometryDraft(photoId, point) {
+          const photo = store.get().photos.find((item) => String(item.id) === String(photoId));
+          if (!photo) return;
+          gisViewState.selectedPhotoId = photoId;
+          elements.photoGeometrySelect.value = photoId;
+          populatePhotoGeometryForm(photo);
+          showPhotoGeometryDraft(photo, point, 'GCJ02');
+        },
         onPointSelected(point) {
+          if (elements.gisPointTarget.value === 'photo') {
+            if (!elements.photoGeometrySelect.value) return;
+            elements.photoGeometryForm.elements.longitude.value = point[0];
+            elements.photoGeometryForm.elements.latitude.value = point[1];
+            elements.photoGeometryForm.elements.coordinateCrs.value = 'GCJ02';
+            const photo = store.get().photos.find((item) =>
+              String(item.id) === String(elements.photoGeometrySelect.value)
+            );
+            populatePhotoGeometryForm(photo);
+            showPhotoGeometryDraft(photo, point, 'GCJ02');
+            return;
+          }
           if (!elements.geometryIssueSelect.value) return;
           const boundary = store.get().activeProject?.scopeBoundary || [];
           elements.geometryFormError.hidden = true;
@@ -541,14 +745,18 @@ async function syncGisMap(state) {
             elements.geometryFormError.hidden = false;
             return;
           }
-          elements.geometryForm.elements.longitude.value = point[0];
-          elements.geometryForm.elements.latitude.value = point[1];
-          elements.geometryForm.elements.crs.value = 'GCJ02';
+          const issue = store.get().issues.find((item) =>
+            String(item.id) === String(elements.geometryIssueSelect.value)
+          );
+          showIssueGeometryDraft(issue, point, 'GCJ02');
           setProviderStatus(
             elements.gisMapStatus,
             `已回填 ${point[0].toFixed(6)}, ${point[1].toFixed(6)}；保存前请核对问题和确认人员。`,
             'ready'
           );
+        },
+        onViewportChanged(bounds, zoom) {
+          scheduleGisViewportLoad(bounds, zoom);
         }
       }
     );
@@ -557,7 +765,11 @@ async function syncGisMap(state) {
       return;
     }
     gisMapController = controller;
-    gisMapProjectSignature = signature;
+    gisMapController.setSelectedIssue(gisViewState.selectedIssueId);
+    for (const [layer, visible] of Object.entries(gisViewState.visibleLayers)) {
+      gisMapController.setLayerVisibility(layer, visible);
+    }
+    gisMapProjectSignature = completeSignature;
     setProviderStatus(elements.gisMapStatus, '高德地图已连接；点击边界内位置可回填当前问题的GCJ-02坐标。', 'ready');
   } catch (error) {
     elements.gisMapCanvas.hidden = true;
@@ -632,6 +844,7 @@ function renderCollection(state) {
         <strong>项目修订 ${Number(revision.projectRevision) || 0}</strong>
         <span>${revision.coordinates?.length || 0}点 · ${Number(revision.areaSqKm || 0).toFixed(3)} km² · ${escapeHtml(revision.crs || 'WGS84')}</span>
         <small>${revision.createdAt ? new Date(revision.createdAt).toLocaleString() : '时间未记录'}${revision.updatedBy ? ` · ${escapeHtml(revision.updatedBy)}` : ''}</small>
+        <button type="button" data-boundary-replay="${Number(revision.projectRevision) || 0}">只读回放</button>
       </article>`).join('')
     : '<p class="workspace-empty">尚无Business边界修订快照；首次保存后开始记录。</p>';
   void syncBoundaryMap(state);
@@ -1133,45 +1346,98 @@ function isGisWorkspace(state) {
   return state.selectedStageId === 'gis-and-issues' && query.get('view') === 'workspace' && Boolean(state.activeProjectId);
 }
 
-function hasIssueGeometry(issue) {
-  return issue?.geometry?.type === 'Point'
-    && Array.isArray(issue.geometry.coordinates)
-    && issue.geometry.coordinates.length >= 2;
-}
+const hasIssueGeometry = hasPointGeometry;
+const pointInsideBoundary = pointInsideSimplePolygon;
 
-function pointInsideBoundary(point, polygon) {
-  if (!Array.isArray(point) || !Array.isArray(polygon) || polygon.length < 3) return false;
-  let inside = false;
-  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
-    const start = polygon[previous].map(Number);
-    const end = polygon[index].map(Number);
-    const cross = (point[1] - start[1]) * (end[0] - start[0])
-      - (point[0] - start[0]) * (end[1] - start[1]);
-    const onSegment = Math.abs(cross) < 1e-10
-      && point[0] >= Math.min(start[0], end[0]) - 1e-10
-      && point[0] <= Math.max(start[0], end[0]) + 1e-10
-      && point[1] >= Math.min(start[1], end[1]) - 1e-10
-      && point[1] <= Math.max(start[1], end[1]) + 1e-10;
-    if (onSegment) return true;
-    const intersects = (end[1] > point[1]) !== (start[1] > point[1])
-      && point[0] < ((start[0] - end[0]) * (point[1] - end[1])) / (start[1] - end[1]) + end[0];
-    if (intersects) inside = !inside;
-  }
-  return inside;
-}
-
-function renderSpatialSvg(project, issues) {
-  const boundary = Array.isArray(project?.scopeBoundary)
-    ? project.scopeBoundary
-        .map((point) => Array.isArray(point) ? point.slice(0, 2).map(Number) : null)
-        .filter((point) => point && point.every(Number.isFinite))
-    : [];
+function renderSpatialSvg(project, issues, mapView, visibleLayers = {}) {
+  const validPoint = (point) => Array.isArray(point)
+    && Number.isFinite(Number(point[0]))
+    && Number.isFinite(Number(point[1]))
+    ? point.slice(0, 2).map(Number)
+    : null;
+  const sourceBoundary = mapView?.boundary?.geometry || project?.scopeBoundaryGeometry;
+  const boundaryPolygons = sourceBoundary?.type === 'MultiPolygon'
+    ? sourceBoundary.coordinates
+    : sourceBoundary?.type === 'Polygon'
+      ? [sourceBoundary.coordinates]
+      : Array.isArray(project?.scopeBoundary)
+        ? [[project.scopeBoundary]]
+        : [];
+  const boundaryRings = visibleLayers.boundary === false ? [] : boundaryPolygons.flatMap((polygon) =>
+    (Array.isArray(polygon) ? polygon : [])
+      .map((ring) => (Array.isArray(ring) ? ring : []).map(validPoint).filter(Boolean))
+      .filter((ring) => ring.length >= 3)
+  );
+  const historyBoundaryRings = visibleLayers.boundaryHistory === false
+    ? []
+    : (mapView?.boundaryHistory?.items || []).flatMap((feature) => {
+        const polygons = feature.geometry?.type === 'MultiPolygon'
+          ? feature.geometry.coordinates
+          : feature.geometry?.type === 'Polygon'
+            ? [feature.geometry.coordinates]
+            : [];
+        return polygons.flatMap((polygon) =>
+          (Array.isArray(polygon) ? polygon : [])
+            .map((ring) => (Array.isArray(ring) ? ring : []).map(validPoint).filter(Boolean))
+            .filter((ring) => ring.length >= 3)
+        );
+      });
+  const boundary = boundaryRings[0] || [];
   const issuePoints = issues
     .filter(hasIssueGeometry)
+    .filter((issue) => {
+      const pending = issue.spatialBinding?.status === 'pending'
+        || issue.bindingStatus === 'pending';
+      return pending
+        ? visibleLayers.pendingIssues !== false
+        : visibleLayers.issues !== false;
+    })
     .map((issue) => ({ issue, point: issue.geometry.coordinates.slice(0, 2).map(Number) }));
-  const allPoints = [...boundary, ...issuePoints.map((item) => item.point)];
+  const photoPoints = (mapView?.photos?.items || [])
+    .filter((item) => {
+      const source = String(item.properties?.coordinateSource || '').toLowerCase();
+      const manual = source.includes('manual') || source.includes('batch');
+      return manual
+        ? visibleLayers.manualPhotos !== false
+        : visibleLayers.photos !== false;
+    })
+    .map((item) => ({ item, point: validPoint(item.geometry?.coordinates) }))
+    .filter((item) => item.point);
+  const stopPoints = (mapView?.stops?.items || [])
+    .filter(() => visibleLayers.stops !== false)
+    .map((item) => ({ item, point: validPoint(item.geometry?.coordinates) }))
+    .filter((item) => item.point);
+  const routeLines = (mapView?.routes?.items || [])
+    .filter(() => visibleLayers.routes !== false)
+    .map((item) => ({
+      item,
+      points: item.geometry?.type === 'LineString'
+        ? item.geometry.coordinates.map(validPoint).filter(Boolean)
+        : []
+    }))
+    .filter((item) => item.points.length >= 2);
+  const selectedRun = mapView?.spatialAnalyses?.items?.[0];
+  const fallbackPoiItems = selectedRun?.result?.accepted || selectedRun?.result?.items || [];
+  const poiPoints = fallbackPoiItems
+    .filter((item) => visibleLayers.poi !== false && item.reviewStatus !== 'excluded')
+    .map((item) => ({ item, point: validPoint(item.coordinates || item.geometry?.coordinates) }))
+    .filter((item) => item.point);
+  const excludedPoiPoints = fallbackPoiItems
+    .filter((item) => visibleLayers.excludedPoi !== false && item.reviewStatus === 'excluded')
+    .map((item) => ({ item, point: validPoint(item.coordinates || item.geometry?.coordinates) }))
+    .filter((item) => item.point);
+  const allPoints = [
+    ...boundaryRings.flat(),
+    ...historyBoundaryRings.flat(),
+    ...issuePoints.map((item) => item.point),
+    ...photoPoints.map((item) => item.point),
+    ...stopPoints.map((item) => item.point),
+    ...routeLines.flatMap((item) => item.points),
+    ...poiPoints.map((item) => item.point),
+    ...excludedPoiPoints.map((item) => item.point)
+  ];
   if (!allPoints.length) {
-    return '<p class="workspace-empty">尚无可绘制的真实边界或问题坐标。</p>';
+    return '<p class="workspace-empty">尚无可绘制的真实边界或空间对象。</p>';
   }
   const longitudes = allPoints.map((point) => point[0]);
   const latitudes = allPoints.map((point) => point[1]);
@@ -1185,19 +1451,68 @@ function renderSpatialSvg(project, issues) {
     30 + ((longitude - minLon) / lonSpan) * 540,
     270 - ((latitude - minLat) / latSpan) * 240
   ];
-  const polygon = boundary.length
-    ? `<polygon points="${boundary.map((point) => projectPoint(point).join(',')).join(' ')}" />`
-    : '';
+  const polygons = boundaryRings.map((ring) =>
+    `<polygon points="${ring.map((point) => projectPoint(point).join(',')).join(' ')}" />`
+  ).join('');
+  const historicalPolygons = historyBoundaryRings.map((ring) =>
+    `<polygon points="${ring.map((point) => projectPoint(point).join(',')).join(' ')}" />`
+  ).join('');
   const markers = issuePoints.map(({ issue, point }, index) => {
     const [x, y] = projectPoint(point);
     return `<g><circle cx="${x}" cy="${y}" r="6" /><text x="${x + 9}" y="${y + 3}">${index + 1}. ${escapeHtml(issue.title || issue.id)}</text></g>`;
   }).join('');
+  const photoMarkers = photoPoints.map(({ item, point }) => {
+    const [x, y] = projectPoint(point);
+    return `<circle class="spatial-photo" cx="${x}" cy="${y}" r="4"><title>${escapeHtml(item.properties?.name || item.id)}</title></circle>`;
+  }).join('');
+  const stopMarkers = stopPoints.map(({ item, point }) => {
+    const [x, y] = projectPoint(point);
+    return `<rect class="spatial-stop" x="${x - 4}" y="${y - 4}" width="8" height="8"><title>${escapeHtml(item.id)}</title></rect>`;
+  }).join('');
+  const poiMarkers = poiPoints.map(({ item, point }) => {
+    const [x, y] = projectPoint(point);
+    return `<path class="spatial-poi" d="M${x} ${y - 5}L${x + 5} ${y + 4}H${x - 5}Z"><title>${escapeHtml(item.name || item.normalizedId)}</title></path>`;
+  }).join('');
+  const excludedPoiMarkers = excludedPoiPoints.map(({ item, point }) => {
+    const [x, y] = projectPoint(point);
+    return `<path class="spatial-poi-excluded" d="M${x - 4} ${y - 4}L${x + 4} ${y + 4}M${x + 4} ${y - 4}L${x - 4} ${y + 4}"><title>${escapeHtml(item.name || item.normalizedId)}（已排除）</title></path>`;
+  }).join('');
+  const routes = routeLines.map(({ item, points }) =>
+    `<polyline class="spatial-route" points="${points.map((point) => projectPoint(point).join(',')).join(' ')}"><title>${escapeHtml(item.properties?.name || item.id)}</title></polyline>`
+  ).join('');
+  const center = validPoint(selectedRun?.parameters?.center);
+  const radiusMeters = Number(selectedRun?.parameters?.radiusMeters);
+  const analysisCircle = visibleLayers.analysisRange !== false
+    && center && Number.isFinite(radiusMeters)
+    ? (() => {
+        const [x, y] = projectPoint(center);
+        const latitudeRadians = center[1] * Math.PI / 180;
+        const longitudeDegrees = radiusMeters / (111320 * Math.max(Math.cos(latitudeRadians), 0.1));
+        const pixelRadius = Math.max(3, longitudeDegrees / lonSpan * 540);
+        return `<circle class="spatial-analysis-range" cx="${x}" cy="${y}" r="${pixelRadius}"><title>${radiusMeters}米分析范围</title></circle><text class="spatial-analysis-label" x="${x}" y="${Math.max(12, y - pixelRadius - 4)}" text-anchor="middle">${Math.round(radiusMeters)}米</text>`;
+      })()
+    : '';
+  const distanceLines = visibleLayers.distanceLines !== false && center
+    ? (selectedRun?.result?.distances || []).map((item) => {
+        const end = validPoint(item.coordinates);
+        if (!end) return '';
+        const [startX, startY] = projectPoint(center);
+        const [endX, endY] = projectPoint(end);
+        const distance = Number(item.distanceMeters);
+        return `<g><line class="spatial-distance-line" x1="${startX}" y1="${startY}" x2="${endX}" y2="${endY}" />${Number.isFinite(distance) ? `<text class="spatial-distance-label" x="${(startX + endX) / 2}" y="${(startY + endY) / 2 - 3}" text-anchor="middle">${distance.toFixed(1)}米</text>` : ''}</g>`;
+      }).join('')
+    : '';
   return `<svg viewBox="0 0 600 300" role="img" aria-label="真实项目边界和正式问题经纬度预览"
     data-spatial-clickable="${boundary.length >= 3}" data-min-lon="${minLon}" data-max-lon="${maxLon}" data-min-lat="${minLat}" data-max-lat="${maxLat}">
     <g class="spatial-grid"><path d="M30 30V270H570 M30 90H570 M30 150H570 M30 210H570 M165 30V270 M300 30V270 M435 30V270 M570 30V270" /></g>
-    <g class="spatial-boundary">${polygon}</g>
+    <g class="spatial-boundary">${polygons}</g>
+    <g class="spatial-boundary-history">${historicalPolygons}</g>
+    <g>${analysisCircle}${distanceLines}${routes}</g>
     <g class="spatial-markers">${markers}</g>
+    <g>${photoMarkers}${stopMarkers}${poiMarkers}${excludedPoiMarkers}</g>
+    <g class="spatial-fallback-legend"><text x="350" y="20">● 问题　● 照片　◆ 停留　△ POI　× 排除　━ 路线</text></g>
     <text class="spatial-extent" x="30" y="292">${minLon.toFixed(5)}, ${minLat.toFixed(5)} → ${maxLon.toFixed(5)}, ${maxLat.toFixed(5)}</text>
+    <text class="spatial-extent" x="570" y="292" text-anchor="end">矢量相对预览，不代表在线底图定位</text>
   </svg>`;
 }
 
@@ -1235,12 +1550,94 @@ function renderGeometryAudit(issue) {
     : '<p class="workspace-empty">当前问题尚无点位修订记录。</p>';
 }
 
+function filterGisIssues(issues) {
+  return filterOfficialIssues(issues, gisViewState.filters);
+}
+
+function populateIssueGeometryForm(issue) {
+  const coordinates = hasIssueGeometry(issue) ? issue.geometry.coordinates : null;
+  elements.geometryForm.dataset.issueId = String(issue?.id || '');
+  elements.geometryForm.dataset.geometryRevision = String(Number(issue?.geometryRevision) || 0);
+  if (coordinates) {
+    elements.geometryForm.elements.longitude.value = coordinates[0];
+    elements.geometryForm.elements.latitude.value = coordinates[1];
+    elements.geometryForm.elements.crs.value = issue.spatialBinding?.crs
+      || issue.geometryCrs
+      || store.get().activeProject?.scopeBoundaryCrs
+      || 'WGS84';
+  } else {
+    elements.geometryForm.elements.longitude.value = '';
+    elements.geometryForm.elements.latitude.value = '';
+    elements.geometryForm.elements.crs.value = store.get().activeProject?.scopeBoundaryCrs || 'WGS84';
+  }
+  elements.geometryComparison.textContent = coordinates
+    ? `保存前：${coordinates[0]}, ${coordinates[1]} · 修订 ${Number(issue.geometryRevision) || 0}`
+    : `保存前：未定位 · 修订 ${Number(issue?.geometryRevision) || 0}`;
+  elements.cancelGeometryDraftButton.disabled = true;
+}
+
+function showIssueGeometryDraft(issue, point, crs = 'GCJ02') {
+  const before = hasIssueGeometry(issue) ? issue.geometry.coordinates : null;
+  const movedMeters = before ? haversineMeters(before, point) : null;
+  gisViewState.geometryDraft = {
+    kind: 'issue',
+    id: String(issue?.id || ''),
+    before,
+    after: point,
+    crs
+  };
+  elements.geometryForm.elements.longitude.value = point[0];
+  elements.geometryForm.elements.latitude.value = point[1];
+  elements.geometryForm.elements.crs.value = crs;
+  elements.geometryComparison.textContent = `${before ? `保存前：${before[0]}, ${before[1]}` : '保存前：未定位'} → 草稿：${Number(point[0]).toFixed(6)}, ${Number(point[1]).toFixed(6)}（${crs}）${movedMeters == null ? '' : ` · 移动 ${Math.round(movedMeters * 10) / 10}m`}`;
+  elements.cancelGeometryDraftButton.disabled = false;
+}
+
+function populatePhotoGeometryForm(photo) {
+  if (!photo) {
+    elements.photoGeometryForm.elements.longitude.value = '';
+    elements.photoGeometryForm.elements.latitude.value = '';
+    elements.photoGeometryComparison.textContent = '当前项目没有可治理的现场照片。';
+    elements.cancelPhotoGeometryDraftButton.disabled = true;
+    return;
+  }
+  const coordinates = Array.isArray(photo.coordinates) ? photo.coordinates : null;
+  elements.photoGeometryForm.dataset.photoId = String(photo.id);
+  elements.photoGeometryForm.dataset.metadataRevision = String(Number(photo.metadataRevision) || 0);
+  elements.photoGeometryForm.elements.longitude.value = coordinates?.[0] ?? '';
+  elements.photoGeometryForm.elements.latitude.value = coordinates?.[1] ?? '';
+  elements.photoGeometryForm.elements.coordinateCrs.value = photo.coordinateCrs
+    || store.get().activeProject?.scopeBoundaryCrs
+    || 'WGS84';
+  elements.photoGeometryComparison.textContent = coordinates
+    ? `保存前：${coordinates[0]}, ${coordinates[1]} · 来源 ${photo.coordinateSource || '未记录'} · 修订 ${Number(photo.metadataRevision) || 0}`
+    : `保存前：未定位 · 修订 ${Number(photo.metadataRevision) || 0}`;
+  elements.cancelPhotoGeometryDraftButton.disabled = true;
+}
+
+function showPhotoGeometryDraft(photo, point, crs = 'GCJ02') {
+  const before = Array.isArray(photo?.coordinates) ? photo.coordinates : null;
+  gisViewState.geometryDraft = {
+    kind: 'photo',
+    id: String(photo?.id || ''),
+    before,
+    after: point,
+    crs
+  };
+  elements.photoGeometryForm.elements.longitude.value = point[0];
+  elements.photoGeometryForm.elements.latitude.value = point[1];
+  elements.photoGeometryForm.elements.coordinateCrs.value = crs;
+  elements.photoGeometryComparison.textContent = `${before ? `保存前：${before[0]}, ${before[1]}` : '保存前：未定位'} → 草稿：${Number(point[0]).toFixed(6)}, ${Number(point[1]).toFixed(6)}（${crs}）`;
+  elements.cancelPhotoGeometryDraftButton.disabled = false;
+}
+
 function renderGis(state) {
   const visible = isGisWorkspace(state);
   elements.gisWorkspace.hidden = !visible;
   if (!visible) return;
 
   const located = state.issues.filter(hasIssueGeometry);
+  const filteredIssues = filterGisIssues(state.issues);
   const editableIssues = state.issues.filter((issue) =>
     ['manual', 'ai-reviewed'].includes(issue.source)
     || Number(issue.issueRevision) >= 1
@@ -1248,17 +1645,103 @@ function renderGis(state) {
   elements.gisIssueCount.textContent = state.issues.length;
   elements.locatedIssueCount.textContent = located.length;
   elements.unlocatedIssueCount.textContent = state.issues.length - located.length;
-  elements.spatialPreview.innerHTML = renderSpatialSvg(state.activeProject, state.issues);
-  elements.gisIssueList.innerHTML = state.issues.length
-    ? state.issues.map((issue) => {
+  const mapItems = state.mapView || {};
+  const locatedFilteredIssues = filteredIssues.filter(hasPointGeometry);
+  const issueFeatureById = new Map(
+    (mapItems.issues?.items || []).map((feature) => [String(feature.id), feature])
+  );
+  const visibleIssueFeatures = locatedFilteredIssues
+    .map((issue) => issueFeatureById.get(String(issue.id)))
+    .filter(Boolean);
+  const pendingIssueCount = visibleIssueFeatures.filter((feature) =>
+    feature.properties?.bindingStatus === 'pending'
+  ).length;
+  const confirmedIssueCount = visibleIssueFeatures.length - pendingIssueCount;
+  const photoFeatures = mapItems.photos?.items || [];
+  const manualPhotoCount = photoFeatures.filter((feature) => {
+    const source = String(feature.properties?.coordinateSource || '').toLowerCase();
+    return source.includes('manual') || source.includes('batch');
+  }).length;
+  const originalPhotoCount = photoFeatures.length - manualPhotoCount;
+  const selectedMapRun = mapItems.spatialAnalyses?.items?.[0];
+  const poiItems = selectedMapRun?.result?.accepted || selectedMapRun?.result?.items || [];
+  const excludedPoiCount = poiItems.filter((item) => item.reviewStatus === 'excluded').length;
+  const visibleLegendItems = [
+    ['boundary', '项目边界', mapItems.boundary ? 1 : 0],
+    ['boundaryHistory', '历史边界', mapItems.boundaryHistory?.items?.length || 0],
+    ['issues', '正式问题', confirmedIssueCount],
+    ['pendingIssues', '待确认点位', pendingIssueCount],
+    ['photos', '现场照片', originalPhotoCount],
+    ['manualPhotos', '人工补绑照片', manualPhotoCount],
+    ['routes', '踏勘路线', mapItems.routes?.items?.length || 0],
+    ['stops', '停留节点', mapItems.stops?.items?.length || 0],
+    ['poi', 'POI设施', poiItems.length - excludedPoiCount],
+    ['excludedPoi', '已排除POI', excludedPoiCount],
+    ['analysisRange', '分析范围', selectedMapRun ? 1 : 0],
+    ['distanceLines', '距离连线', selectedMapRun?.result?.distances?.length || 0]
+  ].filter(([layer]) => gisViewState.visibleLayers[layer] !== false);
+  const visibleObjectCount = visibleLegendItems.reduce((sum, item) => sum + item[2], 0);
+  elements.gisVisibleCount.textContent = `${visibleObjectCount}（问题 ${visibleIssueFeatures.length}）`;
+  elements.gisMapLegend.innerHTML = visibleLegendItems.length
+    ? visibleLegendItems.map(([layer, label, count]) =>
+        `<span class="legend-${escapeHtml(layer)}"><i></i>${escapeHtml(label)} <b>${count}</b></span>`
+      ).join('')
+    : '<span>当前未启用业务图层</span>';
+  elements.gisLayout.dataset.mobilePane = gisViewState.mobilePane;
+  elements.gisShowListButton.setAttribute(
+    'aria-pressed',
+    String(gisViewState.mobilePane === 'list')
+  );
+  elements.gisShowMapButton.setAttribute(
+    'aria-pressed',
+    String(gisViewState.mobilePane === 'map')
+  );
+  elements.gisIssueSearch.value = gisViewState.filters.search;
+  elements.gisRiskFilter.value = gisViewState.filters.issueRisk;
+  elements.gisStatusFilter.value = gisViewState.filters.issueStatus;
+  elements.gisBindingFilter.value = gisViewState.filters.bindingStatus;
+  elements.gisStaleFilter.value = gisViewState.filters.staleStatus;
+  const currentType = gisViewState.filters.issueType;
+  const types = [...new Map(state.issues
+    .map((issue) => [issue.categoryCode || issue.categoryName, issue.categoryName || issue.categoryCode])
+    .filter(([value]) => value)
+  )];
+  elements.gisTypeFilter.innerHTML = '<option value="all">全部类型</option>' + types
+    .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+    .join('');
+  elements.gisTypeFilter.value = types.some(([value]) => String(value) === String(currentType))
+    ? currentType
+    : 'all';
+  gisViewState.filters.issueType = elements.gisTypeFilter.value;
+  elements.gisMapStyle.value = gisViewState.mapStyle;
+  const pendingDisplayCount = Number(
+    state.mapView?.coordinateCompatibility?.pendingDisplayFeatureCount
+  ) || 0;
+  elements.gisPrepareDisplayButton.disabled = state.gisLoading || pendingDisplayCount === 0;
+  elements.gisPrepareDisplayButton.textContent = pendingDisplayCount
+    ? `准备高德显示坐标（${pendingDisplayCount}）`
+    : '显示坐标已就绪';
+  for (const checkbox of elements.gisLayerControl.querySelectorAll('[data-gis-layer]')) {
+    checkbox.checked = gisViewState.visibleLayers[checkbox.dataset.gisLayer] !== false;
+  }
+  elements.spatialPreview.innerHTML = renderSpatialSvg(
+    state.activeProject,
+    filteredIssues,
+    state.mapView,
+    gisViewState.visibleLayers
+  );
+  elements.gisIssueList.innerHTML = filteredIssues.length
+    ? filteredIssues.map((issue) => {
         const geometry = hasIssueGeometry(issue) ? issue.geometry.coordinates : null;
-        return `<article class="ledger-row">
+        return `<button type="button" class="ledger-row gis-ledger-button${String(issue.id) === gisViewState.selectedIssueId ? ' is-selected' : ''}" data-gis-issue-id="${escapeHtml(issue.id)}">
           <div><strong>${escapeHtml(issue.title || '未命名正式问题')}</strong><span>${escapeHtml(issue.categoryName || issue.categoryCode || '未分类')}</span></div>
           <span class="risk-${escapeHtml(issue.severity)}">${escapeHtml(issue.severity || 'unknown')}</span>
           <small>${geometry ? `${geometry[0]}, ${geometry[1]} · 定位修订 ${Number(issue.geometryRevision) || 1}` : '待定位'}</small>
-        </article>`;
+        </button>`;
       }).join('')
-    : '<p class="workspace-empty">本项目当前有0个正式问题。若复核结论为零问题，这是合法业务结果，不会生成固定问题点。</p>';
+    : state.issues.length
+      ? '<p class="workspace-empty">当前筛选条件下没有正式问题。</p>'
+      : '<p class="workspace-empty">本项目当前有0个正式问题。若复核结论为零问题，这是合法业务结果，不会生成固定问题点。</p>';
 
   const previousGeometryIssueId = elements.geometryIssueSelect.value;
   elements.geometryIssueSelect.replaceChildren();
@@ -1285,7 +1768,34 @@ function renderGis(state) {
   const selectedGeometryIssue = editableIssues
     .find((issue) => String(issue.id) === elements.geometryIssueSelect.value)
     || editableIssues[0];
+  if (
+    gisViewState.geometryDraft?.kind !== 'issue'
+    && (
+      elements.geometryForm.dataset.issueId !== String(selectedGeometryIssue?.id || '')
+      || elements.geometryForm.dataset.geometryRevision
+        !== String(Number(selectedGeometryIssue?.geometryRevision) || 0)
+    )
+  ) populateIssueGeometryForm(selectedGeometryIssue);
   renderGeometryAudit(selectedGeometryIssue);
+  const previousPhotoId = elements.photoGeometrySelect.value || gisViewState.selectedPhotoId;
+  elements.photoGeometrySelect.innerHTML = state.photos.length
+    ? state.photos.map((photo) =>
+        `<option value="${escapeHtml(photo.id)}">${escapeHtml(photo.name || photo.id)}${Array.isArray(photo.coordinates) ? '（已定位）' : '（待定位）'}</option>`
+      ).join('')
+    : '<option value="">当前项目没有现场照片</option>';
+  if (state.photos.some((photo) => String(photo.id) === String(previousPhotoId))) {
+    elements.photoGeometrySelect.value = previousPhotoId;
+  }
+  const selectedPhoto = state.photos.find((photo) =>
+    String(photo.id) === String(elements.photoGeometrySelect.value)
+  ) || state.photos[0];
+  elements.photoGeometrySelect.disabled = !selectedPhoto;
+  elements.savePhotoGeometryButton.disabled = !selectedPhoto || state.gisLoading;
+  if (
+    String(elements.photoGeometryForm.dataset.photoId || '') !== String(selectedPhoto?.id || '')
+    || String(elements.photoGeometryForm.dataset.metadataRevision || '')
+      !== String(Number(selectedPhoto?.metadataRevision) || 0)
+  ) populatePhotoGeometryForm(selectedPhoto);
   const previousEditIssueId = elements.issueEditSelect.value;
   elements.issueEditSelect.replaceChildren();
   for (const issue of editableIssues) {
@@ -1311,11 +1821,12 @@ function renderGis(state) {
   const issueRadiusRuns = state.spatialAnalyses.filter((run) => run.type !== 'poi-search');
   const poiRuns = state.spatialAnalyses.filter((run) => run.type === 'poi-search');
   elements.spatialAnalysisHistory.innerHTML = issueRadiusRuns.length
-    ? issueRadiusRuns.map((run) => `<article class="history-row spatial-history-row">
+    ? issueRadiusRuns.map((run) => `<article class="history-row spatial-history-row${String(run.id) === String(gisViewState.selectedSpatialRunId) ? ' is-selected' : ''}">
         <div><strong>${Number(run.parameters?.radiusMeters) || 0}米半径</strong><span>${run.completedAt ? new Date(run.completedAt).toLocaleString() : '时间未记录'}</span></div>
         <span>中心 ${escapeHtml(run.parameters?.center?.join(', ') || '未记录')}</span>
         <span>命中 ${Number(run.result?.matchedIssueCount) || 0} / 已定位 ${Number(run.sourceSnapshot?.locatedIssueCount) || 0}</span>
         <i class="run-status status-${escapeHtml(run.status || 'completed')}">${run.status === 'stale' ? '已过期' : '已完成'}</i>
+        <button type="button" data-spatial-run="${escapeHtml(run.id)}">在地图回放</button>
         ${run.staleReasons?.length ? `<small>${escapeHtml(run.staleReasons.join('、'))}</small>` : ''}
       </article>`).join('')
     : '<p class="workspace-empty">尚未运行空间分析。系统不会自动生成固定500/800/1000米结果。</p>';
@@ -1355,16 +1866,120 @@ function renderGis(state) {
         <header>
           <strong>${escapeHtml(run.parameters?.categoryLabel || run.parameters?.category || 'POI检索')}</strong>
           <span>${Number(run.parameters?.radiusMeters) || 0}米 · ${escapeHtml(run.providerSnapshot?.provider || '未知Provider')}</span>
+          <button type="button" data-poi-map="${escapeHtml(run.id)}">地图显示</button>
         </header>
         <p>原始 ${Number(run.cleaning?.rawCount) || 0} 条 → 清洗合并 ${Number(run.result?.itemCount) || 0} 条 · 规则 ${escapeHtml(run.cleaning?.ruleVersion || '未记录')}${run.parameters?.boundaryOnly ? ' · 已按项目边界裁剪' : ''}${run.status === 'stale' ? ` · 已过期：${escapeHtml((run.staleReasons || []).join('、'))}` : ''}</p>
-        <div class="poi-result-chips">${(run.result?.items || []).slice(0, 12).map((item) =>
-          `<span>${escapeHtml(item.name)} · ${Math.round(Number(item.distanceMeters) || 0)}m</span>`
+        ${(run.result?.items || []).some((item) => (item.reviewStatus || 'pending') === 'pending') ? `<div class="poi-batch-actions">
+          <button type="button" data-poi-batch="confirmed" data-poi-run="${escapeHtml(run.id)}">批量确认待审核项</button>
+          <button type="button" data-poi-batch="excluded" data-poi-run="${escapeHtml(run.id)}">批量排除待审核项</button>
+        </div>` : ''}
+        <div class="poi-result-chips">${(run.result?.items || []).slice(0, 24).map((item) =>
+          `<article class="poi-review-item status-${escapeHtml(item.reviewStatus || 'pending')}">
+            <div><strong>${escapeHtml(item.name)}</strong><span>${Math.round(Number(item.distanceMeters) || 0)}m · ${escapeHtml(item.reviewStatus || 'pending')}</span></div>
+            <span class="poi-review-actions">
+              <button type="button" data-poi-review="confirmed" data-poi-run="${escapeHtml(run.id)}" data-poi-id="${escapeHtml(item.normalizedId)}" data-poi-revision="${Number(item.reviewRevision) || 0}">确认</button>
+              <button type="button" data-poi-review="excluded" data-poi-run="${escapeHtml(run.id)}" data-poi-id="${escapeHtml(item.normalizedId)}" data-poi-revision="${Number(item.reviewRevision) || 0}">排除</button>
+            </span>
+          </article>`
         ).join('') || '<span>本次未发现符合清洗规则的POI</span>'}</div>
         <small>${run.completedAt ? new Date(run.completedAt).toLocaleString() : '时间未记录'} · ${escapeHtml(run.createdBy || '人员未记录')}</small>
       </article>`).join('')
     : `<p class="workspace-empty">${poiReady
       ? '尚未运行POI检索。结果会保存原始POI、查询参数和清洗快照，不会转成指标得分。'
       : '高德Web服务未配置；当前不会生成示例POI。'}</p>`;
+
+  elements.surveyRouteCount.textContent = `${state.surveyRoutes.length} 条路线`;
+  const previousRouteAssetId = elements.surveyRouteAssetSelect.value;
+  const routeAssets = state.sourceAssets.filter((asset) =>
+    asset.status === 'active'
+    && asset.uploadStatus === 'completed'
+    && /\.(gpx|geojson|json|csv)$/i.test(asset.name || '')
+  );
+  elements.surveyRouteAssetSelect.innerHTML = '<option value="">手工录入采样点</option>'
+    + routeAssets.map((asset) =>
+      `<option value="${escapeHtml(asset.id)}">${escapeHtml(asset.name)}</option>`
+    ).join('');
+  if (routeAssets.some((asset) => String(asset.id) === String(previousRouteAssetId))) {
+    elements.surveyRouteAssetSelect.value = previousRouteAssetId;
+  }
+  const selectedRoute = state.surveyRoutes.find((route) =>
+    String(route.id) === String(gisViewState.selectedRouteId)
+  ) || state.surveyRoutes[0] || null;
+  if (selectedRoute && String(selectedRoute.id) !== String(gisViewState.selectedRouteId)) {
+    gisViewState.selectedRouteId = String(selectedRoute.id);
+  }
+  const previousRouteId = elements.surveyRouteSelect.value;
+  elements.surveyRouteSelect.innerHTML = state.surveyRoutes.length
+    ? state.surveyRoutes.map((route) =>
+        `<option value="${escapeHtml(route.id)}">${escapeHtml(route.name)} · ${escapeHtml(route.status)}</option>`
+      ).join('')
+    : '<option value="">尚无路线</option>';
+  const routeSelection = state.surveyRoutes.some((route) =>
+    String(route.id) === String(gisViewState.selectedRouteId)
+  )
+    ? gisViewState.selectedRouteId
+    : previousRouteId;
+  elements.surveyRouteSelect.value = routeSelection || '';
+  const routeActionsDisabled = !selectedRoute || state.gisLoading;
+  elements.cleanSurveyRouteButton.disabled = routeActionsDisabled;
+  elements.detectSurveyStopsButton.disabled = routeActionsDisabled;
+  elements.suggestPhotoBindingsButton.disabled = routeActionsDisabled;
+  elements.confirmSurveyRouteButton.disabled = routeActionsDisabled
+    || selectedRoute?.status === 'confirmed';
+  elements.surveyRouteDetail.innerHTML = selectedRoute
+    ? `<article class="route-detail-card">
+        <strong>${escapeHtml(selectedRoute.name)}</strong>
+        <span>${selectedRoute.geometry?.coordinates?.length || 0} 个轨迹点 · ${escapeHtml(selectedRoute.crs)} · 修订 ${Number(selectedRoute.routeRevision) || 1}</span>
+        <span>${selectedRoute.cleaning
+          ? `已清洗：保留 ${Number(selectedRoute.cleaning.acceptedPointCount) || 0}，移除 ${Number(selectedRoute.cleaning.removedPointCount) || 0} · ${escapeHtml(selectedRoute.cleaning.ruleVersion)}`
+          : '尚未执行路线清洗'}</span>
+      </article>`
+    : '<p class="workspace-empty">录入真实轨迹采样点后，可进行清洗、停留检测和照片关联。</p>';
+  elements.surveyStopList.innerHTML = state.surveyStops.length
+    ? `<h3>停留节点</h3>${state.surveyStops.map((stop) =>
+        `<article class="route-review-row status-${escapeHtml(stop.status)}">
+          <div><strong>${Math.round(Number(stop.durationSeconds) || 0)} 秒停留</strong><span>${escapeHtml(stop.arrivedAt || '时间未记录')} · ${escapeHtml(stop.status)}</span></div>
+          ${stop.status === 'candidate' ? `<span>
+            <button type="button" data-stop-review="confirmed" data-stop-id="${escapeHtml(stop.id)}" data-stop-revision="${Number(stop.revision) || 1}">确认</button>
+            <button type="button" data-stop-review="rejected" data-stop-id="${escapeHtml(stop.id)}" data-stop-revision="${Number(stop.revision) || 1}">排除</button>
+          </span>` : ''}
+        </article>`
+      ).join('')}`
+    : '<p class="workspace-empty">当前路线尚无停留节点。</p>';
+  elements.photoRouteBindingList.innerHTML = state.photoRouteBindings.length
+    ? `<h3>照片路线关联 · 已关联 ${new Set(state.photoRouteBindings.map((binding) => String(binding.photoId))).size} / 当前照片 ${state.photos.length}</h3>${state.photoRouteBindings.map((binding) =>
+        `<article class="route-review-row status-${escapeHtml(binding.status)}">
+          <div><strong>照片 ${escapeHtml(binding.photoId)}</strong><span>${Math.round(Number(binding.distanceMeters) || 0)}m · 时间差 ${binding.timeDifferenceSeconds == null ? '未知' : `${binding.timeDifferenceSeconds}s`} · ${escapeHtml(binding.status)}${binding.staleReasons?.length ? ` · ${escapeHtml(binding.staleReasons.join('、'))}` : ''}</span></div>
+          ${binding.status === 'suggested' ? `<span>
+            <button type="button" data-binding-review="confirmed" data-binding-id="${escapeHtml(binding.id)}" data-binding-revision="${Number(binding.revision) || 1}">确认</button>
+            <button type="button" data-binding-review="rejected" data-binding-id="${escapeHtml(binding.id)}" data-binding-revision="${Number(binding.revision) || 1}">排除</button>
+          </span>` : ''}
+        </article>`
+      ).join('')}`
+    : '<p class="workspace-empty">尚无照片路线关联建议。</p>';
+
+  const previousSnapshotReport = elements.mapSnapshotReportSelect.value;
+  elements.mapSnapshotReportSelect.innerHTML = '<option value="">使用当前地图数据</option>'
+    + state.reports.map((report) =>
+      `<option value="${escapeHtml(report.id)}">V${Number(report.version) || 1} · ${escapeHtml(report.title)}</option>`
+    ).join('');
+  if (state.reports.some((report) => String(report.id) === String(previousSnapshotReport))) {
+    elements.mapSnapshotReportSelect.value = previousSnapshotReport;
+  }
+  elements.createMapSnapshotButton.disabled = state.gisLoading || !hasProjectBoundary;
+  elements.mapSnapshotList.innerHTML = state.mapSnapshots.length
+    ? state.mapSnapshots.map((snapshot) =>
+        `<article class="map-snapshot-card status-${escapeHtml(snapshot.status)}">
+          <div>
+            <strong>${escapeHtml(snapshot.purpose)} · ${escapeHtml(snapshot.mapStyle)}</strong>
+            <span>${escapeHtml(snapshot.status)} · ${snapshot.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : '等待生成'}</span>
+            <small>${snapshot.reportId ? `报告 ${escapeHtml(snapshot.reportId)}` : '当前地图数据'} · SHA256 ${escapeHtml((snapshot.contentHash || '').slice(0, 16))}</small>
+          </div>
+          ${['generated', 'stale'].includes(snapshot.status) ? `<a href="/api/map-snapshots/${encodeURIComponent(snapshot.id)}/content" target="_blank" rel="noopener"><img src="/api/map-snapshots/${encodeURIComponent(snapshot.id)}/content" alt="${escapeHtml(state.activeProject?.name || '')}地图快照"><span>打开SVG快照${snapshot.status === 'stale' ? '（历史内容）' : ''}</span></a>` : ''}
+          ${snapshot.status === 'failed' ? `<button type="button" data-map-snapshot-retry="${escapeHtml(snapshot.id)}">重试生成</button>` : ''}
+        </article>`
+      ).join('')
+    : '<p class="workspace-empty">尚未生成地图快照。报告引用会冻结报告版本中的边界和问题点位。</p>';
   void syncGisMap(state);
 }
 
@@ -1677,7 +2292,10 @@ async function loadProject(projectId) {
       api.summary(projectId),
       api.workflow(projectId)
     ]);
-    const requestedStage = new URLSearchParams(location.search).get('stage');
+    const requestedStageValue = new URLSearchParams(location.search).get('stage');
+    const requestedStage = requestedStageValue === 'gis'
+      ? 'gis-and-issues'
+      : requestedStageValue;
     store.set({
       activeProject: project,
       summary,
@@ -1742,11 +2360,47 @@ async function loadGis(projectId = store.get().activeProjectId) {
   if (!projectId) return;
   store.set({ gisLoading: true });
   try {
-    const [issues, spatialAnalyses] = await Promise.all([
+    const [
+      issues,
+      spatialAnalyses,
+      mapView,
+      surveyRoutes,
+      sourceAssets,
+      mapSnapshots,
+      reports,
+      photos
+    ] = await Promise.all([
       api.issues(projectId),
-      api.spatialAnalyses(projectId)
+      api.spatialAnalyses(projectId),
+      api.projectMapView(projectId, mapViewQueryFromState(gisViewState, { limit: 2000 })),
+      api.surveyRoutes(projectId),
+      api.sourceAssets(projectId, false),
+      api.mapSnapshots(projectId),
+      api.reports(projectId),
+      api.photos(projectId, true)
     ]);
-    store.set({ issues, spatialAnalyses });
+    const selectedRoute = surveyRoutes.find((route) =>
+      String(route.id) === String(gisViewState.selectedRouteId)
+    ) || surveyRoutes[0] || null;
+    gisViewState.selectedRouteId = selectedRoute?.id || '';
+    const [surveyStops, photoRouteBindings] = selectedRoute
+      ? await Promise.all([
+          api.surveyStops(selectedRoute.id),
+          api.photoRouteBindings(selectedRoute.id)
+        ])
+      : [[], []];
+    store.set({
+      issues,
+      spatialAnalyses,
+      mapView,
+      surveyRoutes,
+      surveyStops,
+      photoRouteBindings,
+      sourceAssets,
+      mapSnapshots,
+      reports,
+      photos
+    });
   } catch (error) {
     setError(error);
   } finally {
@@ -1878,12 +2532,22 @@ async function boot() {
       api.gisConfig(),
       api.projects()
     ]);
+    if (!new URLSearchParams(location.search).has('mapStyle')) {
+      gisViewState.mapStyle = gisConfig?.policy?.defaultMapStyle || gisViewState.mapStyle;
+    }
     store.set({ meta, gisConfig, projects });
-    const queryProject = new URLSearchParams(location.search).get('projectId');
+    const projectQuery = new URLSearchParams(location.search);
+    const queryProject = projectQuery.get('project') || projectQuery.get('projectId');
     const activeProjectId = projects.some((item) => String(item.id) === queryProject)
       ? queryProject
       : projects[0]?.id;
-    if (activeProjectId != null) await loadProject(String(activeProjectId));
+    if (activeProjectId != null) {
+      const url = new URL(location.href);
+      url.searchParams.set('project', activeProjectId);
+      url.searchParams.set('projectId', activeProjectId);
+      history.replaceState(null, '', url);
+      await loadProject(String(activeProjectId));
+    }
   } catch (error) {
     setError(error);
   } finally {
@@ -1962,6 +2626,7 @@ async function submitProject(event) {
     store.set({ projects, activeProjectId: String(project.id), error: null });
     const url = new URL(location.href);
     url.searchParams.set('projectId', project.id);
+    url.searchParams.set('project', project.id);
     url.searchParams.set('stage', 'collection');
     history.replaceState(null, '', url);
     await loadProject(project.id);
@@ -1977,8 +2642,13 @@ async function submitProject(event) {
 elements.projectSelect.addEventListener('change', () => {
   const projectId = elements.projectSelect.value;
   const url = new URL(location.href);
-  if (projectId) url.searchParams.set('projectId', projectId);
-  else url.searchParams.delete('projectId');
+  if (projectId) {
+    url.searchParams.set('projectId', projectId);
+    url.searchParams.set('project', projectId);
+  } else {
+    url.searchParams.delete('projectId');
+    url.searchParams.delete('project');
+  }
   history.replaceState(null, '', url);
   loadProject(projectId);
 });
@@ -2232,6 +2902,65 @@ elements.drawBoundaryButton.addEventListener('click', () => {
   }
   boundaryMapController.startBoundaryDraw();
   setProviderStatus(elements.boundaryMapStatus, '请在地图上逐点绘制真实项目范围，双击结束。', 'ready');
+});
+
+elements.editBoundaryButton.addEventListener('click', () => {
+  elements.boundaryMapError.hidden = true;
+  if (!boundaryMapController?.startBoundaryEdit()) {
+    elements.boundaryMapError.textContent = '当前边界不可编辑；请确认地图已加载且边界为GCJ-02。';
+    elements.boundaryMapError.hidden = false;
+    return;
+  }
+  setProviderStatus(
+    elements.boundaryMapStatus,
+    '边界节点编辑已开启；拖动、增加或删除节点会更新草稿，可撤销或重做，保存前仍由服务端校验。',
+    'ready'
+  );
+});
+
+elements.undoBoundaryButton.addEventListener('click', () => {
+  if (!boundaryMapController?.undoBoundaryEdit()) {
+    setProviderStatus(elements.boundaryMapStatus, '当前没有可撤销的边界节点操作。', 'warning');
+  }
+});
+
+elements.redoBoundaryButton.addEventListener('click', () => {
+  if (!boundaryMapController?.redoBoundaryEdit()) {
+    setProviderStatus(elements.boundaryMapStatus, '当前没有可重做的边界节点操作。', 'warning');
+  }
+});
+
+elements.finishBoundaryEditButton.addEventListener('click', () => {
+  if (boundaryMapController?.finishBoundaryEdit()) {
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      '边界节点编辑已结束，当前草稿已回填；填写更新人员后保存新边界版本。',
+      'ready'
+    );
+  }
+});
+
+elements.boundaryRevisionList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-boundary-replay]');
+  if (!button) return;
+  const revision = store.get().boundaryRevisions.find((item) =>
+    Number(item.projectRevision) === Number(button.dataset.boundaryReplay)
+  );
+  if (!revision) return;
+  if (normalizedCrs(revision.crs) !== 'GCJ02') {
+    setProviderStatus(
+      elements.boundaryMapStatus,
+      `历史修订 ${revision.projectRevision} 为${revision.crs || '未知坐标系'}，不叠加到GCJ-02底图；原始记录保持只读。`,
+      'warning'
+    );
+    return;
+  }
+  boundaryMapController?.setBoundary(revision.geometry || revision.coordinates || []);
+  setProviderStatus(
+    elements.boundaryMapStatus,
+    `正在只读回放边界修订 ${revision.projectRevision}；不会覆盖当前表单或正式边界。`,
+    'ready'
+  );
 });
 
 elements.clearBoundaryDraftButton.addEventListener('click', () => {
@@ -2810,6 +3539,179 @@ elements.manualReviewForm.addEventListener('submit', async (event) => {
   }
 });
 
+function persistGisDisplayState() {
+  const query = new URLSearchParams(location.search);
+  if (gisViewState.selectedIssueId) query.set('issue', gisViewState.selectedIssueId);
+  else query.delete('issue');
+  if (gisViewState.selectedSpatialRunId) query.set('run', gisViewState.selectedSpatialRunId);
+  else query.delete('run');
+  if (gisViewState.selectedRouteId) query.set('route', gisViewState.selectedRouteId);
+  else query.delete('route');
+  query.set('mapStyle', gisViewState.mapStyle);
+  query.set('layers', serializeGisLayerSelection(gisViewState.visibleLayers));
+  try {
+    localStorage.setItem('urban-health-business:gis-display-preference', JSON.stringify({
+      mapStyle: gisViewState.mapStyle,
+      visibleLayers: gisViewState.visibleLayers
+    }));
+  } catch {
+    // 浏览器禁用本地存储时，URL仍是页面偏好的可恢复来源。
+  }
+  history.replaceState(null, '', `${location.pathname}?${query}${location.hash}`);
+}
+
+function applyGisFiltersFromControls() {
+  gisViewState.filters = {
+    ...gisViewState.filters,
+    search: elements.gisIssueSearch.value,
+    issueRisk: elements.gisRiskFilter.value,
+    issueType: elements.gisTypeFilter.value,
+    issueStatus: elements.gisStatusFilter.value,
+    bindingStatus: elements.gisBindingFilter.value,
+    staleStatus: elements.gisStaleFilter.value
+  };
+  renderGis(store.get());
+  syncGisMap(store.get());
+  if (gisFilterTimer) clearTimeout(gisFilterTimer);
+  const projectId = String(store.get().activeProjectId || '');
+  gisFilterTimer = setTimeout(async () => {
+    try {
+      const mapView = await api.projectMapView(
+        projectId,
+        mapViewQueryFromState(gisViewState, {
+          bounds: gisViewState.viewport?.bounds,
+          limit: 2000
+        })
+      );
+      if (String(store.get().activeProjectId || '') === projectId) store.set({ mapView });
+    } catch (error) {
+      setProviderStatus(elements.gisMapStatus, `筛选地图数据失败：${error.message}`, 'warning');
+    }
+  }, 250);
+}
+
+elements.gisIssueSearch.addEventListener('input', applyGisFiltersFromControls);
+elements.gisRiskFilter.addEventListener('change', applyGisFiltersFromControls);
+elements.gisTypeFilter.addEventListener('change', applyGisFiltersFromControls);
+elements.gisStatusFilter.addEventListener('change', applyGisFiltersFromControls);
+elements.gisBindingFilter.addEventListener('change', applyGisFiltersFromControls);
+elements.gisStaleFilter.addEventListener('change', applyGisFiltersFromControls);
+
+elements.gisIssueList.addEventListener('click', (event) => {
+  const row = event.target.closest('[data-gis-issue-id]');
+  if (!row) return;
+  const issueId = row.dataset.gisIssueId;
+  const issue = store.get().issues.find((item) => String(item.id) === String(issueId));
+  if (!issue) return;
+  gisViewState.selectedIssueId = issueId;
+  elements.geometryIssueSelect.value = issueId;
+  elements.issueEditSelect.value = issueId;
+  populateIssueEditForm(issue);
+  renderGeometryAudit(issue);
+  elements.geometryIssueSelect.dispatchEvent(new Event('change'));
+  gisMapController?.setSelectedIssue(issueId);
+  persistGisDisplayState();
+  renderGis(store.get());
+});
+
+elements.gisMapStyle.addEventListener('change', () => {
+  gisViewState.mapStyle = elements.gisMapStyle.value;
+  gisMapController?.setMapStyle(gisViewState.mapStyle);
+  persistGisDisplayState();
+});
+
+elements.gisLayerControl.addEventListener('change', async (event) => {
+  const checkbox = event.target.closest('[data-gis-layer]');
+  if (!checkbox) return;
+  const layer = checkbox.dataset.gisLayer;
+  gisViewState.visibleLayers = {
+    ...gisViewState.visibleLayers,
+    [layer]: checkbox.checked
+  };
+  gisMapController?.setLayerVisibility(layer, checkbox.checked);
+  persistGisDisplayState();
+  renderGis(store.get());
+  if (['photos', 'manualPhotos', 'routes', 'stops', 'boundaryHistory'].includes(layer)
+    && checkbox.checked) {
+    try {
+      const mapView = await api.projectMapView(
+        store.get().activeProjectId,
+        mapViewQueryFromState(gisViewState, { limit: 2000 })
+      );
+      store.set({ mapView });
+    } catch (error) {
+      setError(error);
+    }
+  }
+});
+
+elements.gisShowListButton.addEventListener('click', () => {
+  gisViewState.mobilePane = 'list';
+  renderGis(store.get());
+});
+
+elements.gisShowMapButton.addEventListener('click', () => {
+  gisViewState.mobilePane = 'map';
+  renderGis(store.get());
+  setTimeout(() => gisMapController?.resize(), 0);
+});
+
+elements.gisFitVisibleButton.addEventListener('click', () => {
+  gisMapController?.fitVisible();
+});
+
+elements.gisFullscreenButton.addEventListener('click', async () => {
+  const stage = elements.gisMapCanvas.closest('.provider-map-stage');
+  if (!stage) return;
+  if (document.fullscreenElement) await document.exitFullscreen();
+  else await stage.requestFullscreen();
+  setTimeout(() => gisMapController?.resize(), 0);
+});
+
+elements.gisMeasureDistanceButton.addEventListener('click', () => {
+  if (!gisMapController?.startDistanceMeasure()) {
+    setProviderStatus(elements.gisMapStatus, '当前地图运行时不支持距离测量。', 'warning');
+  }
+});
+
+elements.gisMeasureAreaButton.addEventListener('click', () => {
+  if (!gisMapController?.startAreaMeasure()) {
+    setProviderStatus(elements.gisMapStatus, '当前地图运行时不支持面积测量。', 'warning');
+  }
+});
+
+elements.gisClearMeasureButton.addEventListener('click', () => {
+  gisMapController?.clearMeasurements();
+});
+
+elements.gisPrepareDisplayButton.addEventListener('click', async () => {
+  const transformedBy = elements.gisTransformOperator.value.trim();
+  elements.gisMapError.hidden = true;
+  if (!transformedBy) {
+    elements.gisMapError.textContent = '请填写坐标转换操作人员。';
+    elements.gisMapError.hidden = false;
+    return;
+  }
+  elements.gisPrepareDisplayButton.disabled = true;
+  try {
+    const outcome = await api.ensureProjectDisplayTransforms(store.get().activeProjectId, {
+      transformedBy,
+      limit: 500
+    });
+    setProviderStatus(
+      elements.gisMapStatus,
+      `已生成 ${outcome.createdCount} 条可追溯显示坐标记录${outcome.pendingInCurrentWindow ? `，当前窗口仍有 ${outcome.pendingInCurrentWindow} 条待处理` : ''}。`,
+      'ready'
+    );
+    await loadGis();
+  } catch (error) {
+    elements.gisMapError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.gisMapError.hidden = false;
+  } finally {
+    elements.gisPrepareDisplayButton.disabled = false;
+  }
+});
+
 elements.geometryForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(elements.geometryForm);
@@ -2824,6 +3726,7 @@ elements.geometryForm.addEventListener('submit', async (event) => {
       confirmedBy: form.get('confirmedBy'),
       expectedGeometryRevision: Number(issue?.geometryRevision) || 0
     });
+    gisViewState.geometryDraft = null;
     const [summary, workflow] = await Promise.all([
       api.summary(store.get().activeProjectId),
       api.workflow(store.get().activeProjectId)
@@ -2833,26 +3736,130 @@ elements.geometryForm.addEventListener('submit', async (event) => {
   } catch (error) {
     elements.geometryFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
     elements.geometryFormError.hidden = false;
+    gisViewState.geometryDraft = null;
+    populateIssueGeometryForm(issue);
+    restoreGeometryMapFromServer();
   } finally {
     store.set({ gisLoading: false });
+  }
+});
+
+elements.geometryBatchForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.geometryBatchForm);
+  elements.geometryBatchFormError.hidden = true;
+  elements.geometryBatchSubmitButton.disabled = true;
+  try {
+    const items = parseIssueGeometryBatch(
+      form.get('rows'),
+      store.get().issues,
+      store.get().activeProject?.scopeBoundaryCrs || 'WGS84'
+    );
+    const outcome = await api.batchConfirmIssueGeometry(store.get().activeProjectId, {
+      confirmedBy: form.get('confirmedBy'),
+      items
+    });
+    const failed = (outcome.results || []).filter((item) => item.status === 'failed');
+    await loadGis();
+    if (failed.length) {
+      elements.geometryBatchFormError.textContent = `批量处理完成，但有${failed.length}项失败：${failed
+        .slice(0, 3)
+        .map((item) => `${item.issueId} ${item.error?.message || ''}`)
+        .join('；')}`;
+      elements.geometryBatchFormError.hidden = false;
+    } else {
+      elements.geometryBatchForm.reset();
+    }
+  } catch (error) {
+    elements.geometryBatchFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.geometryBatchFormError.hidden = false;
+  } finally {
+    elements.geometryBatchSubmitButton.disabled = false;
   }
 });
 
 elements.geometryIssueSelect.addEventListener('change', () => {
   const issue = store.get().issues
     .find((item) => String(item.id) === elements.geometryIssueSelect.value);
-  if (hasIssueGeometry(issue)) {
-    elements.geometryForm.elements.longitude.value = issue.geometry.coordinates[0];
-    elements.geometryForm.elements.latitude.value = issue.geometry.coordinates[1];
-    elements.geometryForm.elements.crs.value = issue.spatialBinding?.crs
-      || store.get().activeProject?.scopeBoundaryCrs
-      || 'WGS84';
-  } else {
-    elements.geometryForm.elements.longitude.value = '';
-    elements.geometryForm.elements.latitude.value = '';
-    elements.geometryForm.elements.crs.value = store.get().activeProject?.scopeBoundaryCrs || 'WGS84';
-  }
+  gisViewState.geometryDraft = null;
+  populateIssueGeometryForm(issue);
+  gisViewState.selectedIssueId = issue?.id || '';
+  gisMapController?.setSelectedIssue(gisViewState.selectedIssueId);
+  persistGisDisplayState();
   renderGeometryAudit(issue);
+});
+
+elements.gisPointTarget.addEventListener('change', () => {
+  if (elements.gisPointTarget.value !== 'photo') return;
+  gisViewState.visibleLayers = { ...gisViewState.visibleLayers, photos: true };
+  const checkbox = elements.gisLayerControl.querySelector('[data-gis-layer="photos"]');
+  if (checkbox) checkbox.checked = true;
+  gisMapController?.setLayerVisibility('photos', true);
+  persistGisDisplayState();
+});
+
+elements.photoGeometrySelect.addEventListener('change', () => {
+  const photo = store.get().photos.find((item) =>
+    String(item.id) === String(elements.photoGeometrySelect.value)
+  );
+  gisViewState.selectedPhotoId = photo?.id || '';
+  gisViewState.geometryDraft = null;
+  populatePhotoGeometryForm(photo);
+});
+
+function restoreGeometryMapFromServer() {
+  if (!gisMapController || !store.get().mapView) return;
+  gisMapController.setMapView(store.get().mapView);
+  gisMapController.setSelectedIssue(gisViewState.selectedIssueId);
+  for (const [layer, visible] of Object.entries(gisViewState.visibleLayers)) {
+    gisMapController.setLayerVisibility(layer, visible);
+  }
+}
+
+elements.cancelGeometryDraftButton.addEventListener('click', () => {
+  const issue = store.get().issues.find((item) =>
+    String(item.id) === String(elements.geometryIssueSelect.value)
+  );
+  gisViewState.geometryDraft = null;
+  populateIssueGeometryForm(issue);
+  restoreGeometryMapFromServer();
+});
+
+elements.cancelPhotoGeometryDraftButton.addEventListener('click', () => {
+  const photo = store.get().photos.find((item) =>
+    String(item.id) === String(elements.photoGeometrySelect.value)
+  );
+  gisViewState.geometryDraft = null;
+  populatePhotoGeometryForm(photo);
+  restoreGeometryMapFromServer();
+});
+
+elements.photoGeometryForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.photoGeometryForm);
+  const photo = store.get().photos.find((item) => String(item.id) === String(form.get('photoId')));
+  if (!photo) return;
+  elements.photoGeometryFormError.hidden = true;
+  elements.savePhotoGeometryButton.disabled = true;
+  try {
+    await api.updatePhotoGeometry(store.get().activeProjectId, photo.id, {
+      longitude: form.get('longitude'),
+      latitude: form.get('latitude'),
+      coordinateCrs: form.get('coordinateCrs'),
+      updatedBy: form.get('updatedBy'),
+      expectedRevision: Number(photo.metadataRevision) || 0
+    });
+    gisViewState.geometryDraft = null;
+    await loadGis();
+  } catch (error) {
+    elements.photoGeometryFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.photoGeometryFormError.hidden = false;
+    gisViewState.geometryDraft = null;
+    populatePhotoGeometryForm(photo);
+    restoreGeometryMapFromServer();
+  } finally {
+    elements.savePhotoGeometryButton.disabled = false;
+  }
 });
 
 elements.spatialPreview.addEventListener('click', (event) => {
@@ -2879,9 +3886,14 @@ elements.spatialPreview.addEventListener('click', (event) => {
     elements.geometryFormError.hidden = false;
     return;
   }
-  elements.geometryForm.elements.longitude.value = point[0].toFixed(7);
-  elements.geometryForm.elements.latitude.value = point[1].toFixed(7);
-  elements.geometryForm.elements.crs.value = store.get().activeProject?.scopeBoundaryCrs || 'WGS84';
+  const issue = store.get().issues.find((item) =>
+    String(item.id) === String(elements.geometryIssueSelect.value)
+  );
+  showIssueGeometryDraft(
+    issue,
+    [Number(point[0].toFixed(7)), Number(point[1].toFixed(7))],
+    store.get().activeProject?.scopeBoundaryCrs || 'WGS84'
+  );
 });
 
 elements.issueEditSelect.addEventListener('change', () => {
@@ -2947,6 +3959,19 @@ elements.spatialAnalysisForm.addEventListener('submit', async (event) => {
   }
 });
 
+elements.spatialAnalysisHistory.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-spatial-run]');
+  if (!button) return;
+  gisViewState.selectedSpatialRunId = button.dataset.spatialRun;
+  gisViewState.visibleLayers = {
+    ...gisViewState.visibleLayers,
+    analysisRange: true,
+    distanceLines: true
+  };
+  persistGisDisplayState();
+  await loadGis();
+});
+
 elements.poiAnalysisForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const state = store.get();
@@ -2972,6 +3997,285 @@ elements.poiAnalysisForm.addEventListener('submit', async (event) => {
     elements.poiAnalysisFormError.hidden = false;
   } finally {
     store.set({ gisLoading: false });
+  }
+});
+
+elements.poiAnalysisHistory.addEventListener('click', async (event) => {
+  const mapButton = event.target.closest('[data-poi-map]');
+  if (mapButton) {
+    gisViewState.selectedSpatialRunId = mapButton.dataset.poiMap;
+    gisViewState.visibleLayers = {
+      ...gisViewState.visibleLayers,
+      poi: true,
+      analysisRange: true
+    };
+    persistGisDisplayState();
+    await loadGis();
+    return;
+  }
+  const batchButton = event.target.closest('[data-poi-batch]');
+  const button = event.target.closest('[data-poi-review]');
+  if (!button && !batchButton) return;
+  const actionButton = button || batchButton;
+  const reviewedBy = new FormData(elements.poiAnalysisForm).get('createdBy')?.trim();
+  elements.poiAnalysisFormError.hidden = true;
+  if (!reviewedBy) {
+    elements.poiAnalysisFormError.textContent = '审核POI前，请先在上方填写操作人员。';
+    elements.poiAnalysisFormError.hidden = false;
+    elements.poiAnalysisForm.elements.createdBy.focus();
+    return;
+  }
+  actionButton.disabled = true;
+  try {
+    if (batchButton) {
+      const run = store.get().spatialAnalyses.find((item) =>
+        String(item.id) === String(batchButton.dataset.poiRun)
+      );
+      const items = (run?.result?.items || [])
+        .filter((item) => (item.reviewStatus || 'pending') === 'pending')
+        .map((item) => ({
+          normalizedId: item.normalizedId,
+          reviewStatus: batchButton.dataset.poiBatch,
+          expectedRevision: Number(item.reviewRevision) || 0
+        }));
+      await api.batchReviewPois(batchButton.dataset.poiRun, { items, reviewedBy });
+    } else {
+      await api.reviewPoi(button.dataset.poiRun, button.dataset.poiId, {
+        reviewStatus: button.dataset.poiReview,
+        reviewedBy,
+        expectedRevision: Number(button.dataset.poiRevision) || 0
+      });
+    }
+    await loadGis();
+  } catch (error) {
+    elements.poiAnalysisFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.poiAnalysisFormError.hidden = false;
+    actionButton.disabled = false;
+  }
+});
+
+function parseSurveyRouteSamples(value) {
+  const rows = String(value || '').split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (rows.length < 2) throw new Error('踏勘路线至少需要2个真实采样点。');
+  return rows.map((row, index) => {
+    const parts = row.split(/[,，]/).map((part) => part.trim());
+    const longitude = Number(parts[0]);
+    const latitude = Number(parts[1]);
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      throw new Error(`第${index + 1}行经度无效。`);
+    }
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      throw new Error(`第${index + 1}行纬度无效。`);
+    }
+    const capturedAt = parts[2] || null;
+    if (capturedAt && !Number.isFinite(Date.parse(capturedAt))) {
+      throw new Error(`第${index + 1}行采集时间无效。`);
+    }
+    const accuracyMeters = parts[3] === '' || parts[3] == null
+      ? null
+      : Number(parts[3]);
+    if (accuracyMeters != null && (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) {
+      throw new Error(`第${index + 1}行定位精度无效。`);
+    }
+    return {
+      coordinates: [longitude, latitude],
+      capturedAt,
+      accuracyMeters
+    };
+  });
+}
+
+function requireSurveyRouteOperator() {
+  const operator = elements.surveyRouteOperator.value.trim();
+  if (!operator) {
+    const error = new Error('请填写路线操作人员。');
+    error.code = 'SURVEY_ROUTE_OPERATOR_REQUIRED';
+    throw error;
+  }
+  return operator;
+}
+
+elements.surveyRouteForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.surveyRouteForm);
+  elements.surveyRouteFormError.hidden = true;
+  elements.createSurveyRouteButton.disabled = true;
+  try {
+    const sourceAssetId = String(form.get('sourceAssetId') || '');
+    const samples = sourceAssetId ? null : parseSurveyRouteSamples(form.get('samples'));
+    const route = await api.createSurveyRoute(store.get().activeProjectId, {
+      name: form.get('name'),
+      crs: form.get('crs'),
+      ...(sourceAssetId
+        ? { sourceAssetId }
+        : {
+            samples,
+            geometry: {
+              type: 'LineString',
+              coordinates: samples.map((sample) => sample.coordinates)
+            },
+            source: { kind: 'manual' }
+          }),
+      createdBy: form.get('createdBy')
+    });
+    gisViewState.selectedRouteId = route.id;
+    elements.surveyRouteForm.reset();
+    persistGisDisplayState();
+    await loadGis();
+  } catch (error) {
+    elements.surveyRouteFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.surveyRouteFormError.hidden = false;
+  } finally {
+    elements.createSurveyRouteButton.disabled = false;
+  }
+});
+
+elements.surveyRouteAssetSelect.addEventListener('change', () => {
+  const importing = Boolean(elements.surveyRouteAssetSelect.value);
+  elements.surveyRouteForm.elements.samples.required = !importing;
+  elements.surveyRouteForm.elements.samples.disabled = importing;
+});
+
+elements.surveyRouteSelect.addEventListener('change', async () => {
+  gisViewState.selectedRouteId = elements.surveyRouteSelect.value;
+  persistGisDisplayState();
+  if (!gisViewState.selectedRouteId) {
+    store.set({ surveyStops: [], photoRouteBindings: [] });
+    return;
+  }
+  try {
+    const [surveyStops, photoRouteBindings] = await Promise.all([
+      api.surveyStops(gisViewState.selectedRouteId),
+      api.photoRouteBindings(gisViewState.selectedRouteId)
+    ]);
+    store.set({ surveyStops, photoRouteBindings });
+  } catch (error) {
+    setError(error);
+  }
+});
+
+async function runSurveyRouteAction(action) {
+  elements.surveyRouteActionError.hidden = true;
+  const route = store.get().surveyRoutes.find((item) =>
+    String(item.id) === String(gisViewState.selectedRouteId)
+  );
+  if (!route) return;
+  try {
+    await action(route, requireSurveyRouteOperator());
+    await loadGis();
+  } catch (error) {
+    elements.surveyRouteActionError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.surveyRouteActionError.hidden = false;
+  }
+}
+
+elements.cleanSurveyRouteButton.addEventListener('click', () =>
+  runSurveyRouteAction((route, operator) => api.cleanSurveyRoute(route.id, {
+    cleanedBy: operator,
+    expectedRevision: Number(route.routeRevision) || 1
+  }))
+);
+
+elements.detectSurveyStopsButton.addEventListener('click', () =>
+  runSurveyRouteAction((route, operator) => api.detectSurveyStops(route.id, {
+    detectedBy: operator,
+    radiusMeters: 25,
+    minimumDurationSeconds: 120
+  }))
+);
+
+elements.suggestPhotoBindingsButton.addEventListener('click', () =>
+  runSurveyRouteAction((route, operator) => api.suggestPhotoRouteBindings(route.id, {
+    suggestedBy: operator,
+    maximumDistanceMeters: 100,
+    maximumTimeDifferenceSeconds: 1800
+  }))
+);
+
+elements.confirmSurveyRouteButton.addEventListener('click', () =>
+  runSurveyRouteAction((route, operator) => api.updateSurveyRoute(route.id, {
+    status: 'confirmed',
+    updatedBy: operator,
+    expectedRevision: Number(route.routeRevision) || 1
+  }))
+);
+
+elements.surveyStopList.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-stop-review]');
+  if (!button) return;
+  elements.surveyRouteActionError.hidden = true;
+  try {
+    await api.reviewSurveyStop(button.dataset.stopId, {
+      status: button.dataset.stopReview,
+      confirmedBy: requireSurveyRouteOperator(),
+      expectedRevision: Number(button.dataset.stopRevision) || 1
+    });
+    await loadGis();
+  } catch (error) {
+    elements.surveyRouteActionError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.surveyRouteActionError.hidden = false;
+  }
+});
+
+elements.photoRouteBindingList.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-binding-review]');
+  if (!button) return;
+  elements.surveyRouteActionError.hidden = true;
+  try {
+    await api.reviewPhotoRouteBinding(button.dataset.bindingId, {
+      status: button.dataset.bindingReview,
+      confirmedBy: requireSurveyRouteOperator(),
+      expectedRevision: Number(button.dataset.bindingRevision) || 1
+    });
+    await loadGis();
+  } catch (error) {
+    elements.surveyRouteActionError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.surveyRouteActionError.hidden = false;
+  }
+});
+
+elements.mapSnapshotForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.mapSnapshotForm);
+  elements.mapSnapshotFormError.hidden = true;
+  elements.createMapSnapshotButton.disabled = true;
+  try {
+    await api.createMapSnapshot(store.get().activeProjectId, {
+      purpose: form.get('purpose'),
+      reportId: form.get('reportId') || null,
+      mapStyle: form.get('mapStyle'),
+      layers: { ...gisViewState.visibleLayers },
+      createdBy: form.get('createdBy')
+    });
+    await loadGis();
+  } catch (error) {
+    elements.mapSnapshotFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.mapSnapshotFormError.hidden = false;
+  } finally {
+    elements.createMapSnapshotButton.disabled = false;
+  }
+});
+
+elements.mapSnapshotList.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-map-snapshot-retry]');
+  if (!button) return;
+  const createdBy = elements.mapSnapshotForm.elements.createdBy.value.trim();
+  elements.mapSnapshotFormError.hidden = true;
+  if (!createdBy) {
+    elements.mapSnapshotFormError.textContent = '重试地图快照前请填写生成人员。';
+    elements.mapSnapshotFormError.hidden = false;
+    return;
+  }
+  button.disabled = true;
+  try {
+    await api.retryMapSnapshot(button.dataset.mapSnapshotRetry, { createdBy });
+    await loadGis();
+  } catch (error) {
+    elements.mapSnapshotFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.mapSnapshotFormError.hidden = false;
+    button.disabled = false;
   }
 });
 

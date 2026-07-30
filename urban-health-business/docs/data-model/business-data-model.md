@@ -455,6 +455,42 @@ rejected
 
 当前实现支持`official-issue-radius`和`poi-search`两类运行。POI运行保存原始Provider响应、清洗拒绝原因和合并结果，不能只保存最终汇总数字；自动清洗结果不是指标得分。
 
+### 13.1 CoordinateTransformRecord
+
+保存原始空间对象到显示坐标系的可追溯转换，字段包括`sourceObject(kind/id/revision)`、
+`sourceCrs`、`targetCrs`、`sourceGeometry`、`transformedGeometry`、`method`、
+`methodVersion`、`transformedBy`和`createdAt`。转换结果不得覆盖原始Geometry。
+
+### 13.2 SurveyRoute与SurveyStop
+
+`SurveyRoute`保存LineString、CRS、原始采样时间/精度、SourceAsset来源、清洗规则和
+`routeRevision`。`SurveyStop`保存候选Point、到离时间、停留时长、检测规则、路线修订、
+人工结论和独立`revision`。路线修订不一致时，读模型派生`status: stale`、
+`originalStatus`和`staleReasons`，不覆盖历史确认记录。
+
+### 13.3 PhotoRouteBinding
+
+保存照片与路线的时空关联建议，包括距离、时间差、规则版本、照片/路线修订、建议人员、
+确认人员、结论和审计修订。建议结果不是正式关联，只有当前修订上的`confirmed`状态可
+作为确认关系；路线、照片元数据或照片治理状态变化时派生`stale`。
+
+### 13.4 MapSnapshot
+
+保存确定性地图交付物：
+
+- `purpose`、`mapStyle`、`viewport`和`visibleLayers`；
+- 项目、问题、照片、路线、停留节点及分析运行的源修订；
+- 可选冻结报告ID与报告版本；
+- `queued|generated|failed|stale`状态、失败原因和重试次数；
+- SVG内容哈希、内容类型、字节数和存储引用；
+- 生成与确认人员、时间和审计信息。
+
+报告型地图快照从报告冻结内容生成；当前业务数据变化不得重写历史报告地图。
+
+以上GIS新增模型在`URBAN_HEALTH_PROVIDER=sqlite`时使用统一事务型记录表持久化，按实体、
+项目、状态、报告和路线建立索引；payload保留完整版本化对象。地图快照二进制内容与元数据
+分离，可由filesystem或私有S3兼容StorageProvider保存。
+
 ## 14. IndicatorRun
 
 指标引擎未接入前仍固定数据契约。
@@ -703,15 +739,13 @@ Demo对象不迁移为业务数据库种子数据。
 以下模型需要在对应模块大纲中进一步定义：
 
 - 上传会话与分片；
-- 踏勘路线；
 - 空间图层；
-- POI逐条人工确认状态（原始与自动清洗结果已进入SpatialAnalysisRun）；
 - 指标输入快照；
 - 指标计算方案；
 - 报告模板；
 - 整改任务和销项；
 - 通用Schema升级与迁移任务队列（LegacyMigrationRun已实现）；
-- 用户、角色和项目权限。
+- 通用用户与组织目录（GIS角色和项目范围已通过可信身份头接入）。
 
 ## 27. 数据模型验收
 

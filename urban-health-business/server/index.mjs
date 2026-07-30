@@ -9,6 +9,15 @@ import { createSmartRenewAdapters } from './adapters/smart-renew/index.mjs';
 import { mergePrimaryReadModel } from './adapters/smart-renew/read-model-policy.mjs';
 import { sourceOfTruthSnapshot } from './adapters/smart-renew/source-of-truth.mjs';
 import { cloudBaseProviderCapability } from './providers/cloudbase-provider.mjs';
+import {
+  SqliteRepositoryProvider,
+  sqliteProviderCapability
+} from './providers/sqlite-provider.mjs';
+import {
+  createS3StorageProvider,
+  s3StorageCapability
+} from './providers/s3-storage-provider.mjs';
+import { FilesystemObjectStorageProvider } from './providers/storage-provider.mjs';
 import { OfficialIssueRepository } from './repositories/official-issue-repository.mjs';
 import { PhotoMetadataRepository } from './repositories/photo-metadata-repository.mjs';
 import { AnalysisCandidateRepository } from './repositories/analysis-candidate-repository.mjs';
@@ -23,6 +32,22 @@ import { SourceAssetRepository } from './repositories/source-asset-repository.mj
 import { UploadSessionRepository } from './repositories/upload-session-repository.mjs';
 import { FieldTaskReferenceRepository } from './repositories/field-task-reference-repository.mjs';
 import { LegacyMigrationRunRepository } from './repositories/legacy-migration-run-repository.mjs';
+import { CoordinateTransformRepository } from './repositories/coordinate-transform-repository.mjs';
+import { PhotoRouteBindingRepository } from './repositories/photo-route-binding-repository.mjs';
+import { SurveyRouteRepository } from './repositories/survey-route-repository.mjs';
+import { SurveyStopRepository } from './repositories/survey-stop-repository.mjs';
+import {
+  MapSnapshotRepository,
+  ProviderMapSnapshotRepository
+} from './repositories/map-snapshot-repository.mjs';
+import {
+  ProviderBoundaryRevisionRepository,
+  ProviderCoordinateTransformRepository,
+  ProviderPhotoRouteBindingRepository,
+  ProviderSpatialAnalysisRepository,
+  ProviderSurveyRouteRepository,
+  ProviderSurveyStopRepository
+} from './repositories/provider-gis-repositories.mjs';
 import { runAnalysis } from './services/analysis-service.mjs';
 import {
   AnalysisJobRunner,
@@ -65,6 +90,17 @@ import {
   publicAmapConfig
 } from './services/amap-provider.mjs';
 import { POI_CATEGORIES, runPoiAnalysis } from './services/poi-analysis-service.mjs';
+import { handleMapViewRoutes } from './routes/map-view-routes.mjs';
+import { handleGisRoutes } from './routes/gis-routes.mjs';
+import { handleSurveyRouteRoutes } from './routes/survey-route-routes.mjs';
+import { handleMapSnapshotRoutes } from './routes/map-snapshot-routes.mjs';
+import { coordinateTransformCapability } from './services/coordinate-transform-service.mjs';
+import { hydratePoiReviewRun } from './services/poi-review-service.mjs';
+import {
+  accountableActor,
+  authorizeRequest,
+  rbacCapability
+} from './security/rbac.mjs';
 import {
   createSourceAsset,
   updateSourceAsset,
@@ -110,6 +146,25 @@ const runtimeMetrics = {
 const businessDataRoot = path.resolve(
   process.env.URBAN_HEALTH_DATA_DIR || path.join(projectRoot, '.data')
 );
+const repositoryProviderMode = String(process.env.URBAN_HEALTH_PROVIDER || 'local').toLowerCase();
+const snapshotProviderMode = String(
+  process.env.GIS_MAP_SNAPSHOT_PROVIDER || 'filesystem'
+).toLowerCase();
+if (!['local', 'sqlite'].includes(repositoryProviderMode)) {
+  throw new Error(
+    `URBAN_HEALTH_PROVIDER=${repositoryProviderMode}尚未绑定到运行时；请选择local或sqlite。`
+  );
+}
+if (!['filesystem', 'svg', 's3'].includes(snapshotProviderMode)) {
+  throw new Error(
+    `GIS_MAP_SNAPSHOT_PROVIDER=${snapshotProviderMode}无效；请选择filesystem、svg或s3。`
+  );
+}
+const formalRecordProvider = repositoryProviderMode === 'sqlite' || snapshotProviderMode === 's3'
+  ? new SqliteRepositoryProvider(
+      process.env.URBAN_HEALTH_SQLITE_PATH || path.join(businessDataRoot, 'business-records.sqlite')
+    )
+  : null;
 const smartRenewClient = new SmartRenewClient();
 const smartRenewAdapters = createSmartRenewAdapters(smartRenewClient);
 const officialIssueRepository = new OfficialIssueRepository(
@@ -118,16 +173,18 @@ const officialIssueRepository = new OfficialIssueRepository(
 const photoMetadataRepository = new PhotoMetadataRepository(path.join(businessDataRoot, 'photo-metadata'));
 const reportRepository = new ReportRepository(path.join(businessDataRoot, 'reports'));
 const reviewSessionRepository = new ReviewSessionRepository(path.join(businessDataRoot, 'review-sessions'));
-const spatialAnalysisRepository = new SpatialAnalysisRepository(path.join(businessDataRoot, 'spatial-analyses'));
+const spatialAnalysisRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderSpatialAnalysisRepository(formalRecordProvider)
+  : new SpatialAnalysisRepository(path.join(businessDataRoot, 'spatial-analyses'));
 const projectWriteCoordinator = new ProjectWriteCoordinator();
 const uploadSessionRepository = new UploadSessionRepository(path.join(businessDataRoot, 'upload-sessions'));
 const analysisJobRepository = new AnalysisJobRepository(path.join(businessDataRoot, 'analysis-jobs'));
 const analysisCandidateRepository = new AnalysisCandidateRepository(
   path.join(businessDataRoot, 'analysis-candidates')
 );
-const boundaryRevisionRepository = new BoundaryRevisionRepository(
-  path.join(businessDataRoot, 'boundary-revisions')
-);
+const boundaryRevisionRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderBoundaryRevisionRepository(formalRecordProvider)
+  : new BoundaryRevisionRepository(path.join(businessDataRoot, 'boundary-revisions'));
 const collectionValidationRepository = new CollectionValidationRepository(
   path.join(businessDataRoot, 'collection-validations')
 );
@@ -144,6 +201,34 @@ const fieldTaskReferenceRepository = new FieldTaskReferenceRepository(
 const legacyMigrationRunRepository = new LegacyMigrationRunRepository(
   path.join(businessDataRoot, 'legacy-migration-runs')
 );
+const coordinateTransformRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderCoordinateTransformRepository(formalRecordProvider)
+  : new CoordinateTransformRepository(path.join(businessDataRoot, 'coordinate-transforms'));
+const surveyRouteRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderSurveyRouteRepository(formalRecordProvider)
+  : new SurveyRouteRepository(path.join(businessDataRoot, 'survey-routes'));
+const surveyStopRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderSurveyStopRepository(formalRecordProvider)
+  : new SurveyStopRepository(path.join(businessDataRoot, 'survey-stops'));
+const photoRouteBindingRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderPhotoRouteBindingRepository(formalRecordProvider)
+  : new PhotoRouteBindingRepository(path.join(businessDataRoot, 'photo-route-bindings'));
+const mapSnapshotRepository = snapshotProviderMode === 's3'
+  ? new ProviderMapSnapshotRepository(
+      formalRecordProvider,
+      createS3StorageProvider(),
+      { prefix: process.env.GIS_MAP_SNAPSHOT_STORAGE_PREFIX }
+    )
+  : formalRecordProvider && repositoryProviderMode === 'sqlite'
+    ? new ProviderMapSnapshotRepository(
+        formalRecordProvider,
+        new FilesystemObjectStorageProvider(path.join(businessDataRoot, 'objects')),
+        { prefix: process.env.GIS_MAP_SNAPSHOT_STORAGE_PREFIX }
+      )
+    : new MapSnapshotRepository(
+        path.join(businessDataRoot, 'map-snapshots'),
+        path.join(businessDataRoot, 'map-snapshot-content')
+      );
 
 async function assertAnalysisReviewFresh(analysis) {
   const jobId = String(analysis?.analysisJobId || '');
@@ -200,6 +285,8 @@ function sendJson(res, status, payload, id) {
     'content-type': 'application/json; charset=utf-8',
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'no-referrer',
     'x-request-id': id
   });
   res.end(body);
@@ -261,7 +348,21 @@ async function sendFile(res, filePath) {
   res.writeHead(200, {
     'content-type': contentType,
     'content-length': bytes.length,
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    'content-security-policy': [
+      "default-src 'self'",
+      "script-src 'self' https://webapi.amap.com https://*.amap.com",
+      "style-src 'self' 'unsafe-inline' https://*.amap.com",
+      "img-src 'self' data: blob: https://*.amap.com https://*.autonavi.com",
+      "connect-src 'self' https://*.amap.com https://*.autonavi.com",
+      "font-src 'self' data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'"
+    ].join('; ')
   });
   res.end(bytes);
 }
@@ -352,14 +453,26 @@ async function handleMeta(res, id) {
       legacy: services.legacy
     },
     dataSources: sourceOfTruthSnapshot(),
-    providers: cloudBaseProviderCapability(),
+    providers: {
+      ...cloudBaseProviderCapability(),
+      runtime: {
+        repositoryMode: repositoryProviderMode,
+        mapSnapshotStorageMode: snapshotProviderMode,
+        sqlite: sqliteProviderCapability(formalRecordProvider),
+        s3: s3StorageCapability()
+      }
+    },
+    security: {
+      rbac: rbacCapability()
+    },
     features: {
       optimisticConcurrency: true,
-      localJsonPersistence: true,
-      managedDatabase: false,
+      localJsonPersistence: repositoryProviderMode === 'local',
+      managedDatabase: repositoryProviderMode === 'sqlite',
+      transactionalGisPersistence: repositoryProviderMode === 'sqlite',
       directUpload: false,
-      localFileStorage: true,
-      objectStorage: false,
+      localFileStorage: snapshotProviderMode !== 's3',
+      objectStorage: snapshotProviderMode === 's3',
       cloudBaseProvider: true,
       standardLibrary: true,
       resumableUploadSessions: true,
@@ -378,6 +491,12 @@ async function handleMeta(res, id) {
       migratedReportsReadOnly: true,
       amapProvider: true,
       poiAnalysis: true,
+      projectMapView: true,
+      unifiedSpatialContract: true,
+      surveyRoutes: true,
+      surveyStopDetection: true,
+      photoRouteBindingReview: true,
+      mapSnapshots: true,
       serverPdf: false,
       workflowAggregation: true,
       demoIsolation: true
@@ -403,12 +522,75 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && url.pathname === '/api/gis/config') {
       return sendSuccess(res, {
         ...publicAmapConfig(),
+        coordinateTransforms: coordinateTransformCapability(),
         poiCategories: Object.entries(POI_CATEGORIES).map(([value, definition]) => ({
           value,
           label: definition.label
         }))
       }, id);
     }
+    if (await handleGisRoutes({
+      req,
+      res,
+      url,
+      requestId: id,
+      readJsonBody,
+      sendSuccess,
+      dependencies: {
+        client: smartRenewClient,
+        coordinateTransformRepository,
+        spatialAnalysisRepository,
+        issueRepository: officialIssueRepository,
+        photoMetadataRepository,
+        uploadSessionRepository
+      },
+      authorize: (permission, projectId) => authorizeRequest(req, permission, { projectId }),
+      accountableActor
+    })) return;
+    if (await handleSurveyRouteRoutes({
+      req,
+      res,
+      url,
+      requestId: id,
+      readJsonBody,
+      sendSuccess,
+      dependencies: {
+        client: smartRenewClient,
+        photoMetadataRepository,
+        uploadSessionRepository,
+        surveyRouteRepository,
+        surveyStopRepository,
+        photoRouteBindingRepository,
+        sourceAssetRepository
+      },
+      authorize: (permission, projectId) => authorizeRequest(req, permission, { projectId }),
+      accountableActor
+    })) return;
+    if (await handleMapSnapshotRoutes({
+      req,
+      res,
+      url,
+      requestId: id,
+      readJsonBody,
+      sendSuccess,
+      dependencies: {
+        mapSnapshotRepository,
+        reportRepository,
+        mapViewDependencies: {
+          client: smartRenewClient,
+          issueRepository: officialIssueRepository,
+          photoMetadataRepository,
+          uploadSessionRepository,
+          spatialAnalysisRepository,
+          coordinateTransformRepository,
+          surveyRouteRepository,
+          surveyStopRepository,
+          boundaryRevisionRepository
+        }
+      },
+      authorize: (permission, projectId) => authorizeRequest(req, permission, { projectId }),
+      accountableActor
+    })) return;
     if (req.method === 'GET' && url.pathname === '/api/health') {
       return sendSuccess(res, {
         status: 'alive',
@@ -426,6 +608,27 @@ async function handleRequest(req, res) {
         byStatus: runtimeMetrics.byStatus
       }, id);
     }
+    if (await handleMapViewRoutes({
+      req,
+      res,
+      url,
+      requestId: id,
+      readJsonBody,
+      sendSuccess,
+      dependencies: {
+        client: smartRenewClient,
+        issueRepository: officialIssueRepository,
+        photoMetadataRepository,
+        uploadSessionRepository,
+        spatialAnalysisRepository,
+        coordinateTransformRepository,
+        surveyRouteRepository,
+        surveyStopRepository,
+        boundaryRevisionRepository
+      },
+      authorize: (permission, projectId) => authorizeRequest(req, permission, { projectId }),
+      accountableActor
+    })) return;
 
     if (req.method === 'GET' && url.pathname === '/api/photos') {
       const projectId = url.searchParams.get('projectId') || '';
@@ -1033,13 +1236,17 @@ async function handleRequest(req, res) {
 
     const boundaryUpdateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/boundary$/);
     if (req.method === 'GET' && boundaryUpdateMatch) {
+      const projectId = decodeURIComponent(boundaryUpdateMatch[1]);
+      authorizeRequest(req, 'gis.view', { projectId });
       return sendSuccess(res, {
-        items: await boundaryRevisionRepository.list(decodeURIComponent(boundaryUpdateMatch[1]))
+        items: await boundaryRevisionRepository.list(projectId)
       }, id);
     }
     if (req.method === 'PATCH' && boundaryUpdateMatch) {
       const projectId = decodeURIComponent(boundaryUpdateMatch[1]);
       const input = await readJsonBody(req);
+      const identity = authorizeRequest(req, 'gis.boundary.edit', { projectId });
+      input.updatedBy = accountableActor(identity, input.updatedBy);
       const project = await projectWriteCoordinator.run(projectId, () =>
         updateProjectBoundary(smartRenewClient, projectId, input)
       );
@@ -1050,6 +1257,8 @@ async function handleRequest(req, res) {
     if (req.method === 'POST' && boundaryImportMatch) {
       const projectId = decodeURIComponent(boundaryImportMatch[1]);
       const input = await readJsonBody(req);
+      const identity = authorizeRequest(req, 'gis.boundary.edit', { projectId });
+      input.updatedBy = accountableActor(identity, input.updatedBy);
       const project = await projectWriteCoordinator.run(projectId, () =>
         importBoundaryFromSourceAsset(
           smartRenewClient,
@@ -1314,6 +1523,7 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && url.pathname === '/api/issues') {
       const projectId = url.searchParams.get('projectId') || '';
+      if (projectId) authorizeRequest(req, 'gis.view', { projectId });
       const [businessIssues, legacyIssues] = await Promise.all([
         officialIssueRepository.list(projectId),
         smartRenewClient.listIssues(Object.fromEntries(url.searchParams))
@@ -1368,11 +1578,20 @@ async function handleRequest(req, res) {
 
     const issueGeometryMatch = url.pathname.match(/^\/api\/issues\/([^/]+)\/geometry$/);
     if (req.method === 'PATCH' && issueGeometryMatch) {
+      const issueId = decodeURIComponent(issueGeometryMatch[1]);
+      const current = await officialIssueRepository.get(issueId);
+      const identity = authorizeRequest(req, 'gis.issue.geometry.edit', {
+        projectId: current?.projectId
+      });
+      const input = await readJsonBody(req);
       const issue = await bindIssueGeometry(
         smartRenewClient,
         officialIssueRepository,
-        decodeURIComponent(issueGeometryMatch[1]),
-        await readJsonBody(req)
+        issueId,
+        {
+          ...input,
+          confirmedBy: accountableActor(identity, input.confirmedBy)
+        }
       );
       return sendSuccess(res, { item: issue }, id);
     }
@@ -1380,6 +1599,7 @@ async function handleRequest(req, res) {
     const projectGeocodeMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/gis\/geocode$/);
     if (req.method === 'POST' && projectGeocodeMatch) {
       const projectId = decodeURIComponent(projectGeocodeMatch[1]);
+      authorizeRequest(req, 'gis.view', { projectId });
       await smartRenewClient.getProject(projectId);
       return sendSuccess(res, await amapWebServiceProvider.geocode(await readJsonBody(req)), id);
     }
@@ -1387,6 +1607,7 @@ async function handleRequest(req, res) {
     const spatialAnalysesMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/spatial-analyses$/);
     if (req.method === 'GET' && spatialAnalysesMatch) {
       const projectId = decodeURIComponent(spatialAnalysesMatch[1]);
+      authorizeRequest(req, 'gis.view', { projectId });
       const [project, businessIssues, legacyIssues, runs] = await Promise.all([
         smartRenewClient.getProject(projectId),
         officialIssueRepository.list(projectId),
@@ -1398,16 +1619,22 @@ async function handleRequest(req, res) {
         legacyItems: legacyIssues.items
       });
       return sendSuccess(res, {
-        items: markSpatialStaleness(runs, project, issues)
+        items: markSpatialStaleness(runs, project, issues).map(hydratePoiReviewRun)
       }, id);
     }
     if (req.method === 'POST' && spatialAnalysesMatch) {
+      const projectId = decodeURIComponent(spatialAnalysesMatch[1]);
+      const identity = authorizeRequest(req, 'gis.analysis.run', { projectId });
+      const input = await readJsonBody(req);
       const run = await runIssueRadiusAnalysis(
         smartRenewClient,
         officialIssueRepository,
         spatialAnalysisRepository,
-        decodeURIComponent(spatialAnalysesMatch[1]),
-        await readJsonBody(req)
+        projectId,
+        {
+          ...input,
+          createdBy: accountableActor(identity, input.createdBy)
+        }
       );
       return sendSuccess(res, { item: run }, id, 201);
     }
@@ -1415,6 +1642,7 @@ async function handleRequest(req, res) {
     const poiAnalysesMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/poi-analyses$/);
     if (req.method === 'GET' && poiAnalysesMatch) {
       const projectId = decodeURIComponent(poiAnalysesMatch[1]);
+      authorizeRequest(req, 'gis.view', { projectId });
       const [project, items] = await Promise.all([
         smartRenewClient.getProject(projectId),
         spatialAnalysisRepository.list(projectId)
@@ -1428,12 +1656,18 @@ async function handleRequest(req, res) {
       }, id);
     }
     if (req.method === 'POST' && poiAnalysesMatch) {
+      const projectId = decodeURIComponent(poiAnalysesMatch[1]);
+      const identity = authorizeRequest(req, 'gis.analysis.run', { projectId });
+      const input = await readJsonBody(req);
       const run = await runPoiAnalysis(
         smartRenewClient,
         spatialAnalysisRepository,
         amapWebServiceProvider,
-        decodeURIComponent(poiAnalysesMatch[1]),
-        await readJsonBody(req)
+        projectId,
+        {
+          ...input,
+          createdBy: accountableActor(identity, input.createdBy)
+        }
       );
       return sendSuccess(res, { item: run }, id, 201);
     }

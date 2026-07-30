@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   importBoundaryFromSourceAsset,
-  parseGeoJsonBoundary
+  parseGeoJsonBoundary,
+  parseGeoJsonBoundaryGeometry
 } from '../../server/services/geojson-boundary-service.mjs';
 
 const polygon = [
@@ -36,6 +37,27 @@ test('multiple GeoJSON polygons are rejected instead of selecting one silently',
     })),
     (error) => error.code === 'GEOJSON_BOUNDARY_AMBIGUOUS'
   );
+});
+
+test('GeoJSON geometry parser accepts selected complex polygon with a hole', () => {
+  const geometry = parseGeoJsonBoundaryGeometry(JSON.stringify({
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: { type: 'Polygon', coordinates: [polygon] } },
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            polygon,
+            [[108.945, 34.265], [108.95, 34.265], [108.95, 34.27], [108.945, 34.265]]
+          ]
+        }
+      }
+    ]
+  }), { featureIndex: 1 });
+  assert.equal(geometry.type, 'Polygon');
+  assert.equal(geometry.coordinates.length, 2);
 });
 
 test('active GeoJSON asset updates boundary with source lineage', async () => {

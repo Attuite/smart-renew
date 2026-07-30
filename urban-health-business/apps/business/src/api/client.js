@@ -75,6 +75,47 @@ export const api = {
     return request('/api/gis/config');
   },
 
+  async projectMapView(projectId, filters = {}) {
+    const query = filters instanceof URLSearchParams
+      ? filters
+      : new URLSearchParams(
+          Object.entries(filters)
+            .filter(([, value]) => value !== undefined && value !== null && value !== '')
+            .map(([key, value]) => [key, String(value)])
+        );
+    const suffix = query.toString() ? `?${query}` : '';
+    return request(`/api/projects/${encodeURIComponent(projectId)}/map-view${suffix}`);
+  },
+
+  async ensureProjectDisplayTransforms(projectId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/map-view/display-transforms`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }
+    );
+  },
+
+  async coordinateTransformCapability() {
+    return request('/api/gis/coordinate-transforms/capability');
+  },
+
+  async createCoordinateTransform(input) {
+    const payload = await request('/api/gis/coordinate-transforms', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async coordinateTransform(transformId) {
+    const payload = await request(
+      `/api/gis/coordinate-transforms/${encodeURIComponent(transformId)}`
+    );
+    return payload?.item || payload;
+  },
+
   async projects() {
     return itemsFrom(await request('/api/projects'));
   },
@@ -459,6 +500,43 @@ export const api = {
     return payload?.item || payload;
   },
 
+  async issueGeometryRevisions(issueId) {
+    return itemsFrom(await request(
+      `/api/issues/${encodeURIComponent(issueId)}/geometry-revisions`
+    ));
+  },
+
+  async batchConfirmIssueGeometry(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/issues/geometry-batch-confirm`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  async photoMapPoints(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/photos/map-points`
+    ));
+  },
+
+  async updatePhotoGeometry(projectId, photoId, input) {
+    const payload = await request(
+      `/api/projects/${encodeURIComponent(projectId)}/photos/${encodeURIComponent(photoId)}/geometry`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input)
+      }
+    );
+    return payload?.item || payload;
+  },
+
+  async batchUpdatePhotoGeometry(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/photos/geometry-batch`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
   async spatialAnalyses(projectId) {
     return itemsFrom(await request(`/api/projects/${encodeURIComponent(projectId)}/spatial-analyses`));
   },
@@ -476,6 +554,140 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input)
     });
+    return payload?.item || payload;
+  },
+
+  async reviewPoi(runId, normalizedId, input) {
+    const payload = await request(
+      `/api/spatial-analyses/${encodeURIComponent(runId)}/pois/${encodeURIComponent(normalizedId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input)
+      }
+    );
+    return payload?.item || payload;
+  },
+
+  async poiItems(runId) {
+    return itemsFrom(await request(
+      `/api/spatial-analyses/${encodeURIComponent(runId)}/pois`
+    ));
+  },
+
+  async batchReviewPois(runId, input) {
+    return itemsFrom(await request(
+      `/api/spatial-analyses/${encodeURIComponent(runId)}/pois/batch-review`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }
+    ));
+  },
+
+  async surveyRoutes(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/survey-routes`
+    ));
+  },
+
+  async createSurveyRoute(projectId, input) {
+    const payload = await request(`/api/projects/${encodeURIComponent(projectId)}/survey-routes`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async updateSurveyRoute(routeId, input) {
+    const payload = await request(`/api/survey-routes/${encodeURIComponent(routeId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async cleanSurveyRoute(routeId, input) {
+    const payload = await request(`/api/survey-routes/${encodeURIComponent(routeId)}/clean`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async surveyStops(routeId) {
+    return itemsFrom(await request(`/api/survey-routes/${encodeURIComponent(routeId)}/stops`));
+  },
+
+  async detectSurveyStops(routeId, input) {
+    return itemsFrom(await request(
+      `/api/survey-routes/${encodeURIComponent(routeId)}/stops/detect`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }
+    ));
+  },
+
+  async reviewSurveyStop(stopId, input) {
+    const payload = await request(`/api/survey-stops/${encodeURIComponent(stopId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async photoRouteBindings(routeId) {
+    return itemsFrom(await request(
+      `/api/survey-routes/${encodeURIComponent(routeId)}/photo-bindings`
+    ));
+  },
+
+  async suggestPhotoRouteBindings(routeId, input) {
+    return itemsFrom(await request(
+      `/api/survey-routes/${encodeURIComponent(routeId)}/photo-bindings/suggest`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }
+    ));
+  },
+
+  async reviewPhotoRouteBinding(bindingId, input) {
+    const payload = await request(`/api/photo-route-bindings/${encodeURIComponent(bindingId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async mapSnapshots(projectId, reportId = '') {
+    const query = reportId ? `?reportId=${encodeURIComponent(reportId)}` : '';
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/map-snapshots${query}`
+    ));
+  },
+
+  async createMapSnapshot(projectId, input) {
+    const payload = await request(`/api/projects/${encodeURIComponent(projectId)}/map-snapshots`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async mapSnapshot(snapshotId) {
+    const payload = await request(`/api/map-snapshots/${encodeURIComponent(snapshotId)}`);
+    return payload?.item || payload;
+  },
+
+  async retryMapSnapshot(snapshotId, input) {
+    const payload = await request(
+      `/api/map-snapshots/${encodeURIComponent(snapshotId)}/retry`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }
+    );
     return payload?.item || payload;
   },
 

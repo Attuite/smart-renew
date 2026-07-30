@@ -10,7 +10,14 @@ export const CLOUDBASE_COLLECTIONS = Object.freeze({
   reports: 'reportSnapshots',
   sourceAssets: 'sourceAssets',
   reviewSessions: 'reviewSessions',
-  uploadSessions: 'uploadSessions'
+  uploadSessions: 'uploadSessions',
+  coordinateTransforms: 'coordinateTransforms',
+  surveyRoutes: 'surveyRoutes',
+  surveyStops: 'surveyStops',
+  photoRouteBindings: 'photoRouteBindings',
+  mapSnapshots: 'mapSnapshots',
+  boundaryRevisions: 'boundaryRevisions',
+  spatialAnalyses: 'spatialAnalyses'
 });
 
 function cloudBaseError(message, code = 'CLOUDBASE_PROVIDER_ERROR', status = 500) {

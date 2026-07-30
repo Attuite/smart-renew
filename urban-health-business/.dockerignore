@@ -1,0 +1,9 @@
+.git
+.data
+.env
+.env.*
+config/production.env
+coverage
+node_modules
+npm-debug.log
+apps/demo-v9.1/preview-v9.1.html

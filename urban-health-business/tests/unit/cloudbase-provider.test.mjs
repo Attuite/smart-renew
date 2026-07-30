@@ -95,7 +95,28 @@ test('CloudBase provider remains optional and never claims production verificati
   assert.equal(capability.selected, 'local');
   assert.equal(capability.cloudbase.configured, false);
   assert.equal(capability.cloudbase.productionVerified, false);
-  assert.equal(Object.keys(CLOUDBASE_COLLECTIONS).length, 10);
+  assert.deepEqual(
+    Object.keys(CLOUDBASE_COLLECTIONS).sort(),
+    [
+      'analyses',
+      'boundaryRevisions',
+      'coordinateTransforms',
+      'fieldTasks',
+      'mapSnapshots',
+      'officialIssues',
+      'photoRouteBindings',
+      'photos',
+      'projectData',
+      'projects',
+      'reports',
+      'reviewSessions',
+      'sourceAssets',
+      'spatialAnalyses',
+      'surveyRoutes',
+      'surveyStops',
+      'uploadSessions'
+    ].sort()
+  );
 
   const { app } = cloudBaseMock();
   const providers = createCloudBaseProviders({ init: () => app }, { TCB_ENV: 'test-env' });

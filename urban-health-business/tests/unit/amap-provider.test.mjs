@@ -83,3 +83,29 @@ test('amap provider refuses requests when the server-side key is missing', async
     (error) => error.code === 'AMAP_WEB_SERVICE_NOT_CONFIGURED' && error.status === 503
   );
 });
+
+test('amap provider distinguishes quota errors without exposing credentials', async () => {
+  const provider = new AmapWebServiceProvider({
+    key: 'server-secret-key',
+    fetch: async () => ({
+      ok: true,
+      async json() {
+        return { status: '0', info: 'DAILY_QUERY_OVER_LIMIT', infocode: '10003' };
+      }
+    })
+  });
+  await assert.rejects(
+    () => provider.searchAround({
+      center: [108.95, 34.27],
+      radiusMeters: 1000,
+      keywords: '社区服务'
+    }),
+    (error) => {
+      assert.equal(error.status, 429);
+      assert.equal(error.code, 'AMAP_QUOTA_EXCEEDED');
+      assert.equal(error.retryable, true);
+      assert.equal(JSON.stringify(error).includes('server-secret-key'), false);
+      return true;
+    }
+  );
+});

@@ -1108,7 +1108,7 @@ AB-00至AB-10的A/B范围已完成。ProjectData/SQLite交换、外业任务工�
 - 数据库事务、正式索引和多实例一致性；
 - 对象存储直传、分片和断点续传；
 - 独立AI Worker、租约、运行中取消和单照片重试；
-- 复杂资料解析、复杂GeoJSON和坐标转换；
+- 复杂资料深度解析；
 - 政务GIS和高级空间算子；
 - 多人复核锁和完整协作；
 - 正式模板、服务端PDF、审批、签发、发布和分享；
@@ -1193,7 +1193,12 @@ $env:AMAP_JS_SECURITY_CODE = '高德JS安全密钥'
 $env:AMAP_WEB_SERVICE_KEY = '仅供BFF使用的Web服务Key'
 ```
 
-未配置时系统继续支持真实经纬度、GeoJSON边界和SVG空间预览，但会明确显示地图/地址/POI不可用，不生成假边界或示例POI。当前没有WGS84/GCJ-02转换，因此高德叠加和POI运行只接受GCJ-02项目边界。
+未配置时系统继续支持真实经纬度、GeoJSON边界和SVG空间预览，但会明确显示地图/地址/POI不可用，不生成假边界或示例POI。WGS84与GCJ-02显示转换已接入独立审计记录；原始Geometry不被覆盖，没有匹配转换记录的对象不会叠加到高德底图。
+
+生产配置、RBAC、备份恢复、对象存储适配和高德预生产验收步骤见
+[`docs/deployment/gis-production-deployment.md`](docs/deployment/gis-production-deployment.md)。
+GIS生产记录可设置`URBAN_HEALTH_PROVIDER=sqlite`启用WAL与事务；报告地图对象可设置
+`GIS_MAP_SNAPSHOT_PROVIDER=s3`写入私有S3兼容存储。本地默认Provider保持不变。
 
 访问：
 

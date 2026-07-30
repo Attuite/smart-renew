@@ -43,10 +43,15 @@ export async function bindIssueGeometry(client, repository, issueId, input) {
     throw bindingError('正式问题不存在或不是Business正式问题。', 404, 'OFFICIAL_ISSUE_NOT_FOUND');
   }
   const project = await client.getProject(issue.projectId);
-  const boundary = Array.isArray(project?.scopeBoundary)
+  const legacyBoundary = Array.isArray(project?.scopeBoundary)
     ? project.scopeBoundary.map(numericPoint).filter(Boolean)
     : [];
-  if (boundary.length < 3) {
+  const boundaryGeometry = project?.scopeBoundaryGeometry || (
+    legacyBoundary.length >= 3
+      ? { type: 'Polygon', coordinates: [[...legacyBoundary, legacyBoundary[0]]] }
+      : null
+  );
+  if (!boundaryGeometry) {
     throw bindingError('项目尚无有效边界，不能确认问题点归属。', 409, 'PROJECT_BOUNDARY_REQUIRED');
   }
   const point = [Number(input?.longitude), Number(input?.latitude)];
@@ -65,7 +70,7 @@ export async function bindIssueGeometry(client, repository, issueId, input) {
       'SPATIAL_CRS_MISMATCH'
     );
   }
-  if (!pointInPolygon(point, boundary)) {
+  if (!pointInBoundaryGeometry(point, boundaryGeometry)) {
     throw bindingError('问题坐标位于项目边界之外，请核对位置或先修订项目边界。', 422, 'ISSUE_OUTSIDE_PROJECT_BOUNDARY');
   }
   return repository.updateGeometry(issueId, {
@@ -75,3 +80,4 @@ export async function bindIssueGeometry(client, repository, issueId, input) {
     crs: requestedCrs
   });
 }
+import { pointInBoundaryGeometry } from './spatial-geometry-service.mjs';

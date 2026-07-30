@@ -1,3 +1,6 @@
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
 function providerError(message, code = 'PROVIDER_CONTRACT_INVALID') {
   const error = new Error(message);
   error.code = code;
@@ -12,6 +15,55 @@ export function assertStorageProvider(provider) {
     }
   }
   return provider;
+}
+
+function safeObjectPath(root, objectPath) {
+  const normalized = String(objectPath || '').replaceAll('\\', '/').replace(/^\/+/, '');
+  if (!normalized || normalized.includes('../') || normalized.includes('/..')) {
+    throw providerError('对象存储路径无效。', 'OBJECT_PATH_INVALID');
+  }
+  const target = path.resolve(root, normalized);
+  const resolvedRoot = path.resolve(root);
+  if (target !== resolvedRoot && !target.startsWith(`${resolvedRoot}${path.sep}`)) {
+    throw providerError('对象存储路径超出根目录。', 'OBJECT_PATH_OUTSIDE_ROOT');
+  }
+  return target;
+}
+
+export class FilesystemObjectStorageProvider {
+  constructor(root) {
+    this.root = path.resolve(root);
+    this.kind = 'filesystem-object-storage';
+  }
+
+  async upload(input) {
+    const target = safeObjectPath(this.root, input.path);
+    await mkdir(path.dirname(target), { recursive: true });
+    const temporary = `${target}.${Date.now()}.tmp`;
+    const bytes = Buffer.from(input.bytes || []);
+    await writeFile(temporary, bytes);
+    await rename(temporary, target);
+    return {
+      id: String(input.path),
+      path: String(input.path),
+      fileId: String(input.path),
+      storage: this.kind,
+      size: bytes.length
+    };
+  }
+
+  async download(reference) {
+    const objectPath = reference.path || reference.fileId || reference.id;
+    return {
+      bytes: await readFile(safeObjectPath(this.root, objectPath)),
+      contentType: reference.contentType || 'application/octet-stream'
+    };
+  }
+
+  async temporaryUrl(reference) {
+    const id = String(reference.snapshotId || reference.id || '').replace(/\.svg$/, '');
+    return `/api/map-snapshots/${encodeURIComponent(id)}/content`;
+  }
 }
 
 export class SmartRenewStorageProvider {

@@ -399,9 +399,97 @@ POST /api/projects/{projectId}/poi-analyses
 
 POI请求由BFF使用服务端Web服务Key分页查询。运行记录作为`type: poi-search`写入同一`SpatialAnalysisRepository`，保存查询中心、半径、分类、关键词、Provider、GCJ-02声明、原始POI、过滤/合并数量、清洗规则版本及清洗结果。住宅小区分类默认进一步按真实项目多边形裁剪。自动POI结论不会写入指标分数。
 
-当前未接入WGS84/GCJ-02转换；因此POI运行要求项目边界为GCJ-02。WGS84项目返回`POI_PROJECT_CRS_MISMATCH`，前端也不会把WGS84边界直接叠在高德底图上。
+WGS84与GCJ-02转换已接入。原始Geometry保持不变，显示Geometry通过独立
+`CoordinateTransformRecord`保存来源对象、修订、转换方向、方法版本、人员和时间。
+WGS84对象在没有匹配转换记录时不会叠加到高德底图；POI运行仍要求分析中心已明确为
+GCJ-02，避免把显示坐标与业务原始坐标静默混用。
 
 工作流会比较空间运行保存的边界时间、正式问题集合和问题更新时间；输入变化后阶段04返回 `stale` 和原因，要求重新运行。
+
+### 7.1 地图聚合读模型与显示坐标准备
+
+```http
+GET  /api/projects/{projectId}/map-view
+POST /api/projects/{projectId}/map-view/display-transforms
+```
+
+`map-view`统一返回项目边界、正式问题、照片、路线、停留节点和空间运行，支持
+`bounds`、`zoom`、`limit`、风险、类型、问题状态、绑定状态、stale状态、搜索和历史运行
+过滤。每类集合都包含`total/limit/truncated`；路线显示Geometry按缩放级别确定性抽稀，
+不改写原始路线。显示坐标准备接口每次最多处理500个对象，并写入可审计转换记录。
+
+### 7.2 边界、问题和照片几何修订
+
+```http
+GET  /api/projects/{projectId}/boundary-revisions
+GET  /api/issues/{issueId}/geometry-revisions
+POST /api/projects/{projectId}/issues/geometry-batch-confirm
+GET  /api/projects/{projectId}/photos/map-points
+PATCH /api/projects/{projectId}/photos/{photoId}/geometry
+POST /api/projects/{projectId}/photos/geometry-batch
+```
+
+边界支持Polygon、MultiPolygon和孔洞；保存执行闭合、点数、自相交、面积、坐标范围与
+项目revision校验。问题和照片点位支持逐条及1—200条批量修订，返回逐项结果；所有正式
+写入都校验坐标系、边界归属、操作者及乐观修订号。
+
+### 7.3 POI人工复核
+
+```http
+GET  /api/spatial-analyses/{runId}/poi-items
+PATCH /api/spatial-analyses/{runId}/poi-items/{poiId}
+POST /api/spatial-analyses/{runId}/poi-items/batch-review
+```
+
+POI原始、清洗、确认和排除状态均保留。批量复核一次最多500项，先校验全部修订号再原子
+保存，避免部分覆盖；过期分析只读。
+
+### 7.4 踏勘路线、停留节点和照片关联
+
+```http
+GET|POST /api/projects/{projectId}/survey-routes
+GET|PATCH /api/survey-routes/{routeId}
+POST      /api/survey-routes/{routeId}/clean
+GET       /api/survey-routes/{routeId}/stops
+POST      /api/survey-routes/{routeId}/stops/detect
+PATCH     /api/survey-stops/{stopId}
+GET       /api/survey-routes/{routeId}/photo-bindings
+POST      /api/survey-routes/{routeId}/photo-bindings/suggest
+PATCH     /api/photo-route-bindings/{bindingId}
+```
+
+路线可手工录入或从已完成的GPX、GeoJSON、JSON、CSV `SourceAsset`导入，保存原始采样、
+时间、精度、资产ID和内容哈希。清洗、停留检测和照片时空关联均保存规则版本、修订及人工
+确认记录。读取停留节点和照片关联时会对比当前路线修订及照片元数据修订；不一致时派生
+`stale`和`staleReasons`，保留原审核状态用于追溯，要求重新检测或重新建议。
+
+### 7.5 确定性地图快照
+
+```http
+GET|POST /api/projects/{projectId}/map-snapshots
+GET       /api/map-snapshots/{snapshotId}
+GET       /api/map-snapshots/{snapshotId}/content
+POST      /api/map-snapshots/{snapshotId}/retry
+```
+
+快照任务保存用途、样式、视口、可见图层、源对象修订、状态、内容哈希和存储引用。报告
+快照只读取冻结的报告`contentSnapshot`，生成后回写报告引用；非报告快照在源修订变化后
+标记stale。失败任务可重试，不覆盖历史内容。
+
+### 7.6 GIS鉴权
+
+生产环境设置`URBAN_HEALTH_AUTH_MODE=required`。可信反向代理必须清除外部同名身份头并
+注入已认证用户、角色和项目范围；BFF按`gis.view`、边界编辑、点位编辑、分析、POI复核、
+路线管理和快照创建等权限执行401/403隔离。required模式下审计人员取认证身份，忽略请求体
+伪造姓名。
+
+### 7.7 生产Provider
+
+`URBAN_HEALTH_PROVIDER=sqlite`时，GIS新增记录写入带WAL、FULL同步和索引的SQLite数据库，
+批量坐标转换、停留节点和照片路线建议使用数据库事务；`/api/meta`返回实际Provider、
+事务模式和存储模式。`GIS_MAP_SNAPSHOT_PROVIDER=s3`时地图快照内容写入私有S3兼容对象
+存储，使用SigV4且不生成包含密钥的公开URL。本地默认仍为JSON/文件Provider，方便隔离开发，
+但不会在能力声明中伪装成正式数据库或对象存储。
 
 ## 8. 指标引擎预留
 

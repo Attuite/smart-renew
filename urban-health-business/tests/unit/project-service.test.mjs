@@ -124,6 +124,44 @@ test('real project boundary is validated and produces calculated area and center
   }, { now: '2026-07-26T00:00:00.000Z' });
   assert.equal(project.revision, 4);
   assert.equal(project.scopeBoundarySource, 'manual-coordinate-entry');
+  assert.equal(project.scopeBoundaryGeometry.type, 'Polygon');
+});
+
+test('project boundary accepts MultiPolygon and holes while preserving a legacy projection', () => {
+  const project = applyProjectBoundary({ id: '1', revision: 3 }, {
+    geometry: {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[
+          [108.94, 34.26],
+          [108.98, 34.26],
+          [108.98, 34.30],
+          [108.94, 34.30],
+          [108.94, 34.26]
+        ], [
+          [108.95, 34.27],
+          [108.96, 34.27],
+          [108.96, 34.28],
+          [108.95, 34.28],
+          [108.95, 34.27]
+        ]],
+        [[
+          [109.04, 34.26],
+          [109.05, 34.26],
+          [109.05, 34.27],
+          [109.04, 34.27],
+          [109.04, 34.26]
+        ]]
+      ]
+    },
+    crs: 'WGS84',
+    expectedRevision: 3,
+    updatedBy: 'GIS人员'
+  });
+  assert.equal(project.scopeBoundaryGeometry.type, 'MultiPolygon');
+  assert.equal(project.scopePolygonCount, 2);
+  assert.equal(project.scopeHoleCount, 1);
+  assert.equal(project.scopeBoundary.length, 4);
 });
 
 test('self-intersecting project boundary is rejected', () => {

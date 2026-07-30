@@ -1,3 +1,10 @@
+import { normalizeCrs } from '../../packages/api-contracts/spatial.mjs';
+import {
+  boundaryGeometryStats,
+  legacyBoundaryProjection,
+  validateBoundaryGeometry
+} from './spatial-geometry-service.mjs';
+
 const PROJECT_TYPES = new Set([
   'residential',
   'community',
@@ -75,6 +82,24 @@ function assertSimplePolygon(points) {
 }
 
 export function normalizeBoundary(input) {
+  if (input?.geometry) {
+    const geometry = validateBoundaryGeometry(input.geometry, { maxPoints: 50000 });
+    const stats = boundaryGeometryStats(geometry);
+    if (stats.areaSqKm < 0.000001) {
+      throw validationError('项目边界面积为0或过小，请检查坐标顺序。', { field: 'geometry' });
+    }
+    return {
+      coordinates: legacyBoundaryProjection(geometry),
+      geometry,
+      crs: normalizeCrs(input?.crs || 'WGS84'),
+      areaSqKm: stats.areaSqKm,
+      center: stats.center,
+      bounds: stats.bounds,
+      polygonCount: stats.polygonCount,
+      holeCount: stats.holeCount,
+      source: cleanText(input?.source, 80) || 'manual-geometry-entry'
+    };
+  }
   const source = Array.isArray(input?.coordinates) ? input.coordinates : [];
   if (source.length < 3) {
     throw validationError('项目边界至少需要3个坐标点。', { field: 'coordinates' });
@@ -126,6 +151,10 @@ export function normalizeBoundary(input) {
   }
   return {
     coordinates: points,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[...points, [...points[0]]]]
+    },
     crs,
     areaSqKm,
     center,
@@ -384,12 +413,16 @@ export function applyProjectBoundary(project, input, options = {}) {
   return {
     ...project,
     scopeBoundary: boundary.coordinates,
+    scopeBoundaryGeometry: boundary.geometry,
     scopeBoundaryCrs: boundary.crs,
     scopeBoundarySource: boundary.source,
     scopeBoundarySourceAssetId: cleanText(input?.sourceAssetId, 180) || null,
     scopeBoundarySourceAssetContentHash: cleanText(input?.sourceAssetContentHash, 128) || null,
     scopeAreaSqKm: boundary.areaSqKm,
     scopeCenter: boundary.center,
+    scopeBounds: boundary.bounds || null,
+    scopePolygonCount: boundary.polygonCount || 1,
+    scopeHoleCount: boundary.holeCount || 0,
     boundaryUpdatedAt: now,
     boundaryUpdatedBy: updatedBy,
     revision: currentRevision + 1,

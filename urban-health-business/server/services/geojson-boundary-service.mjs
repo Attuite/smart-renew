@@ -1,4 +1,5 @@
 import { updateProjectBoundary } from './project-service.mjs';
+import { validateBoundaryGeometry } from './spatial-geometry-service.mjs';
 
 function boundaryImportError(message, status = 400, code = 'GEOJSON_BOUNDARY_INVALID') {
   const error = new Error(message);
@@ -22,7 +23,7 @@ function polygonGeometries(document) {
   return ['Polygon', 'MultiPolygon'].includes(document.type) ? [document] : [];
 }
 
-export function parseGeoJsonBoundary(content) {
+export function parseGeoJsonBoundaryGeometry(content, options = {}) {
   let document;
   try {
     document = JSON.parse(Buffer.isBuffer(content) ? content.toString('utf8') : String(content));
@@ -33,23 +34,32 @@ export function parseGeoJsonBoundary(content) {
   if (!geometries.length) {
     throw boundaryImportError('GeoJSON中没有可用的Polygon项目边界。', 400, 'GEOJSON_POLYGON_NOT_FOUND');
   }
-  if (geometries.length > 1) {
+  const featureIndex = options.featureIndex === undefined ? null : Number(options.featureIndex);
+  if (geometries.length > 1 && !Number.isInteger(featureIndex)) {
     throw boundaryImportError('GeoJSON包含多个面，当前项目边界只能明确导入一个面。', 409, 'GEOJSON_BOUNDARY_AMBIGUOUS');
   }
-  const geometry = geometries[0];
-  let polygon;
-  if (geometry.type === 'MultiPolygon') {
-    if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length !== 1) {
-      throw boundaryImportError('MultiPolygon包含多个分离面，当前项目边界模型暂不支持。', 422, 'GEOJSON_MULTIPOLYGON_UNSUPPORTED');
-    }
-    [polygon] = geometry.coordinates;
-  } else {
-    polygon = geometry.coordinates;
+  const geometry = Number.isInteger(featureIndex) ? geometries[featureIndex] : geometries[0];
+  if (!geometry) {
+    throw boundaryImportError('选择的GeoJSON面不存在。', 404, 'GEOJSON_FEATURE_NOT_FOUND');
   }
-  if (!Array.isArray(polygon) || polygon.length !== 1 || !Array.isArray(polygon[0])) {
-    throw boundaryImportError('带孔洞或结构无效的Polygon暂不能导入为项目边界。', 422, 'GEOJSON_POLYGON_HOLES_UNSUPPORTED');
+  try {
+    return validateBoundaryGeometry(geometry, { maxPoints: 50000 });
+  } catch (error) {
+    if (error.code) throw error;
+    throw boundaryImportError('GeoJSON项目边界结构无效。');
   }
-  return polygon[0];
+}
+
+export function parseGeoJsonBoundary(content) {
+  const geometry = parseGeoJsonBoundaryGeometry(content);
+  if (geometry.type !== 'Polygon' || geometry.coordinates.length !== 1) {
+    throw boundaryImportError(
+      '当前调用需要单一无孔洞Polygon；请使用完整Geometry接口。',
+      422,
+      'GEOJSON_COMPLEX_BOUNDARY_REQUIRES_GEOMETRY'
+    );
+  }
+  return geometry.coordinates[0];
 }
 
 export async function importBoundaryFromSourceAsset(client, repository, projectId, input) {
@@ -78,9 +88,11 @@ export async function importBoundaryFromSourceAsset(client, repository, projectI
   if (!content) {
     throw boundaryImportError('资料文件内容不存在。', 404, 'SOURCE_ASSET_CONTENT_NOT_FOUND');
   }
-  const coordinates = parseGeoJsonBoundary(content);
+  const geometry = parseGeoJsonBoundaryGeometry(content, {
+    featureIndex: input?.featureIndex
+  });
   return updateProjectBoundary(client, projectId, {
-    coordinates,
+    geometry,
     crs: input?.crs || 'WGS84',
     updatedBy,
     expectedRevision: input?.expectedRevision,

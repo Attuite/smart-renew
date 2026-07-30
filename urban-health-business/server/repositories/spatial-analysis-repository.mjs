@@ -31,6 +31,17 @@ export class SpatialAnalysisRepository {
     return run;
   }
 
+  async get(runId) {
+    await this.ensure();
+    const id = safeId(runId);
+    try {
+      return JSON.parse(await readFile(path.join(this.root, `${id}.json`), 'utf8'));
+    } catch (error) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
   async list(projectId = '') {
     await this.ensure();
     const names = await readdir(this.root);

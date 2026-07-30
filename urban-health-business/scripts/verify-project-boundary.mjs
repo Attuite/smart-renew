@@ -13,7 +13,12 @@ const violations = output
   .split(/\r?\n/)
   .filter(Boolean)
   .map((line) => line.slice(3).replace(/^"|"$/g, ''))
-  .filter((file) => !file.replaceAll('\\', '/').startsWith('urban-health-business/'));
+  .filter((file) => {
+    const normalized = file.replaceAll('\\', '/');
+    const basename = normalized.split('/').at(-1);
+    return !normalized.startsWith('urban-health-business/')
+      && basename !== '.DS_Store';
+  });
 
 if (violations.length) {
   console.error('Changes outside urban-health-business are not allowed during the isolated migration:');

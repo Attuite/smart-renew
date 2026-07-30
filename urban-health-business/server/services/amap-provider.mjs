@@ -6,7 +6,28 @@ function providerError(message, status = 502, code = 'AMAP_PROVIDER_FAILED', det
   error.status = status;
   error.code = code;
   error.details = details;
+  error.retryable = Boolean(details.retryable);
   return error;
+}
+
+function amapFailure(payload) {
+  const upstreamCode = clean(payload?.infocode, 40);
+  const upstreamInfo = clean(payload?.info, 200);
+  const quota = ['10003', '10004', '10021', '10044'].includes(upstreamCode);
+  const credential = ['10001', '10002', '10007', '10008', '10009', '10010'].includes(upstreamCode);
+  const retryable = quota || ['10016', '10017', '10019', '10020'].includes(upstreamCode);
+  return providerError(
+    `高德Web服务调用失败：${upstreamInfo || '未知错误'}`,
+    quota ? 429 : credential ? 503 : 502,
+    quota ? 'AMAP_QUOTA_EXCEEDED'
+      : credential ? 'AMAP_CREDENTIAL_ERROR'
+        : 'AMAP_API_ERROR',
+    {
+      upstreamCode,
+      upstreamInfo,
+      retryable
+    }
+  );
 }
 
 function clean(value, maxLength = 300) {
@@ -42,7 +63,13 @@ export function amapRuntimeConfig(env = process.env) {
       key: jsKey || null,
       securityCode: jsSecurityCode || null,
       version: '2.0',
-      plugins: ['AMap.Scale', 'AMap.ToolBar', 'AMap.MouseTool']
+      plugins: [
+        'AMap.Scale',
+        'AMap.ToolBar',
+        'AMap.MouseTool',
+        'AMap.MarkerCluster',
+        'AMap.PolyEditor'
+      ]
     },
     geocoding: {
       ready: Boolean(webServiceKey),
@@ -58,12 +85,32 @@ export function amapRuntimeConfig(env = process.env) {
 
 export function publicAmapConfig(env = process.env) {
   const config = amapRuntimeConfig(env);
+  const requestedStyle = clean(env.GIS_DEFAULT_MAP_STYLE, 40);
+  const defaultMapStyle = ['light', 'dark', 'satellite-road'].includes(requestedStyle)
+    ? requestedStyle
+    : 'dark';
   return {
     provider: config.provider,
     coordinateSystem: config.coordinateSystem,
     browser: config.browser,
     geocoding: config.geocoding,
-    poi: config.poi
+    poi: config.poi,
+    policy: {
+      defaultMapStyle,
+      coordinateProvider: clean(env.GIS_COORDINATE_PROVIDER, 80)
+        || 'gcj02-standard-formula',
+      maxViewFeatures: Math.max(
+        100,
+        Math.min(5000, Number(env.GIS_MAX_VIEW_FEATURES) || 5000)
+      ),
+      maxRoutePoints: Math.max(
+        1000,
+        Math.min(100000, Number(env.GIS_MAX_ROUTE_POINTS) || 100000)
+      ),
+      mapSnapshotProvider: clean(env.GIS_MAP_SNAPSHOT_PROVIDER, 80) || 'svg',
+      mapSnapshotStoragePrefix: clean(env.GIS_MAP_SNAPSHOT_STORAGE_PREFIX, 200)
+        || 'map-snapshots/'
+    }
   };
 }
 
@@ -130,15 +177,7 @@ export class AmapWebServiceProvider {
       }
       const payload = await response.json();
       if (String(payload?.status) !== '1') {
-        throw providerError(
-          `高德Web服务调用失败：${clean(payload?.info || '未知错误', 200)}`,
-          502,
-          'AMAP_API_ERROR',
-          {
-            upstreamCode: clean(payload?.infocode, 40),
-            upstreamInfo: clean(payload?.info, 200)
-          }
-        );
+        throw amapFailure(payload);
       }
       return payload;
     } catch (error) {

@@ -157,6 +157,10 @@
                   <button id="locateBoundaryAddressButton" type="submit">地址定位</button>
                 </form>
                 <button id="drawBoundaryButton" type="button">绘制边界</button>
+                <button id="editBoundaryButton" type="button">编辑节点</button>
+                <button id="undoBoundaryButton" type="button">撤销</button>
+                <button id="redoBoundaryButton" type="button">重做</button>
+                <button id="finishBoundaryEditButton" type="button">完成编辑</button>
                 <button id="clearBoundaryDraftButton" type="button">清除绘制草稿</button>
               </div>
               <div class="provider-status" id="boundaryMapStatus">正在读取地图运行配置。</div>
@@ -270,9 +274,9 @@
                   <label class="form-field"><span>关联小区（可选）</span><select id="sourceAssetCommunitySelect" name="communityId"><option value="">项目级资料</option></select></label>
                 </div>
                 <label class="drop-field">
-                  <input id="sourceAssetFileInput" name="asset" type="file" accept=".pdf,.json,.geojson,.csv,.db,.sqlite,.sqlite3,.txt,.xlsx,.docx,.zip">
+                  <input id="sourceAssetFileInput" name="asset" type="file" accept=".pdf,.json,.geojson,.gpx,.csv,.db,.sqlite,.sqlite3,.txt,.xlsx,.docx,.zip">
                   <strong>选择真实资料文件</strong>
-                  <span>PDF、JSON/GeoJSON、CSV、SQLite、TXT、XLSX、DOCX、ZIP；单个不超过20MB</span>
+                  <span>PDF、JSON/GeoJSON、GPX、CSV、SQLite、TXT、XLSX、DOCX、ZIP；单个不超过20MB</span>
                 </label>
                 <div class="upload-selection" id="sourceAssetSelection">尚未选择文件</div>
                 <label class="form-field"><span>资料备注</span><textarea name="notes" maxlength="2000" rows="2"></textarea></label>
@@ -527,17 +531,62 @@
             </div>
           </header>
 
-          <div class="gis-layout">
+          <div class="gis-mobile-switch" role="group" aria-label="移动端GIS视图切换">
+            <button id="gisShowListButton" type="button">显示问题清单</button>
+            <button id="gisShowMapButton" type="button">显示地图与编辑</button>
+          </div>
+
+          <div class="gis-layout" id="gisLayout">
             <section class="work-panel issue-ledger">
               <header><span>OFFICIAL ISSUE LEDGER</span><h2>正式问题清单</h2></header>
+              <div class="gis-filter-grid">
+                <label><span>搜索</span><input id="gisIssueSearch" type="search" placeholder="编号、标题、分类、小区或楼栋"></label>
+                <label><span>风险</span><select id="gisRiskFilter"><option value="all">全部风险</option><option value="high">高风险</option><option value="medium">中风险</option><option value="low">低风险</option></select></label>
+                <label><span>类型</span><select id="gisTypeFilter"><option value="all">全部类型</option></select></label>
+                <label><span>状态</span><select id="gisStatusFilter"><option value="active">有效</option><option value="stale">过期</option><option value="inactive">停用</option><option value="all">全部状态</option></select></label>
+                <label><span>定位</span><select id="gisBindingFilter"><option value="all">全部状态</option><option value="located">已定位</option><option value="unlocated">待定位</option><option value="pending">待确认</option></select></label>
+                <label><span>陈旧度</span><select id="gisStaleFilter"><option value="all">全部</option><option value="current">当前</option><option value="stale">已过期</option></select></label>
+              </div>
+              <p class="gis-visible-count">当前显示 <strong id="gisVisibleCount">0</strong> 项</p>
               <div id="gisIssueList"></div>
             </section>
 
             <section class="work-panel coordinate-panel">
               <header><span>MANUAL SPATIAL BINDING</span><h2>经纬度绑定</h2></header>
               <div class="provider-map-shell">
+                <div class="gis-map-toolbar">
+                  <label><span>底图</span><select id="gisMapStyle"><option value="dark">深色</option><option value="light">浅色</option><option value="satellite-road">卫星 + 道路</option></select></label>
+                  <label><span>点击落点</span><select id="gisPointTarget"><option value="issue">正式问题</option><option value="photo">现场照片</option></select></label>
+                  <button id="gisFitVisibleButton" type="button">适配可见图层</button>
+                  <button id="gisFullscreenButton" type="button">全屏地图</button>
+                  <button id="gisMeasureDistanceButton" type="button">测量距离</button>
+                  <button id="gisMeasureAreaButton" type="button">测量面积</button>
+                  <button id="gisClearMeasureButton" type="button">清除测量</button>
+                  <input id="gisTransformOperator" maxlength="120" placeholder="坐标转换人员">
+                  <button id="gisPrepareDisplayButton" type="button">准备高德显示坐标</button>
+                </div>
                 <div class="provider-status" id="gisMapStatus">正在读取地图运行配置。</div>
-                <div class="provider-map-canvas provider-map-canvas-large" id="gisMapCanvas" aria-label="正式问题高德地图"></div>
+                <div class="provider-map-stage">
+                  <div class="provider-map-canvas provider-map-canvas-large" id="gisMapCanvas" aria-label="正式问题高德地图"></div>
+                  <fieldset class="gis-layer-control" id="gisLayerControl">
+                    <legend>LAYERS / 图层</legend>
+                    <label><input type="checkbox" data-gis-layer="boundary" checked><span>项目边界</span></label>
+                    <label><input type="checkbox" data-gis-layer="boundaryLabel" checked><span>边界标签</span></label>
+                    <label><input type="checkbox" data-gis-layer="boundaryHistory"><span>历史边界对比</span></label>
+                    <label><input type="checkbox" data-gis-layer="issues" checked><span>正式问题</span></label>
+                    <label><input type="checkbox" data-gis-layer="pendingIssues" checked><span>待确认点位</span></label>
+                    <label><input type="checkbox" data-gis-layer="issueLabels" checked><span>问题标签</span></label>
+                    <label><input type="checkbox" data-gis-layer="photos"><span>现场照片</span></label>
+                    <label><input type="checkbox" data-gis-layer="manualPhotos"><span>人工补绑照片</span></label>
+                    <label><input type="checkbox" data-gis-layer="routes"><span>踏勘路线</span></label>
+                    <label><input type="checkbox" data-gis-layer="stops"><span>停留节点</span></label>
+                    <label><input type="checkbox" data-gis-layer="poi"><span>POI设施</span></label>
+                    <label><input type="checkbox" data-gis-layer="excludedPoi"><span>已排除POI</span></label>
+                    <label><input type="checkbox" data-gis-layer="analysisRange"><span>分析范围</span></label>
+                    <label><input type="checkbox" data-gis-layer="distanceLines"><span>距离连线</span></label>
+                  </fieldset>
+                  <div class="gis-map-legend" id="gisMapLegend" aria-live="polite"></div>
+                </div>
                 <p class="form-error" id="gisMapError" hidden></p>
               </div>
               <form id="geometryForm">
@@ -554,8 +603,41 @@
                   <select name="crs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select>
                 </label>
                 <label class="form-field"><span>确认人员</span><input name="confirmedBy" maxlength="120" required placeholder="填写实际定位人员"></label>
+                <p class="form-note" id="geometryComparison">选择问题后显示保存前坐标；点击地图或拖拽问题点形成草稿。</p>
+                <button id="cancelGeometryDraftButton" type="button" disabled>取消草稿并恢复</button>
                 <button class="primary-button" id="saveGeometryButton" type="submit">保存真实坐标</button>
                 <p class="form-error" id="geometryFormError" hidden></p>
+              </form>
+
+              <details class="gis-batch-geometry">
+                <summary>批量确认问题点位</summary>
+                <form id="geometryBatchForm">
+                  <label class="form-field">
+                    <span>问题ID、经度、纬度、坐标系</span>
+                    <textarea name="rows" rows="4" required placeholder="每行一条，例如：&#10;ISS-123,108.9501,34.2701,WGS84"></textarea>
+                  </label>
+                  <label class="form-field"><span>确认人员</span><input name="confirmedBy" maxlength="120" required></label>
+                  <p class="form-note">每次1—200条；坐标系留空时使用当前项目边界坐标系。服务端逐条执行边界与修订校验。</p>
+                  <button class="primary-button" id="geometryBatchSubmitButton" type="submit">批量校验并确认</button>
+                  <p class="form-error" id="geometryBatchFormError" hidden></p>
+                </form>
+              </details>
+
+              <form id="photoGeometryForm" class="photo-geometry-map-form">
+                <header><span>PHOTO LOCATION</span><h3>照片点位补绑</h3></header>
+                <label class="form-field"><span>现场照片</span><select id="photoGeometrySelect" name="photoId" required></select></label>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>经度</span><input name="longitude" type="number" min="-180" max="180" step="any" required></label>
+                  <label class="form-field"><span>纬度</span><input name="latitude" type="number" min="-90" max="90" step="any" required></label>
+                </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>坐标系</span><select name="coordinateCrs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select></label>
+                  <label class="form-field"><span>治理人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+                </div>
+                <p class="form-note" id="photoGeometryComparison">选择照片后显示保存前坐标；点击地图或拖拽照片点形成草稿。</p>
+                <button id="cancelPhotoGeometryDraftButton" type="button" disabled>取消草稿并恢复</button>
+                <button class="primary-button" id="savePhotoGeometryButton" type="submit">保存照片点位修订</button>
+                <p class="form-error" id="photoGeometryFormError" hidden></p>
               </form>
 
               <div class="spatial-preview" id="spatialPreview"></div>
@@ -608,9 +690,67 @@
             <div class="poi-analysis-history" id="poiAnalysisHistory"></div>
           </section>
 
+          <section class="work-panel survey-route-panel">
+            <header>
+              <div><span>FIELD SURVEY ROUTE</span><h2>踏勘路线与停留节点</h2></div>
+              <span class="route-panel-count" id="surveyRouteCount">0 条路线</span>
+            </header>
+            <div class="survey-route-layout">
+              <form id="surveyRouteForm" class="survey-route-form">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>路线名称</span><input name="name" maxlength="200" placeholder="例如：上午踏勘路线"></label>
+                  <label class="form-field"><span>原始坐标系</span><select name="crs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select></label>
+                </div>
+                <label class="form-field">
+                  <span>轨迹采样点 <b>*</b></span>
+                  <textarea name="samples" rows="6" required placeholder="每行：经度,纬度,采集时间,精度米&#10;108.9500,34.2700,2026-07-30T09:00:00+08:00,10"></textarea>
+                </label>
+                <p class="form-note">至少2个真实采样点；时间和精度可空。服务端保存原始采样、来源、清洗规则和修订。</p>
+                <label class="form-field"><span>或从已上传资料导入</span><select id="surveyRouteAssetSelect" name="sourceAssetId"><option value="">手工录入采样点</option></select></label>
+                <label class="form-field"><span>创建人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+                <button class="primary-button" id="createSurveyRouteButton" type="submit">保存踏勘路线</button>
+                <p class="form-error" id="surveyRouteFormError" hidden></p>
+              </form>
+              <div>
+                <label class="form-field">
+                  <span>当前路线</span>
+                  <select id="surveyRouteSelect"><option value="">尚无路线</option></select>
+                </label>
+                <div class="survey-route-actions">
+                  <label class="form-field"><span>操作人员</span><input id="surveyRouteOperator" maxlength="120" placeholder="清洗、检测和确认时必填"></label>
+                  <div>
+                    <button type="button" id="cleanSurveyRouteButton">清洗路线</button>
+                    <button type="button" id="detectSurveyStopsButton">检测停留点</button>
+                    <button type="button" id="suggestPhotoBindingsButton">关联现场照片</button>
+                    <button type="button" id="confirmSurveyRouteButton">确认路线</button>
+                  </div>
+                </div>
+                <p class="form-error" id="surveyRouteActionError" hidden></p>
+                <div id="surveyRouteDetail"></div>
+                <div id="surveyStopList"></div>
+                <div id="photoRouteBindingList"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="work-panel map-snapshot-panel">
+            <header><span>FROZEN MAP OUTPUT</span><h2>报告地图快照</h2></header>
+            <div class="map-snapshot-layout">
+              <form id="mapSnapshotForm">
+                <label class="form-field"><span>快照用途</span><select name="purpose"><option value="report">报告引用</option><option value="export">导出</option><option value="audit">审计留档</option></select></label>
+                <label class="form-field"><span>冻结报告（可选）</span><select id="mapSnapshotReportSelect" name="reportId"><option value="">使用当前地图数据</option></select></label>
+                <label class="form-field"><span>地图样式</span><select name="mapStyle"><option value="dark">深色</option><option value="light">浅色</option><option value="satellite-road">卫星道路视觉</option></select></label>
+                <label class="form-field"><span>生成人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+                <button class="primary-button" id="createMapSnapshotButton" type="submit">生成确定性地图快照</button>
+                <p class="form-error" id="mapSnapshotFormError" hidden></p>
+              </form>
+              <div id="mapSnapshotList"></div>
+            </div>
+          </section>
+
           <aside class="deferred-capabilities">
-            <strong>尚待接入</strong>
-            <span>高德地图、地址定位、GCJ-02边界绘制、问题点点击定位、POI分页检索、清洗及来源快照已接入。仍待照片坐标建议、点位拖拽、WGS84/GCJ-02转换、空间对象正式绑定、POI逐条人工确认和政务GIS。</span>
+            <strong>GIS专项本地交付已完成</strong>
+            <span>统一Geometry/CRS、复杂边界、图层控制、问题/照片点位、POI复核、踏勘路线、停留节点、照片关联和报告地图快照均已接入。生产发布仍须使用真实高德账号完成在线验收。</span>
           </aside>
         </section>
 

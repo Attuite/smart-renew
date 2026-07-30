@@ -69,6 +69,14 @@ export function buildReportContentSnapshot(project, issues, analyses, options = 
       area: clean(project.area, 200),
       type: clean(project.type, 120),
       description: clean(project.description, 2000),
+      boundaryGeometry: project.scopeBoundaryGeometry || (
+        Array.isArray(project.scopeBoundary) && project.scopeBoundary.length >= 3
+          ? { type: 'Polygon', coordinates: [project.scopeBoundary] }
+          : null
+      ),
+      boundaryCrs: clean(project.scopeBoundaryCrs || 'WGS84', 20),
+      projectRevision: Number(project.revision) || 0,
+      boundaryUpdatedAt: project.boundaryUpdatedAt || null,
       communityCount: communities.length,
       buildingCount: communities.reduce((total, community) => total + community.buildingCount, 0)
     },
@@ -105,6 +113,7 @@ export function buildReportSections(report) {
     { id: 'ai-issues', title: 'AI识别与人工复核问题', kind: 'issue-table', itemCount: snapshot.issues?.length || 0 },
     { id: 'communities', title: '社区与楼栋概况', kind: 'community-table', itemCount: snapshot.communities?.length || 0 },
     { id: 'spatial', title: '空间分析', kind: 'spatial', itemCount: snapshot.spatialAnalyses?.length || 0 },
+    { id: 'map-snapshot', title: '项目地图', kind: 'map-snapshot', itemCount: report.latestMapSnapshotId ? 1 : 0 },
     { id: 'assessment', title: '综合研判', kind: 'editorial', itemCount: 1 },
     { id: 'actions', title: '行动建议', kind: 'editorial', itemCount: 1 },
     { id: 'evidence', title: '标注照片画廊', kind: 'photo-gallery', itemCount: snapshot.annotatedPhotos?.length || 0 },
@@ -148,6 +157,7 @@ h1{border-bottom:3px solid #1593a3;padding-bottom:12px}h2{margin-top:34px;color:
 .meta,.source-index{color:#60747b}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metrics div{border:1px solid #c9d6d9;padding:12px}.notice{background:#fff7dc;border-left:4px solid #d9a820;padding:10px 14px}.empty{color:#60747b}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #d7e1e3;padding:8px;text-align:left;vertical-align:top}th{background:#edf5f6}td small{display:block;color:#73868c}
 .risk{white-space:nowrap;font-weight:700}.risk-high{color:#b42318}.risk-medium{color:#b25e09}.risk-low{color:#18794e}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.gallery figure{margin:0;border:1px solid #d7e1e3}.gallery img{display:block;width:100%;height:auto}.gallery figcaption{padding:8px}
+.map-snapshot{display:block;width:100%;height:auto;border:1px solid #c9d6d9;background:#06151c}
 @media print{body{margin:14mm;max-width:none}.no-print{display:none}.gallery figure{break-inside:avoid}h2{break-after:avoid}table{font-size:10px}}
 </style></head><body>
 <button class="no-print" onclick="window.print()">打印 / 另存为PDF</button>
@@ -158,6 +168,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid 
 <h2>AI识别与人工复核问题</h2>${issueTable(issues)}
 <h2>社区与楼栋概况</h2>${communityTable(communities)}
 <h2>空间分析</h2><p>已定位问题 ${Number(report.dataSnapshot?.locatedIssueCount) || 0}；已归档空间分析 ${snapshot.spatialAnalyses?.length || 0} 次。</p>
+<h2>项目地图</h2>${report.latestMapSnapshotId ? `<img class="map-snapshot" src="/api/map-snapshots/${encodeURIComponent(report.latestMapSnapshotId)}/content" alt="${escapeHtml(project.name || '')}地图快照">` : '<p class="empty">本报告尚未关联冻结地图快照。</p>'}
 <h2>综合研判</h2><p>${escapeHtml(report.editorial?.executiveSummary || '尚未编辑综合研判。')}</p>
 <h2>行动建议</h2><p>${escapeHtml(report.editorial?.recommendations || '尚未编辑行动建议。')}</p>
 <h2>标注照片画廊</h2>${photoGallery(photos)}

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { haversineMeters } from './spatial-analysis-service.mjs';
 import { finitePoint } from './amap-provider.mjs';
 import { pointInPolygon } from './spatial-binding-service.mjs';
@@ -88,6 +88,15 @@ function comparable(value) {
     .replace(/[\s\-—_·()（）[\]【】,，.。]/g, '');
 }
 
+export function poiStableId(item) {
+  const identity = item?.providerId
+    || `${comparable(item?.name)}|${comparable(item?.address)}|${(item?.coordinates || [])
+      .slice(0, 2)
+      .map((value) => Number(value).toFixed(6))
+      .join(',')}`;
+  return `POI-${createHash('sha256').update(String(identity)).digest('hex').slice(0, 20)}`;
+}
+
 function projectCenter(project) {
   const explicit = finitePoint(project?.scopeCenter);
   if (explicit) return explicit;
@@ -158,7 +167,14 @@ function cleanPois(rawItems, rule, radiusMeters, boundary = null) {
       );
     });
     if (!existing) {
-      merged.push({ ...item, sourceCount: 1, sourceProviderIds: [item.providerId].filter(Boolean) });
+      merged.push({
+        ...item,
+        normalizedId: poiStableId(item),
+        reviewStatus: 'pending',
+        reviewRevision: 0,
+        sourceCount: 1,
+        sourceProviderIds: [item.providerId].filter(Boolean)
+      });
       continue;
     }
     existing.sourceCount += 1;

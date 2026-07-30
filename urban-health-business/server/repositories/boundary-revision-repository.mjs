@@ -30,15 +30,26 @@ export class BoundaryRevisionRepository {
       projectId,
       projectRevision: revision,
       coordinates: Array.isArray(project.scopeBoundary) ? project.scopeBoundary : [],
+      geometry: project.scopeBoundaryGeometry || (
+        Array.isArray(project.scopeBoundary) && project.scopeBoundary.length >= 3
+          ? {
+              type: 'Polygon',
+              coordinates: [[...project.scopeBoundary, project.scopeBoundary[0]]]
+            }
+          : null
+      ),
       crs: project.scopeBoundaryCrs || 'WGS84',
       source: project.scopeBoundarySource || null,
       sourceAssetId: project.scopeBoundarySourceAssetId || null,
       sourceAssetContentHash: project.scopeBoundarySourceAssetContentHash || null,
       areaSqKm: Number(project.scopeAreaSqKm) || 0,
       center: Array.isArray(project.scopeCenter) ? project.scopeCenter : null,
+      bounds: Array.isArray(project.scopeBounds) ? project.scopeBounds : null,
+      polygonCount: Number(project.scopePolygonCount) || 1,
+      holeCount: Number(project.scopeHoleCount) || 0,
       updatedBy: project.boundaryUpdatedBy || '',
       createdAt: project.boundaryUpdatedAt || project.updatedAt || new Date().toISOString(),
-      schemaVersion: '1.0.0'
+      schemaVersion: '1.1.0'
     };
     const target = path.join(this.root, `${item.id}.json`);
     const temporary = path.join(this.root, `${item.id}.${Date.now()}.tmp`);

@@ -45,6 +45,10 @@ async function jsonRequest(base, pathname, options = {}) {
     ...options,
     headers: {
       accept: 'application/json',
+      'x-authenticated-user': 'integration-admin',
+      'x-authenticated-name': 'Integration Admin',
+      'x-authenticated-roles': 'admin',
+      'x-authenticated-projects': '*',
       ...(options.body && !(options.body instanceof Uint8Array) ? { 'content-type': 'application/json' } : {}),
       ...(options.headers || {})
     },
@@ -91,6 +95,9 @@ test('isolated local BFF completes the real manual workflow across both services
         URBAN_HEALTH_HOST: '127.0.0.1',
         URBAN_HEALTH_PORT: String(businessPort),
         URBAN_HEALTH_DATA_DIR: path.join(temporaryRoot, 'business'),
+        URBAN_HEALTH_PROVIDER: 'sqlite',
+        URBAN_HEALTH_SQLITE_PATH: path.join(temporaryRoot, 'business', 'business-records.sqlite'),
+        URBAN_HEALTH_AUTH_MODE: 'required',
         SMART_RENEW_API_BASE: legacyBase,
         AMAP_JS_KEY: '',
         AMAP_JS_SECURITY_CODE: '',
@@ -106,6 +113,9 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(readiness.optional.legacy.reportSnapshots.mode, 'read-only');
     const meta = await jsonRequest(businessBase, '/api/meta');
     assert.equal(meta.features.legacyCapabilityRegistry, true);
+    assert.equal(meta.features.managedDatabase, true);
+    assert.equal(meta.features.transactionalGisPersistence, true);
+    assert.equal(meta.providers.runtime.sqlite.kind, 'sqlite-database');
     assert.equal(meta.features.sourceOfTruthRegistry, true);
     assert.equal(meta.dataSources.officialIssue.primary, 'business');
     assert.equal(meta.dataSources.report.legacyRole, 'read-only-and-explicit-migration');
@@ -118,7 +128,7 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(meta.features.analysisCandidateDeduplication, true);
     assert.equal(meta.features.cloudBaseProvider, true);
     assert.equal(meta.features.standardLibrary, true);
-    assert.equal(meta.providers.selected, 'local');
+    assert.equal(meta.providers.selected, 'sqlite');
     assert.equal(meta.providers.cloudbase.productionVerified, false);
 
     const standards = await jsonRequest(businessBase, '/api/standards?limit=1');
@@ -144,6 +154,21 @@ test('isolated local BFF completes the real manual workflow across both services
     });
     const project = created.item || created;
     const projectId = String(project.id);
+    const unauthenticatedMapView = await fetch(
+      `${businessBase}/api/projects/${projectId}/map-view`
+    );
+    assert.equal(unauthenticatedMapView.status, 401);
+    await assert.rejects(
+      () => jsonRequest(businessBase, `/api/projects/${projectId}/map-view`, {
+        headers: {
+          'x-authenticated-user': 'other-project-viewer',
+          'x-authenticated-name': 'Other Project Viewer',
+          'x-authenticated-roles': 'gis-viewer',
+          'x-authenticated-projects': 'not-this-project'
+        }
+      }),
+      (error) => error.status === 403 && error.code === 'GIS_PROJECT_ACCESS_DENIED'
+    );
     await assert.rejects(
       () => jsonRequest(businessBase, `/api/projects/${projectId}/gis/geocode`, {
         method: 'POST',
@@ -768,11 +793,104 @@ test('isolated local BFF completes the real manual workflow across both services
     const locatedIssue = geometryResult.item || geometryResult;
     assert.equal(locatedIssue.geometryRevision, 1);
     assert.equal(locatedIssue.geometryAudit.length, 1);
+    const geometryRevisions = await jsonRequest(
+      businessBase,
+      `/api/issues/${issue.id}/geometry-revisions`
+    );
+    assert.equal(geometryRevisions.items.length, 1);
+    const photoMapPoints = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/photos/map-points`
+    );
+    assert.equal(photoMapPoints.total, 1);
     const spatialResult = await jsonRequest(businessBase, `/api/projects/${projectId}/spatial-analyses`, {
       method: 'POST',
       body: { radiusMeters: 500, createdBy: '集成测试GIS' }
     });
     assert.equal((spatialResult.item || spatialResult).result.matchedIssueCount, 1);
+
+    const routeResult = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/survey-routes`,
+      {
+        method: 'POST',
+        body: {
+          name: '集成测试踏勘路线',
+          crs: 'WGS84',
+          createdBy: '集成测试GIS',
+          samples: [
+            {
+              coordinates: [108.951, 34.271],
+              capturedAt: '2026-07-26T12:34:56',
+              accuracyMeters: 8
+            },
+            {
+              coordinates: [108.95101, 34.27101],
+              capturedAt: '2026-07-26T12:37:56',
+              accuracyMeters: 10
+            },
+            {
+              coordinates: [108.953, 34.273],
+              capturedAt: '2026-07-26T12:38:56',
+              accuracyMeters: 12
+            }
+          ],
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [108.951, 34.271],
+              [108.95101, 34.27101],
+              [108.953, 34.273]
+            ]
+          }
+        }
+      }
+    );
+    const route = routeResult.item || routeResult;
+    const cleanedRouteResult = await jsonRequest(
+      businessBase,
+      `/api/survey-routes/${route.id}/clean`,
+      {
+        method: 'POST',
+        body: {
+          cleanedBy: '集成测试GIS',
+          expectedRevision: 1
+        }
+      }
+    );
+    assert.equal((cleanedRouteResult.item || cleanedRouteResult).routeRevision, 2);
+    const stopResult = await jsonRequest(
+      businessBase,
+      `/api/survey-routes/${route.id}/stops/detect`,
+      {
+        method: 'POST',
+        body: {
+          detectedBy: '集成测试GIS',
+          radiusMeters: 25,
+          minimumDurationSeconds: 120
+        }
+      }
+    );
+    assert.equal(stopResult.items.length, 1);
+    const bindingResult = await jsonRequest(
+      businessBase,
+      `/api/survey-routes/${route.id}/photo-bindings/suggest`,
+      {
+        method: 'POST',
+        body: {
+          suggestedBy: '集成测试GIS',
+          maximumDistanceMeters: 100,
+          maximumTimeDifferenceSeconds: 1800
+        }
+      }
+    );
+    assert.equal(bindingResult.items.length, 1);
+    const mapView = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/map-view?includePhotos=true&includeRoutes=true`
+    );
+    assert.equal(mapView.routes.total, 1);
+    assert.equal(mapView.stops.total, 1);
 
     const reportResult = await jsonRequest(businessBase, `/api/projects/${projectId}/reports`, {
       method: 'POST',
@@ -794,12 +912,43 @@ test('isolated local BFF completes the real manual workflow across both services
     });
     assert.equal((updatedReportResult.item || updatedReportResult).reportRevision, 2);
 
+    const mapSnapshotResult = await jsonRequest(
+      businessBase,
+      `/api/projects/${projectId}/map-snapshots`,
+      {
+        method: 'POST',
+        body: {
+          reportId: report.id,
+          purpose: 'report',
+          mapStyle: 'dark',
+          createdBy: '集成测试报告员'
+        }
+      }
+    );
+    const mapSnapshot = mapSnapshotResult.item || mapSnapshotResult;
+    assert.equal(mapSnapshot.status, 'generated');
+    assert.equal(mapSnapshot.contentHash.length, 64);
+    const mapSnapshotContent = await fetch(
+      `${businessBase}/api/map-snapshots/${mapSnapshot.id}/content`,
+      {
+        headers: {
+          'x-authenticated-user': 'integration-admin',
+          'x-authenticated-name': 'Integration Admin',
+          'x-authenticated-roles': 'admin',
+          'x-authenticated-projects': '*'
+        }
+      }
+    );
+    assert.equal(mapSnapshotContent.status, 200);
+    assert.match(await mapSnapshotContent.text(), /集成测试真实项目/);
+
     const printResponse = await fetch(`${businessBase}/api/reports/${report.id}/print`);
     assert.equal(printResponse.status, 200);
     const printHtml = await printResponse.text();
     assert.match(printHtml, /集成测试体检报告（修订）/);
     assert.match(printHtml, /AI识别与人工复核问题/);
     assert.match(printHtml, /来源索引/);
+    assert.match(printHtml, new RegExp(mapSnapshot.id));
 
     await jsonRequest(businessBase, `/api/projects/${projectId}/photos/${photoId}`, {
       method: 'PATCH',
@@ -809,6 +958,12 @@ test('isolated local BFF completes the real manual workflow across both services
         expectedRevision: 4
       }
     });
+    const stalePhotoBindings = await jsonRequest(
+      businessBase,
+      `/api/survey-routes/${route.id}/photo-bindings`
+    );
+    assert.equal(stalePhotoBindings.items[0].status, 'stale');
+    assert.ok(stalePhotoBindings.items[0].staleReasons.includes('PHOTO_METADATA_CHANGED'));
     const staleReportList = await jsonRequest(
       businessBase,
       `/api/reports?projectId=${projectId}`
