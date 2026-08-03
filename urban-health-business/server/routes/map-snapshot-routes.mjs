@@ -1,7 +1,8 @@
 import {
-  createMapSnapshot,
+  enqueueMapSnapshot,
+  enqueueMapSnapshotRetry,
   markMapSnapshotStaleness,
-  retryMapSnapshot
+  publicMapSnapshot
 } from '../services/map-snapshot-service.mjs';
 import { getProjectMapView } from '../services/map-view-service.mjs';
 
@@ -36,7 +37,7 @@ export async function handleMapSnapshotRoutes(context) {
       })
     ]);
     sendSuccess(res, {
-      items: markMapSnapshotStaleness(items, currentView)
+      items: markMapSnapshotStaleness(items, currentView).map(publicMapSnapshot)
     }, requestId);
     return true;
   }
@@ -44,7 +45,7 @@ export async function handleMapSnapshotRoutes(context) {
     const projectId = decodeURIComponent(projectMatch[1]);
     const identity = authorize?.('gis.map_snapshot.create', projectId);
     const input = await readJsonBody(req);
-    const item = await createMapSnapshot(
+    const item = await enqueueMapSnapshot(
       dependencies,
       projectId,
       {
@@ -52,7 +53,8 @@ export async function handleMapSnapshotRoutes(context) {
         createdBy: accountableActor?.(identity, input.createdBy) || input.createdBy
       }
     );
-    sendSuccess(res, { item }, requestId, 201);
+    dependencies.mapSnapshotRunner.enqueue(item.id);
+    sendSuccess(res, { item: publicMapSnapshot(item) }, requestId, 202);
     return true;
   }
   const detailMatch = url.pathname.match(/^\/api\/map-snapshots\/([^/]+)$/);
@@ -67,7 +69,7 @@ export async function handleMapSnapshotRoutes(context) {
       throw error;
     }
     authorize?.('gis.view', item.projectId);
-    sendSuccess(res, { item }, requestId);
+    sendSuccess(res, { item: publicMapSnapshot(item) }, requestId);
     return true;
   }
   const retryMatch = url.pathname.match(/^\/api\/map-snapshots\/([^/]+)\/retry$/);
@@ -82,10 +84,11 @@ export async function handleMapSnapshotRoutes(context) {
     }
     const identity = authorize?.('gis.map_snapshot.create', existing.projectId);
     const input = await readJsonBody(req);
-    const item = await retryMapSnapshot(dependencies, snapshotId, {
+    const item = await enqueueMapSnapshotRetry(dependencies, snapshotId, {
       createdBy: accountableActor?.(identity, input.createdBy) || input.createdBy
     });
-    sendSuccess(res, { item }, requestId);
+    dependencies.mapSnapshotRunner.enqueue(item.id);
+    sendSuccess(res, { item: publicMapSnapshot(item) }, requestId, 202);
     return true;
   }
   const contentMatch = url.pathname.match(/^\/api\/map-snapshots\/([^/]+)\/content$/);

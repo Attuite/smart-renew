@@ -18,7 +18,10 @@ import {
   s3StorageCapability
 } from './providers/s3-storage-provider.mjs';
 import { FilesystemObjectStorageProvider } from './providers/storage-provider.mjs';
-import { OfficialIssueRepository } from './repositories/official-issue-repository.mjs';
+import {
+  OfficialIssueRepository,
+  ProviderOfficialIssueRepository
+} from './repositories/official-issue-repository.mjs';
 import { PhotoMetadataRepository } from './repositories/photo-metadata-repository.mjs';
 import { AnalysisCandidateRepository } from './repositories/analysis-candidate-repository.mjs';
 import { AnalysisJobRepository } from './repositories/analysis-job-repository.mjs';
@@ -94,6 +97,7 @@ import { handleMapViewRoutes } from './routes/map-view-routes.mjs';
 import { handleGisRoutes } from './routes/gis-routes.mjs';
 import { handleSurveyRouteRoutes } from './routes/survey-route-routes.mjs';
 import { handleMapSnapshotRoutes } from './routes/map-snapshot-routes.mjs';
+import { MapSnapshotRunner } from './services/map-snapshot-service.mjs';
 import { coordinateTransformCapability } from './services/coordinate-transform-service.mjs';
 import { hydratePoiReviewRun } from './services/poi-review-service.mjs';
 import {
@@ -167,9 +171,9 @@ const formalRecordProvider = repositoryProviderMode === 'sqlite' || snapshotProv
   : null;
 const smartRenewClient = new SmartRenewClient();
 const smartRenewAdapters = createSmartRenewAdapters(smartRenewClient);
-const officialIssueRepository = new OfficialIssueRepository(
-  path.join(businessDataRoot, 'official-issues')
-);
+const officialIssueRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
+  ? new ProviderOfficialIssueRepository(formalRecordProvider)
+  : new OfficialIssueRepository(path.join(businessDataRoot, 'official-issues'));
 const photoMetadataRepository = new PhotoMetadataRepository(path.join(businessDataRoot, 'photo-metadata'));
 const reportRepository = new ReportRepository(path.join(businessDataRoot, 'reports'));
 const reviewSessionRepository = new ReviewSessionRepository(path.join(businessDataRoot, 'review-sessions'));
@@ -229,6 +233,26 @@ const mapSnapshotRepository = snapshotProviderMode === 's3'
         path.join(businessDataRoot, 'map-snapshots'),
         path.join(businessDataRoot, 'map-snapshot-content')
       );
+const mapViewDependencies = {
+  client: smartRenewClient,
+  issueRepository: officialIssueRepository,
+  photoMetadataRepository,
+  uploadSessionRepository,
+  spatialAnalysisRepository,
+  coordinateTransformRepository,
+  surveyRouteRepository,
+  surveyStopRepository,
+  boundaryRevisionRepository
+};
+const mapSnapshotDependencies = {
+  mapSnapshotRepository,
+  reportRepository,
+  mapViewDependencies
+};
+const mapSnapshotRunner = new MapSnapshotRunner({
+  dependencies: mapSnapshotDependencies,
+  concurrency: process.env.GIS_MAP_SNAPSHOT_CONCURRENCY || 2
+});
 
 async function assertAnalysisReviewFresh(analysis) {
   const jobId = String(analysis?.analysisJobId || '');
@@ -497,6 +521,7 @@ async function handleMeta(res, id) {
       surveyStopDetection: true,
       photoRouteBindingReview: true,
       mapSnapshots: true,
+      asyncMapSnapshots: true,
       serverPdf: false,
       workflowAggregation: true,
       demoIsolation: true
@@ -573,21 +598,7 @@ async function handleRequest(req, res) {
       requestId: id,
       readJsonBody,
       sendSuccess,
-      dependencies: {
-        mapSnapshotRepository,
-        reportRepository,
-        mapViewDependencies: {
-          client: smartRenewClient,
-          issueRepository: officialIssueRepository,
-          photoMetadataRepository,
-          uploadSessionRepository,
-          spatialAnalysisRepository,
-          coordinateTransformRepository,
-          surveyRouteRepository,
-          surveyStopRepository,
-          boundaryRevisionRepository
-        }
-      },
+      dependencies: { ...mapSnapshotDependencies, mapSnapshotRunner },
       authorize: (permission, projectId) => authorizeRequest(req, permission, { projectId }),
       accountableActor
     })) return;
@@ -1980,5 +1991,8 @@ server.listen(port, host, () => {
   console.log(`smart-renew upstream: ${smartRenewClient.baseUrl}`);
   analysisJobRunner.recover().catch((error) => {
     console.error(`Analysis job recovery failed: ${error.message}`);
+  });
+  mapSnapshotRunner.recover().catch((error) => {
+    console.error(`Map snapshot recovery failed: ${error.message}`);
   });
 });

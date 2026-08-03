@@ -8,6 +8,15 @@ import {
 } from './modules/gis/gis-view-model.js';
 import { filterOfficialIssues } from './modules/gis/gis-filters.js';
 import {
+  applyGisLayerVisibility,
+  buildGisLayerLegend
+} from './modules/gis/gis-layer-control.js';
+import { findSelectedOrFirst } from './modules/gis/gis-selection.js';
+import {
+  renderMapSnapshotCards,
+  shouldPollMapSnapshots
+} from './modules/gis/gis-snapshot-view.js';
+import {
   hasPointGeometry,
   haversineMeters,
   parseIssueGeometryBatch,
@@ -35,6 +44,7 @@ function loadGisDisplayPreference() {
 const pendingUploadFiles = new Map();
 let pendingSourceAssetRequestId = crypto.randomUUID();
 let analysisPollTimer = null;
+let mapSnapshotPollTimer = null;
 let reviewRiskFilter = 'all';
 let boundaryMapController = null;
 let boundaryMapProjectSignature = '';
@@ -1409,12 +1419,17 @@ function renderSpatialSvg(project, issues, mapView, visibleLayers = {}) {
     .filter((item) => item.point);
   const routeLines = (mapView?.routes?.items || [])
     .filter(() => visibleLayers.routes !== false)
-    .map((item) => ({
-      item,
-      points: item.geometry?.type === 'LineString'
-        ? item.geometry.coordinates.map(validPoint).filter(Boolean)
-        : []
-    }))
+    .flatMap((item) => {
+      const segments = item.geometry?.type === 'LineString'
+        ? [item.geometry.coordinates]
+        : item.geometry?.type === 'MultiLineString'
+          ? item.geometry.coordinates
+          : [];
+      return segments.map((segment) => ({
+        item,
+        points: segment.map(validPoint).filter(Boolean)
+      }));
+    })
     .filter((item) => item.points.length >= 2);
   const selectedRun = mapView?.spatialAnalyses?.items?.[0];
   const fallbackPoiItems = selectedRun?.result?.accepted || selectedRun?.result?.items || [];
@@ -1653,37 +1668,10 @@ function renderGis(state) {
   const visibleIssueFeatures = locatedFilteredIssues
     .map((issue) => issueFeatureById.get(String(issue.id)))
     .filter(Boolean);
-  const pendingIssueCount = visibleIssueFeatures.filter((feature) =>
-    feature.properties?.bindingStatus === 'pending'
-  ).length;
-  const confirmedIssueCount = visibleIssueFeatures.length - pendingIssueCount;
-  const photoFeatures = mapItems.photos?.items || [];
-  const manualPhotoCount = photoFeatures.filter((feature) => {
-    const source = String(feature.properties?.coordinateSource || '').toLowerCase();
-    return source.includes('manual') || source.includes('batch');
-  }).length;
-  const originalPhotoCount = photoFeatures.length - manualPhotoCount;
-  const selectedMapRun = mapItems.spatialAnalyses?.items?.[0];
-  const poiItems = selectedMapRun?.result?.accepted || selectedMapRun?.result?.items || [];
-  const excludedPoiCount = poiItems.filter((item) => item.reviewStatus === 'excluded').length;
-  const visibleLegendItems = [
-    ['boundary', '项目边界', mapItems.boundary ? 1 : 0],
-    ['boundaryHistory', '历史边界', mapItems.boundaryHistory?.items?.length || 0],
-    ['issues', '正式问题', confirmedIssueCount],
-    ['pendingIssues', '待确认点位', pendingIssueCount],
-    ['photos', '现场照片', originalPhotoCount],
-    ['manualPhotos', '人工补绑照片', manualPhotoCount],
-    ['routes', '踏勘路线', mapItems.routes?.items?.length || 0],
-    ['stops', '停留节点', mapItems.stops?.items?.length || 0],
-    ['poi', 'POI设施', poiItems.length - excludedPoiCount],
-    ['excludedPoi', '已排除POI', excludedPoiCount],
-    ['analysisRange', '分析范围', selectedMapRun ? 1 : 0],
-    ['distanceLines', '距离连线', selectedMapRun?.result?.distances?.length || 0]
-  ].filter(([layer]) => gisViewState.visibleLayers[layer] !== false);
-  const visibleObjectCount = visibleLegendItems.reduce((sum, item) => sum + item[2], 0);
-  elements.gisVisibleCount.textContent = `${visibleObjectCount}（问题 ${visibleIssueFeatures.length}）`;
-  elements.gisMapLegend.innerHTML = visibleLegendItems.length
-    ? visibleLegendItems.map(([layer, label, count]) =>
+  const legend = buildGisLayerLegend(mapItems, visibleIssueFeatures, gisViewState.visibleLayers);
+  elements.gisVisibleCount.textContent = `${legend.objectCount}（问题 ${legend.issueCount}）`;
+  elements.gisMapLegend.innerHTML = legend.items.length
+    ? legend.items.map(([layer, label, count]) =>
         `<span class="legend-${escapeHtml(layer)}"><i></i>${escapeHtml(label)} <b>${count}</b></span>`
       ).join('')
     : '<span>当前未启用业务图层</span>';
@@ -1902,9 +1890,10 @@ function renderGis(state) {
   if (routeAssets.some((asset) => String(asset.id) === String(previousRouteAssetId))) {
     elements.surveyRouteAssetSelect.value = previousRouteAssetId;
   }
-  const selectedRoute = state.surveyRoutes.find((route) =>
-    String(route.id) === String(gisViewState.selectedRouteId)
-  ) || state.surveyRoutes[0] || null;
+  const { selected: selectedRoute } = findSelectedOrFirst(
+    state.surveyRoutes,
+    gisViewState.selectedRouteId
+  );
   if (selectedRoute && String(selectedRoute.id) !== String(gisViewState.selectedRouteId)) {
     gisViewState.selectedRouteId = String(selectedRoute.id);
   }
@@ -1967,19 +1956,10 @@ function renderGis(state) {
     elements.mapSnapshotReportSelect.value = previousSnapshotReport;
   }
   elements.createMapSnapshotButton.disabled = state.gisLoading || !hasProjectBoundary;
-  elements.mapSnapshotList.innerHTML = state.mapSnapshots.length
-    ? state.mapSnapshots.map((snapshot) =>
-        `<article class="map-snapshot-card status-${escapeHtml(snapshot.status)}">
-          <div>
-            <strong>${escapeHtml(snapshot.purpose)} · ${escapeHtml(snapshot.mapStyle)}</strong>
-            <span>${escapeHtml(snapshot.status)} · ${snapshot.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : '等待生成'}</span>
-            <small>${snapshot.reportId ? `报告 ${escapeHtml(snapshot.reportId)}` : '当前地图数据'} · SHA256 ${escapeHtml((snapshot.contentHash || '').slice(0, 16))}</small>
-          </div>
-          ${['generated', 'stale'].includes(snapshot.status) ? `<a href="/api/map-snapshots/${encodeURIComponent(snapshot.id)}/content" target="_blank" rel="noopener"><img src="/api/map-snapshots/${encodeURIComponent(snapshot.id)}/content" alt="${escapeHtml(state.activeProject?.name || '')}地图快照"><span>打开SVG快照${snapshot.status === 'stale' ? '（历史内容）' : ''}</span></a>` : ''}
-          ${snapshot.status === 'failed' ? `<button type="button" data-map-snapshot-retry="${escapeHtml(snapshot.id)}">重试生成</button>` : ''}
-        </article>`
-      ).join('')
-    : '<p class="workspace-empty">尚未生成地图快照。报告引用会冻结报告版本中的边界和问题点位。</p>';
+  elements.mapSnapshotList.innerHTML = renderMapSnapshotCards(
+    state.mapSnapshots,
+    state.activeProject?.name || ''
+  );
   void syncGisMap(state);
 }
 
@@ -2269,6 +2249,8 @@ async function loadProject(projectId) {
     resetMapControllers();
     if (analysisPollTimer) clearTimeout(analysisPollTimer);
     analysisPollTimer = null;
+    if (mapSnapshotPollTimer) clearTimeout(mapSnapshotPollTimer);
+    mapSnapshotPollTimer = null;
     store.set({
       photos: [],
       sourceAssets: [],
@@ -2356,9 +2338,21 @@ async function loadReports(projectId = store.get().activeProjectId) {
   }
 }
 
-async function loadGis(projectId = store.get().activeProjectId) {
+function scheduleMapSnapshotPoll() {
+  if (mapSnapshotPollTimer) clearTimeout(mapSnapshotPollTimer);
+  mapSnapshotPollTimer = null;
+  const state = store.get();
+  if (!isGisWorkspace(state)) return;
+  if (!shouldPollMapSnapshots(state.mapSnapshots)) return;
+  mapSnapshotPollTimer = setTimeout(
+    () => loadGis(state.activeProjectId, { quiet: true }),
+    1000
+  );
+}
+
+async function loadGis(projectId = store.get().activeProjectId, options = {}) {
   if (!projectId) return;
-  store.set({ gisLoading: true });
+  if (!options.quiet) store.set({ gisLoading: true });
   try {
     const [
       issues,
@@ -2379,16 +2373,16 @@ async function loadGis(projectId = store.get().activeProjectId) {
       api.reports(projectId),
       api.photos(projectId, true)
     ]);
-    const selectedRoute = surveyRoutes.find((route) =>
-      String(route.id) === String(gisViewState.selectedRouteId)
-    ) || surveyRoutes[0] || null;
-    gisViewState.selectedRouteId = selectedRoute?.id || '';
+    const routeSelection = findSelectedOrFirst(surveyRoutes, gisViewState.selectedRouteId);
+    const selectedRoute = routeSelection.selected;
+    gisViewState.selectedRouteId = routeSelection.selectedId;
     const [surveyStops, photoRouteBindings] = selectedRoute
       ? await Promise.all([
           api.surveyStops(selectedRoute.id),
           api.photoRouteBindings(selectedRoute.id)
         ])
       : [[], []];
+    if (String(store.get().activeProjectId) !== String(projectId)) return;
     store.set({
       issues,
       spatialAnalyses,
@@ -2404,7 +2398,8 @@ async function loadGis(projectId = store.get().activeProjectId) {
   } catch (error) {
     setError(error);
   } finally {
-    store.set({ gisLoading: false });
+    if (!options.quiet) store.set({ gisLoading: false });
+    scheduleMapSnapshotPoll();
   }
 }
 
@@ -3811,9 +3806,7 @@ function restoreGeometryMapFromServer() {
   if (!gisMapController || !store.get().mapView) return;
   gisMapController.setMapView(store.get().mapView);
   gisMapController.setSelectedIssue(gisViewState.selectedIssueId);
-  for (const [layer, visible] of Object.entries(gisViewState.visibleLayers)) {
-    gisMapController.setLayerVisibility(layer, visible);
-  }
+  applyGisLayerVisibility(gisMapController, gisViewState.visibleLayers);
 }
 
 elements.cancelGeometryDraftButton.addEventListener('click', () => {

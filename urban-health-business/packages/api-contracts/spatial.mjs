@@ -2,6 +2,7 @@ export const SPATIAL_SCHEMA_VERSION = '1.0.0';
 export const SUPPORTED_GEOMETRY_TYPES = Object.freeze([
   'Point',
   'LineString',
+  'MultiLineString',
   'Polygon',
   'MultiPolygon'
 ]);
@@ -101,6 +102,16 @@ export function normalizeGeometry(value, options = {}) {
     coordinates = normalizePosition(value.coordinates);
   } else if (type === 'LineString') {
     coordinates = normalizeLineString(value.coordinates, 'coordinates');
+  } else if (type === 'MultiLineString') {
+    if (!Array.isArray(value.coordinates) || !value.coordinates.length) {
+      throw spatialContractError(
+        'MultiLineString至少需要一条线。',
+        'SPATIAL_MULTILINE_REQUIRED'
+      );
+    }
+    coordinates = value.coordinates.map((line, lineIndex) =>
+      normalizeLineString(line, `coordinates[${lineIndex}]`)
+    );
   } else if (type === 'Polygon') {
     if (!Array.isArray(value.coordinates) || !value.coordinates.length) {
       throw spatialContractError('Polygon至少需要一个外环。', 'SPATIAL_POLYGON_RING_REQUIRED');

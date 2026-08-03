@@ -48,10 +48,13 @@ docker compose -f compose.production.yaml up -d --build
 URBAN_HEALTH_PROVIDER=sqlite
 URBAN_HEALTH_SQLITE_PATH=/var/lib/urban-health/business-records.sqlite
 GIS_MAP_SNAPSHOT_PROVIDER=s3
+GIS_MAP_SNAPSHOT_CONCURRENCY=2
 ```
 
-SQLite Provider保存GIS新增的边界修订、空间分析、坐标转换、路线、停留、照片路线关联和
-地图快照元数据，启用WAL、FULL同步、busy timeout、索引和`BEGIN IMMEDIATE`事务。它适合
+SQLite Provider保存Business正式问题及GIS新增的边界修订、空间分析、坐标转换、路线、停留、照片路线关联和
+地图快照元数据，启用WAL、FULL同步、busy timeout、索引和`BEGIN IMMEDIATE`事务。
+带几何的正式问题和GIS记录同步写入SQLite RTree，视口范围查询先经过RTree再回表读取payload；
+已有数据库首次启动会在事务内自动重建`spatial_rtree_v1`。它适合
 单实例或受控主备部署；多实例主动写入必须替换为环境实现的PostgreSQL/PostGIS Provider，
 不得把共享文件系统上的SQLite误当成多主数据库。
 
@@ -70,6 +73,10 @@ npm run migrate:gis-sqlite -- \
 `S3_ACCESS_KEY_ID`和`S3_SECRET_ACCESS_KEY`；BFF使用SigV4签名，浏览器只通过鉴权内容接口
 读取，密钥不进入URL或响应。照片和SourceAsset仍由smart-renew及其存储策略负责，不因地图
 快照切换到S3而静默迁移。
+
+地图快照POST请求仅冻结生成输入并返回HTTP 202与`queued`记录，后台Runner按
+`GIS_MAP_SNAPSHOT_CONCURRENCY`（默认2，范围1—8）生成内容。服务重启时会恢复`queued`任务，
+并将中断的`running`任务重新入队；前端通过GET轮询至`generated`或`failed`。
 
 ## 5. 数据与备份
 

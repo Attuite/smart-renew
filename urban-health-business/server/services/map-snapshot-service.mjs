@@ -109,10 +109,14 @@ function boundaryPath(geometry, project) {
 }
 
 function linePath(geometry, project) {
-  return (geometry?.coordinates || []).map((point, index) => {
-    const [x, y] = project(point);
-    return `${index ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
+  const lines = geometry?.type === 'MultiLineString'
+    ? geometry.coordinates
+    : [geometry?.coordinates || []];
+  return lines.map((line) => line.map((point, index) => {
+      const [x, y] = project(point);
+      return `${index ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+    }).join(' '))
+    .join(' ');
 }
 
 function marker(feature, project, style) {
@@ -291,7 +295,13 @@ function reportMapView(report) {
   };
 }
 
-export async function createMapSnapshot(dependencies, projectId, input, options = {}) {
+export function publicMapSnapshot(snapshot) {
+  if (!snapshot) return snapshot;
+  const { generationPayload: _generationPayload, ...publicRecord } = snapshot;
+  return publicRecord;
+}
+
+export async function enqueueMapSnapshot(dependencies, projectId, input, options = {}) {
   const purpose = clean(input?.purpose, 30) || 'export';
   if (!PURPOSES.has(purpose)) {
     throw snapshotError('地图快照用途无效。', 400, 'MAP_SNAPSHOT_PURPOSE_INVALID');
@@ -317,12 +327,19 @@ export async function createMapSnapshot(dependencies, projectId, input, options 
   }
   const id = options.id || `MAPSNAP-${randomUUID()}`;
   const now = options.now || new Date().toISOString();
+  const generationInput = {
+    mapStyle: MAP_STYLES.has(input?.mapStyle) ? input.mapStyle : 'dark',
+    viewport: input?.viewport || null,
+    layers: input?.layers || {},
+    width: input?.width,
+    height: input?.height
+  };
   const queued = {
     id,
     projectId: String(projectId),
     reportId: report?.id || null,
     purpose,
-    mapStyle: MAP_STYLES.has(input?.mapStyle) ? input.mapStyle : 'dark',
+    mapStyle: generationInput.mapStyle,
     viewport: input?.viewport || null,
     layers: input?.layers || {},
     sourceRevisions: view.sourceRevisions || {},
@@ -330,25 +347,101 @@ export async function createMapSnapshot(dependencies, projectId, input, options 
     contentHash: null,
     contentType: 'image/svg+xml',
     status: 'queued',
+    queuedAt: now,
     createdBy,
     createdAt: now,
     generatedAt: null,
-    schemaVersion: '1.0.0'
+    generationPayload: {
+      input: generationInput,
+      view
+    },
+    schemaVersion: '1.1.0'
   };
   await dependencies.mapSnapshotRepository.put(queued);
-  try {
-    const rendered = renderMapSnapshotSvg(view, input);
-    const contentHash = createHash('sha256').update(rendered.content).digest('hex');
-    const objectKey = await dependencies.mapSnapshotRepository.writeContent(id, rendered.content);
-    const generated = await dependencies.mapSnapshotRepository.put({
+  return queued;
+}
+
+async function attachSnapshotToReport(dependencies, snapshot, generatedAt) {
+  if (!snapshot.reportId || typeof dependencies.reportRepository?.put !== 'function') return;
+  const report = await dependencies.reportRepository.get(snapshot.reportId);
+  if (!report || String(report.projectId) !== String(snapshot.projectId)) {
+    throw snapshotError('地图快照关联报告在后台生成期间已不存在。', 409, 'MAP_SNAPSHOT_REPORT_CHANGED');
+  }
+  const nextRevision = Number(report.reportRevision || 1) + 1;
+  await dependencies.reportRepository.put({
+    ...report,
+    latestMapSnapshotId: snapshot.id,
+    mapSnapshots: [
+      ...(Array.isArray(report.mapSnapshots) ? report.mapSnapshots : [])
+        .filter((item) => String(item.id) !== String(snapshot.id)),
+      {
+        id: snapshot.id,
+        contentHash: snapshot.contentHash,
+        mapStyle: snapshot.mapStyle,
+        generatedAt,
+        sourceReportRevision: Number(snapshot.sourceRevisions?.reportRevision) || 1
+      }
+    ],
+    reportRevision: nextRevision,
+    updatedAt: generatedAt,
+    auditTrail: [
+      ...(Array.isArray(report.auditTrail) ? report.auditTrail : []),
+      {
+        revision: nextRevision,
+        action: 'map_snapshot_attached',
+        actor: snapshot.createdBy,
+        at: generatedAt,
+        mapSnapshotId: snapshot.id
+      }
+    ]
+  });
+}
+
+export async function processMapSnapshot(dependencies, snapshotId, options = {}) {
+  const queued = options.snapshot
+    || await dependencies.mapSnapshotRepository.get(snapshotId);
+  if (!queued || !['queued', 'running'].includes(queued.status)) return queued;
+  const payload = queued.generationPayload;
+  if (!payload?.view || !payload?.input) {
+    const error = snapshotError(
+      '地图快照缺少持久化生成输入，无法从后台恢复。',
+      409,
+      'MAP_SNAPSHOT_PAYLOAD_MISSING'
+    );
+    await dependencies.mapSnapshotRepository.put({
       ...queued,
+      status: 'failed',
+      failure: { code: error.code, message: error.message },
+      failedAt: options.now || new Date().toISOString()
+    });
+    throw error;
+  }
+  const startedAt = options.now || new Date().toISOString();
+  const running = await dependencies.mapSnapshotRepository.put({
+    ...queued,
+    status: 'running',
+    startedAt,
+    failure: null,
+    failedAt: null
+  });
+  try {
+    const render = dependencies.renderMapSnapshot || renderMapSnapshotSvg;
+    const rendered = await render(payload.view, payload.input);
+    const contentHash = createHash('sha256').update(rendered.content).digest('hex');
+    const objectKey = await dependencies.mapSnapshotRepository.writeContent(
+      running.id,
+      rendered.content
+    );
+    const generatedAt = options.now || new Date().toISOString();
+    const generated = {
+      ...running,
       mapStyle: rendered.mapStyle,
       viewport: {
         center: [
           (rendered.bounds[0] + rendered.bounds[2]) / 2,
           (rendered.bounds[1] + rendered.bounds[3]) / 2
         ],
-        zoom: input?.viewport?.zoom || null,
+        zoom: payload.input?.viewport?.zoom || null,
         bounds: rendered.bounds,
         width: rendered.width,
         height: rendered.height
@@ -357,50 +450,29 @@ export async function createMapSnapshot(dependencies, projectId, input, options 
       objectKey,
       contentHash,
       status: 'generated',
-      generatedAt: now
-    });
-    if (report && typeof dependencies.reportRepository.put === 'function') {
-      await dependencies.reportRepository.put({
-        ...report,
-        latestMapSnapshotId: generated.id,
-        mapSnapshots: [
-          ...(Array.isArray(report.mapSnapshots) ? report.mapSnapshots : [])
-            .filter((item) => String(item.id) !== String(generated.id)),
-          {
-            id: generated.id,
-            contentHash: generated.contentHash,
-            mapStyle: generated.mapStyle,
-            generatedAt: generated.generatedAt,
-            sourceReportRevision: Number(report.reportRevision) || 1
-          }
-        ],
-        reportRevision: Number(report.reportRevision || 1) + 1,
-        updatedAt: now,
-        auditTrail: [
-          ...(Array.isArray(report.auditTrail) ? report.auditTrail : []),
-          {
-            revision: Number(report.reportRevision || 1) + 1,
-            action: 'map_snapshot_attached',
-            actor: createdBy,
-            at: now,
-            mapSnapshotId: generated.id
-          }
-        ]
-      });
-    }
-    return generated;
+      generatedAt,
+      generationPayload: null,
+      schemaVersion: '1.1.0'
+    };
+    await attachSnapshotToReport(dependencies, generated, generatedAt);
+    return dependencies.mapSnapshotRepository.put(generated);
   } catch (error) {
     await dependencies.mapSnapshotRepository.put({
-      ...queued,
+      ...running,
       status: 'failed',
       failure: {
         code: error.code || 'MAP_SNAPSHOT_GENERATION_FAILED',
         message: error.message
       },
-      failedAt: now
+      failedAt: options.now || new Date().toISOString()
     });
     throw error;
   }
+}
+
+export async function createMapSnapshot(dependencies, projectId, input, options = {}) {
+  const queued = await enqueueMapSnapshot(dependencies, projectId, input, options);
+  return processMapSnapshot(dependencies, queued.id, { ...options, snapshot: queued });
 }
 
 function revisionMap(items, field) {
@@ -452,7 +524,7 @@ export function markMapSnapshotStaleness(snapshots, currentView) {
   });
 }
 
-export async function retryMapSnapshot(dependencies, snapshotId, input, options = {}) {
+export async function enqueueMapSnapshotRetry(dependencies, snapshotId, input, options = {}) {
   const snapshot = await dependencies.mapSnapshotRepository.get(snapshotId);
   if (!snapshot) {
     throw snapshotError('地图快照不存在。', 404, 'MAP_SNAPSHOT_NOT_FOUND');
@@ -460,7 +532,27 @@ export async function retryMapSnapshot(dependencies, snapshotId, input, options 
   if (snapshot.status !== 'failed') {
     throw snapshotError('只有生成失败的地图快照可以重试。', 409, 'MAP_SNAPSHOT_NOT_RETRYABLE');
   }
-  return createMapSnapshot(dependencies, snapshot.projectId, {
+  const createdBy = clean(input?.createdBy, 120);
+  if (!createdBy) {
+    throw snapshotError('请填写地图快照生成人员。', 400, 'MAP_SNAPSHOT_CREATOR_REQUIRED');
+  }
+  if (snapshot.generationPayload?.view && snapshot.generationPayload?.input) {
+    const queuedAt = options.now || new Date().toISOString();
+    const queued = {
+      ...snapshot,
+      status: 'queued',
+      queuedAt,
+      startedAt: null,
+      failedAt: null,
+      failure: null,
+      createdBy,
+      retryCount: Number(snapshot.retryCount || 0) + 1,
+      schemaVersion: '1.1.0'
+    };
+    await dependencies.mapSnapshotRepository.put(queued);
+    return queued;
+  }
+  return enqueueMapSnapshot(dependencies, snapshot.projectId, {
     purpose: snapshot.purpose,
     reportId: snapshot.reportId,
     mapStyle: snapshot.mapStyle,
@@ -471,4 +563,101 @@ export async function retryMapSnapshot(dependencies, snapshotId, input, options 
     ...options,
     id: snapshot.id
   });
+}
+
+export async function retryMapSnapshot(dependencies, snapshotId, input, options = {}) {
+  const queued = await enqueueMapSnapshotRetry(dependencies, snapshotId, input, options);
+  return processMapSnapshot(dependencies, queued.id, { ...options, snapshot: queued });
+}
+
+export class MapSnapshotRunner {
+  constructor(options) {
+    this.dependencies = options.dependencies;
+    this.concurrency = Math.max(1, Math.min(8, Number(options.concurrency) || 2));
+    this.queue = [];
+    this.queuedIds = new Set();
+    this.active = new Set();
+    this.lastErrors = new Map();
+    this.scheduled = false;
+  }
+
+  enqueue(snapshotId) {
+    const id = String(snapshotId || '');
+    if (!id || this.queuedIds.has(id) || this.active.has(id)) return;
+    this.queue.push(id);
+    this.queuedIds.add(id);
+    this.schedule();
+  }
+
+  schedule() {
+    if (this.scheduled) return;
+    this.scheduled = true;
+    setImmediate(() => {
+      this.scheduled = false;
+      this.drain();
+    });
+  }
+
+  drain() {
+    while (this.active.size < this.concurrency && this.queue.length) {
+      const id = this.queue.shift();
+      this.queuedIds.delete(id);
+      this.active.add(id);
+      processMapSnapshot(this.dependencies, id)
+        .then(() => this.lastErrors.delete(id))
+        .catch((error) => this.lastErrors.set(id, error))
+        .finally(() => {
+          this.active.delete(id);
+          this.drain();
+        });
+    }
+  }
+
+  async pendingItems(status) {
+    const items = [];
+    const limit = 500;
+    for (let offset = 0; ; offset += limit) {
+      const page = await this.dependencies.mapSnapshotRepository.list(
+        '',
+        '',
+        { status, offset, limit }
+      );
+      items.push(...page);
+      if (page.length < limit) return items;
+    }
+  }
+
+  async recover() {
+    const [queuedItems, runningItems] = await Promise.all([
+      this.pendingItems('queued'),
+      this.pendingItems('running')
+    ]);
+    const items = new Map(
+      [...queuedItems, ...runningItems].map((snapshot) => [String(snapshot.id), snapshot])
+    );
+    for (const snapshot of items.values()) {
+      const queued = snapshot.status === 'running'
+        ? {
+            ...snapshot,
+            status: 'queued',
+            startedAt: null,
+            recoveryCount: Number(snapshot.recoveryCount || 0) + 1,
+            recoveredAt: new Date().toISOString()
+          }
+        : snapshot;
+      if (queued !== snapshot) await this.dependencies.mapSnapshotRepository.put(queued);
+      this.enqueue(queued.id);
+    }
+    return items.size;
+  }
+
+  async waitForIdle(timeoutMs = 10_000) {
+    const deadline = Date.now() + timeoutMs;
+    while (this.queue.length || this.active.size || this.scheduled) {
+      if (Date.now() >= deadline) {
+        throw snapshotError('等待地图快照后台任务超时。', 504, 'MAP_SNAPSHOT_RUNNER_TIMEOUT');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
 }

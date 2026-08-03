@@ -425,9 +425,11 @@ GET   /api/projects/{projectId}/spatial-summary
 - 原始POI、查询参数和清洗摘要保存；
 - 原社区/街区分类规则；
 - 住宅POI按真实项目边界二次裁剪；
-- GPX/GeoJSON/CSV路线导入、清洗、停留检测/确认和照片路线关联；
-- 确定性地图快照、报告冻结引用、失败重试和stale传播；
-- 视口查询、路线抽稀、聚合和容量测试；
+- GPX/GeoJSON/CSV路线导入、清洗、异常断点MultiLineString、停留检测/确认和照片路线关联；
+- 确定性地图快照、报告冻结引用、HTTP 202后台Runner、重启恢复、失败重试和stale传播；
+- SQLite RTree视口范围查询、路线抽稀、聚合和六类容量测试；
+- 可重复Playwright E2E与空/少量/密集/失败/卫星道路视觉基线；
+- 独立图层生命周期对象和geometry、filters、view-model、layer-control、selection、snapshot-view前端模块；
 - GIS RBAC、审计身份覆盖、生产部署及备份恢复配置；
 - 距离/面积测量、批量点位确认、图层偏好与URL恢复；
 - 路线起终点、异常采样点、边界外对象告警，以及路线/照片修订后的关联stale传播；

@@ -174,6 +174,35 @@ function parsedTime(value) {
   return Number.isFinite(time) ? time : null;
 }
 
+function cleanedDisplayGeometry(accepted, rejected) {
+  const routeBreakingIndexes = new Set(
+    rejected
+      .filter((item) => item.reason !== 'DUPLICATE_POINT')
+      .map((item) => Number(item.index))
+  );
+  if (!routeBreakingIndexes.size) {
+    return { type: 'LineString', coordinates: accepted.map((sample) => sample.coordinates) };
+  }
+  const breakIndexes = [...routeBreakingIndexes];
+  const segments = [];
+  let segment = [];
+  for (const sample of accepted) {
+    const previous = segment.at(-1);
+    const hasBreak = previous && breakIndexes.some((index) =>
+      index > Number(previous.sourceIndex) && index < Number(sample.sourceIndex)
+    );
+    if (hasBreak) {
+      if (segment.length >= 2) segments.push(segment.map((item) => item.coordinates));
+      segment = [];
+    }
+    segment.push(sample);
+  }
+  if (segment.length >= 2) segments.push(segment.map((item) => item.coordinates));
+  if (!segments.length) return null;
+  if (segments.length === 1) return { type: 'LineString', coordinates: segments[0] };
+  return { type: 'MultiLineString', coordinates: segments };
+}
+
 export async function cleanSurveyRoute(repository, routeId, input, options = {}) {
   const route = await repository.get(routeId);
   if (!route) throw routeError('踏勘路线不存在。', 404, 'SURVEY_ROUTE_NOT_FOUND');
@@ -230,12 +259,14 @@ export async function cleanSurveyRoute(repository, routeId, input, options = {})
     throw routeError('路线清洗后少于2个有效点。', 422, 'SURVEY_ROUTE_CLEANING_EMPTY');
   }
   const now = options.now || new Date().toISOString();
+  const displayGeometry = cleanedDisplayGeometry(accepted, rejected);
   return repository.put({
     ...route,
     geometry: {
       type: 'LineString',
       coordinates: accepted.map((sample) => sample.coordinates)
     },
+    displayGeometry,
     samples: accepted,
     cleaning: {
       ruleVersion: SURVEY_ROUTE_CLEANING_VERSION,
@@ -244,6 +275,9 @@ export async function cleanSurveyRoute(repository, routeId, input, options = {})
       sourcePointCount: route.samples.length,
       acceptedPointCount: accepted.length,
       removedPointCount: rejected.length,
+      displaySegmentCount: displayGeometry?.type === 'MultiLineString'
+        ? displayGeometry.coordinates.length
+        : displayGeometry ? 1 : 0,
       rejected,
       cleanedBy,
       cleanedAt: now

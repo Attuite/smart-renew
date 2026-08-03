@@ -257,3 +257,40 @@ export class OfficialIssueRepository {
     return issues;
   }
 }
+
+export class ProviderOfficialIssueRepository extends OfficialIssueRepository {
+  constructor(provider) {
+    super('provider-backed');
+    this.provider = provider;
+  }
+
+  async ensure() {}
+
+  async put(issue) {
+    safeFileId(issue?.id);
+    return this.provider.put('officialIssues', issue);
+  }
+
+  async list(projectId = '') {
+    const items = await this.provider.list('officialIssues', projectId
+      ? { projectId: String(projectId) }
+      : {});
+    return items
+      .filter((issue) => issue.status !== 'deleted')
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  }
+
+  async listInBounds(projectId, bounds) {
+    if (typeof this.provider.listInBounds !== 'function') return this.list(projectId);
+    const items = await this.provider.listInBounds('officialIssues', bounds, projectId
+      ? { projectId: String(projectId) }
+      : {});
+    return items
+      .filter((issue) => issue.status !== 'deleted')
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  }
+
+  async get(issueId) {
+    return this.provider.get('officialIssues', safeFileId(issueId));
+  }
+}

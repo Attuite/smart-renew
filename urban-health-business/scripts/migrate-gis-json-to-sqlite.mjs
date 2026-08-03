@@ -4,6 +4,7 @@ import path from 'node:path';
 import { SqliteRepositoryProvider } from '../server/providers/sqlite-provider.mjs';
 
 const collections = {
+  'official-issues': 'officialIssues',
   'boundary-revisions': 'boundaryRevisions',
   'spatial-analyses': 'spatialAnalyses',
   'coordinate-transforms': 'coordinateTransforms',

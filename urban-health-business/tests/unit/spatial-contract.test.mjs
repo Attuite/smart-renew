@@ -32,6 +32,18 @@ test('spatial contract closes polygon rings only when explicitly requested', () 
   assert.deepEqual(geometryBounds(geometry), [108.94, 34.26, 108.96, 34.28]);
 });
 
+test('spatial contract preserves valid MultiLineString route segments', () => {
+  const geometry = normalizeGeometry({
+    type: 'MultiLineString',
+    coordinates: [
+      [[108.95, 34.27], [108.951, 34.271]],
+      [[108.955, 34.275], [108.956, 34.276]]
+    ]
+  });
+  assert.equal(geometry.coordinates.length, 2);
+  assert.deepEqual(geometryBounds(geometry), [108.95, 34.27, 108.956, 34.276]);
+});
+
 test('spatial feature preserves geometry, CRS, revision and bounded properties', () => {
   const feature = createSpatialFeature({
     id: 'ISS-REAL-001',

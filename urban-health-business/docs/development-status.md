@@ -609,3 +609,36 @@ AB-07动态报告快照与Renderer、AB-08 CloudBase可选Provider代码与Mock�
 真实高德在线验收仍需预生产环境提供`AMAP_JS_KEY`、`AMAP_JS_SECURITY_CODE`和
 `AMAP_WEB_SERVICE_KEY`。上线前须按`docs/deployment/gis-production-deployment.md`
 验证JS底图、地址质量、真实POI、配额和错误码；在完成前不得声明高德生产账号已验收。
+
+## 12. 2026-08-03 GIS工程化收口记录
+
+### 12.1 本地缺口已收口
+
+- 建立Playwright双服务隔离E2E，覆盖无Key真实SVG降级、筛选/图层/URL刷新恢复、
+  375px清单/地图切换和地图读接口失败；
+- 建立空数据、少量数据、密集数据、卫星道路降级和错误告警5类PNG视觉基线，
+  按1%差异像素比执行门禁；
+- 增加100个空间分析历史运行和50个确定性SVG地图快照容量测试，覆盖有界返回和
+  25+25分页；
+- 地图快照改为持久化后台Runner：HTTP 202返回`queued`，前端轮询，并发范围1—8，
+  支持`running`中断任务重启恢复与失败重试；内部冻结payload不返回浏览器；
+- Business正式问题接入SQLite Provider，与其他GIS记录一同原子同步RTree空间索引，包含旧JSON数据事务迁移、
+  `listInBounds`和查询计划测试；
+- 路线清洗对低精度/异常速度缺口生成MultiLineString显示几何，高德层、SVG降级和报告
+  地图快照都不再跨异常点连线；
+- 新增`MapOverlayLayer`，统一`setData/setVisible/setSelected/clear/destroy`契约，并拆分
+  layer-control、selection和snapshot-view前端模块。
+
+### 12.2 验证结果
+
+- `npm run check`通过；
+- `npm test`通过，195/195；
+- `npm run test:integration`通过，1/1；
+- `npm run test:e2e`通过，9/9，包含5类持久视觉基线差异比对；
+- `npm run verify:demo`通过，42文件；
+- `npm run verify:boundary`和`git diff --check`通过。
+
+### 12.3 当前结论
+
+V9.1 GIS大纲中本地可实现、可自动化验收的开发内容已全部收口。唯一外部开始点是预生产真实高德验收：
+配置不入库的三类Key，验证JS SDK域名、卫星/道路层、地址和POI质量、配额/错误码与密钥不泄漏，并归档时间和账号归属。

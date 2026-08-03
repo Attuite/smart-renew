@@ -172,8 +172,11 @@ test('layered AMap controller renders and toggles real map-view layers', () => {
         id: 'ROUTE-REAL-001',
         crs: 'GCJ02',
         geometry: {
-          type: 'LineString',
-          coordinates: [[108.95, 34.27], [108.952, 34.272]]
+          type: 'MultiLineString',
+          coordinates: [
+            [[108.95, 34.27], [108.9505, 34.2705]],
+            [[108.9515, 34.2715], [108.952, 34.272]]
+          ]
         },
         properties: {
           name: '真实路线',
@@ -207,7 +210,15 @@ test('layered AMap controller renders and toggles real map-view layers', () => {
   assert.equal(controller.layers.issueLabels.length, 2);
   assert.equal(controller.layers.photos.length, 1);
   assert.equal(controller.layers.manualPhotos.length, 1);
-  assert.equal(controller.layers.routes.length, 4);
+  assert.equal(controller.layers.routes.length, 5);
+  assert.deepEqual(controller.layers.routes[0].options.path, [
+    [108.95, 34.27],
+    [108.9505, 34.2705]
+  ]);
+  assert.deepEqual(controller.layers.routes[1].options.path, [
+    [108.9515, 34.2715],
+    [108.952, 34.272]
+  ]);
   assert.equal(controller.layers.analysisRange.length, 2);
   assert.equal(controller.layers.distanceLines.length, 2);
   assert.equal(controller.startDistanceMeasure(), true);

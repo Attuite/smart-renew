@@ -1198,7 +1198,8 @@ $env:AMAP_WEB_SERVICE_KEY = '仅供BFF使用的Web服务Key'
 生产配置、RBAC、备份恢复、对象存储适配和高德预生产验收步骤见
 [`docs/deployment/gis-production-deployment.md`](docs/deployment/gis-production-deployment.md)。
 GIS生产记录可设置`URBAN_HEALTH_PROVIDER=sqlite`启用WAL与事务；报告地图对象可设置
-`GIS_MAP_SNAPSHOT_PROVIDER=s3`写入私有S3兼容存储。本地默认Provider保持不变。
+`GIS_MAP_SNAPSHOT_PROVIDER=s3`写入私有S3兼容存储。SQLite模式包含RTree空间范围索引，
+地图快照由可恢复后台Runner异步生成。本地默认Provider保持不变。
 
 访问：
 
@@ -1216,4 +1217,5 @@ cd urban-health-business
 npm run verify
 ```
 
-`verify` 包含语法检查、131项单元测试、双服务隔离全过程集成测试、Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。
+`verify` 包含语法检查、全部单元测试、双服务隔离全过程集成测试、Playwright浏览器/视觉回归、
+Demo 42文件完整性校验和原项目修改边界校验。集成测试只使用系统临时目录，不读写当前本地真实项目。

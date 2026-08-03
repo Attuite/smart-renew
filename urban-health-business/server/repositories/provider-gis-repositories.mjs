@@ -26,6 +26,14 @@ class ProviderEntityRepository {
     );
   }
 
+  async recordsInBounds(bounds, query = {}) {
+    if (typeof this.provider.listInBounds !== 'function') return this.records(query);
+    const items = await this.provider.listInBounds(this.entity, bounds, query);
+    return items.sort((a, b) =>
+      String(b[this.sortField] || '').localeCompare(String(a[this.sortField] || ''))
+    );
+  }
+
   async transaction(work) {
     if (typeof this.provider.transaction === 'function') {
       return this.provider.transaction(() => work(this));
@@ -57,8 +65,15 @@ export class ProviderSpatialAnalysisRepository extends ProviderEntityRepository 
     super(provider, 'spatialAnalyses', 'completedAt');
   }
 
-  async list(projectId = '') {
-    return this.records(projectId ? { projectId: String(projectId) } : {});
+  async list(projectId = '', options = {}) {
+    const query = projectId ? { projectId: String(projectId) } : {};
+    return options.bounds
+      ? this.recordsInBounds(options.bounds, query)
+      : this.records(query);
+  }
+
+  async listInBounds(projectId, bounds) {
+    return this.list(projectId, { bounds });
   }
 }
 
@@ -72,7 +87,14 @@ export class ProviderSurveyRouteRepository extends ProviderEntityRepository {
       ...(projectId ? { projectId: String(projectId) } : {}),
       ...(options.status ? { status: String(options.status) } : {})
     };
-    return bounded(await this.records(query), options);
+    const items = options.bounds
+      ? await this.recordsInBounds(options.bounds, query)
+      : await this.records(query);
+    return bounded(items, options);
+  }
+
+  async listInBounds(projectId, bounds, options = {}) {
+    return this.list(projectId, { ...options, bounds });
   }
 }
 
@@ -87,7 +109,14 @@ export class ProviderSurveyStopRepository extends ProviderEntityRepository {
       ...(routeId ? { routeId: String(routeId) } : {}),
       ...(options.status ? { status: String(options.status) } : {})
     };
-    return bounded(await this.records(query), options);
+    const items = options.bounds
+      ? await this.recordsInBounds(options.bounds, query)
+      : await this.records(query);
+    return bounded(items, options);
+  }
+
+  async listInBounds(projectId, bounds, options = {}) {
+    return this.list(projectId, '', { ...options, bounds });
   }
 }
 

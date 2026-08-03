@@ -476,6 +476,10 @@ POST      /api/map-snapshots/{snapshotId}/retry
 快照只读取冻结的报告`contentSnapshot`，生成后回写报告引用；非报告快照在源修订变化后
 标记stale。失败任务可重试，不覆盖历史内容。
 
+POST创建和重试均返回HTTP 202，初始状态为`queued`。客户端用详情或项目列表GET轮询
+`queued → running → generated|failed`。冻结的内部生成payload不出现在公开响应中；服务重启会恢复
+未完成任务。
+
 ### 7.6 GIS鉴权
 
 生产环境设置`URBAN_HEALTH_AUTH_MODE=required`。可信反向代理必须清除外部同名身份头并
@@ -485,7 +489,7 @@ POST      /api/map-snapshots/{snapshotId}/retry
 
 ### 7.7 生产Provider
 
-`URBAN_HEALTH_PROVIDER=sqlite`时，GIS新增记录写入带WAL、FULL同步和索引的SQLite数据库，
+`URBAN_HEALTH_PROVIDER=sqlite`时，GIS新增记录写入带WAL、FULL同步、常规索引和RTree空间索引的SQLite数据库，
 批量坐标转换、停留节点和照片路线建议使用数据库事务；`/api/meta`返回实际Provider、
 事务模式和存储模式。`GIS_MAP_SNAPSHOT_PROVIDER=s3`时地图快照内容写入私有S3兼容对象
 存储，使用SigV4且不生成包含密钥的公开URL。本地默认仍为JSON/文件Provider，方便隔离开发，

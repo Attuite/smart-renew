@@ -1,3 +1,5 @@
+import { MapOverlayLayer } from './map-overlay-layer.js';
+
 let sdkPromise = null;
 
 const MAP_STYLES = Object.freeze({
@@ -5,6 +7,32 @@ const MAP_STYLES = Object.freeze({
   dark: 'amap://styles/dark',
   'satellite-road': 'satellite-road'
 });
+
+const LAYER_VISIBILITY = Object.freeze({
+  boundary: true,
+  boundaryLabel: true,
+  boundaryHistory: false,
+  issues: true,
+  pendingIssues: true,
+  issueLabels: true,
+  photos: false,
+  manualPhotos: false,
+  routes: false,
+  stops: false,
+  poi: false,
+  excludedPoi: false,
+  analysisRange: false,
+  distanceLines: false
+});
+
+const CLUSTERABLE_LAYERS = new Set([
+  'issues',
+  'pendingIssues',
+  'photos',
+  'manualPhotos',
+  'poi',
+  'stops'
+]);
 
 function validPoint(value) {
   const point = Array.isArray(value) ? value.map(Number) : [];
@@ -165,38 +193,8 @@ export class AmapMapController {
     this.mapStyle = options.mapStyle || 'dark';
     this.selectedIssueId = '';
     this.mapView = null;
-    this.layers = {
-      boundary: [],
-      boundaryLabel: [],
-      boundaryHistory: [],
-      issues: [],
-      pendingIssues: [],
-      issueLabels: [],
-      photos: [],
-      manualPhotos: [],
-      routes: [],
-      stops: [],
-      poi: [],
-      excludedPoi: [],
-      analysisRange: [],
-      distanceLines: []
-    };
-    this.visibility = {
-      boundary: true,
-      boundaryLabel: true,
-      boundaryHistory: false,
-      issues: true,
-      pendingIssues: true,
-      issueLabels: true,
-      photos: false,
-      manualPhotos: false,
-      routes: false,
-      stops: false,
-      poi: false,
-      excludedPoi: false,
-      analysisRange: false,
-      distanceLines: false
-    };
+    this.layers = Object.fromEntries(Object.keys(LAYER_VISIBILITY).map((name) => [name, []]));
+    this.visibility = { ...LAYER_VISIBILITY };
     this.mouseTool = null;
     this.boundaryEditor = null;
     this.boundaryEditHistory = [];
@@ -213,6 +211,35 @@ export class AmapMapController {
         : MAP_STYLES[this.mapStyle] || MAP_STYLES.dark,
       zoom: 14
     });
+    this.layerControllers = Object.fromEntries(
+      Object.entries(this.visibility).map(([name, visible]) => [
+        name,
+        new MapOverlayLayer({
+          name,
+          map: this.map,
+          visible,
+          clusterThreshold: this.clusterThreshold,
+          createCluster: CLUSTERABLE_LAYERS.has(name)
+            && typeof this.AMap.MarkerCluster === 'function'
+            ? (map, overlays, clusterOptions) => new this.AMap.MarkerCluster(
+                map,
+                overlays,
+                clusterOptions
+              )
+            : null,
+          clusterOptions: {
+            gridSize: 52,
+            maxZoom: 18,
+            renderClusterMarker(context) {
+              const count = Number(context?.count) || 0;
+              context?.marker?.setContent?.(
+                `<button type="button" class="business-map-cluster" aria-label="${count}个聚合点"><strong>${count}</strong></button>`
+              );
+            }
+          }
+        })
+      ])
+    );
     if (typeof AMap.Scale === 'function') this.map.addControl(new AMap.Scale());
     if (typeof AMap.ToolBar === 'function') {
       this.map.addControl(new AMap.ToolBar({ position: { top: '10px', right: '10px' } }));
@@ -243,61 +270,19 @@ export class AmapMapController {
   }
 
   replaceLayer(name, overlays) {
-    const previous = this.layers[name] || [];
-    if (this.clusters[name]) {
-      this.clusters[name].setMap?.(null);
-      this.clusters[name] = null;
-    } else if (previous.length) {
-      this.map.remove(previous);
-    }
-    this.layers[name] = (Array.isArray(overlays) ? overlays : []).filter(Boolean);
-    const clusterable = [
-      'issues',
-      'pendingIssues',
-      'photos',
-      'manualPhotos',
-      'poi',
-      'stops'
-    ].includes(name);
-    if (
-      clusterable
-      && this.layers[name].length >= this.clusterThreshold
-      && typeof this.AMap.MarkerCluster === 'function'
-    ) {
-      const cluster = new this.AMap.MarkerCluster(
-        this.visibility[name] === false ? null : this.map,
-        this.layers[name],
-        {
-          gridSize: 52,
-          maxZoom: 18,
-          renderClusterMarker(context) {
-            const count = Number(context?.count) || 0;
-            context?.marker?.setContent?.(
-              `<button type="button" class="business-map-cluster" aria-label="${count}个聚合点"><strong>${count}</strong></button>`
-            );
-          }
-        }
-      );
-      this.clusters[name] = cluster;
-    } else if (this.visibility[name] !== false && this.layers[name].length) {
-      this.map.add(this.layers[name]);
-    }
+    const layer = this.layerControllers[name];
+    if (!layer) return false;
+    layer.setData(overlays);
+    this.layers[name] = layer.overlays;
+    this.clusters[name] = layer.cluster;
+    return true;
   }
 
   setLayerVisibility(name, visible) {
-    if (!(name in this.layers)) return false;
+    const layer = this.layerControllers[name];
+    if (!layer) return false;
     this.visibility[name] = Boolean(visible);
-    const overlays = this.layers[name];
-    if (this.clusters[name]) {
-      this.clusters[name].setMap?.(visible ? this.map : null);
-      return true;
-    }
-    if (visible) {
-      if (overlays.length) this.map.add(overlays);
-    } else if (overlays.length) {
-      this.map.remove(overlays);
-    }
-    return true;
+    return layer.setVisible(visible);
   }
 
   setMapStyle(style) {
@@ -456,6 +441,8 @@ export class AmapMapController {
 
   setSelectedIssue(issueId) {
     this.selectedIssueId = String(issueId || '');
+    this.layerControllers.issues.setSelected(this.selectedIssueId);
+    this.layerControllers.pendingIssues.setSelected(this.selectedIssueId);
     if (this._issueData) this.setIssues(this._issueData);
     const selected = (this._issueData || []).find((item) => String(item.id) === this.selectedIssueId);
     const point = featurePoint(selected);
@@ -578,24 +565,31 @@ export class AmapMapController {
     const overlays = (routes || [])
       .filter((item) => normalizeCrs(item?.crs || 'GCJ02') === 'GCJ02')
       .flatMap((route) => {
-      const coordinates = route?.geometry?.type === 'LineString'
-        ? route.geometry.coordinates.map(validPoint).filter(Boolean)
-        : [];
-      if (coordinates.length < 2 || typeof this.AMap.Polyline !== 'function') return [];
-      const line = new this.AMap.Polyline({
-        path: coordinates,
-        strokeColor: route.properties?.outsideBoundary ? '#ef4444' : '#a78bfa',
-        strokeWeight: 4,
-        strokeOpacity: 0.9,
-        showDir: true,
-        extData: { id: String(route.id), kind: 'survey-route' }
+      const segments = route?.geometry?.type === 'LineString'
+        ? [route.geometry.coordinates]
+        : route?.geometry?.type === 'MultiLineString'
+          ? route.geometry.coordinates
+          : [];
+      const coordinates = segments
+        .map((line) => line.map(validPoint).filter(Boolean))
+        .filter((line) => line.length >= 2);
+      if (!coordinates.length || typeof this.AMap.Polyline !== 'function') return [];
+      const output = coordinates.map((path, segmentIndex) => {
+        const line = new this.AMap.Polyline({
+          path,
+          strokeColor: route.properties?.outsideBoundary ? '#ef4444' : '#a78bfa',
+          strokeWeight: 4,
+          strokeOpacity: 0.9,
+          showDir: true,
+          extData: { id: String(route.id), kind: 'survey-route', segmentIndex }
+        });
+        line.on?.('click', () => this.onRouteSelected(String(route.id), route));
+        return line;
       });
-      line.on?.('click', () => this.onRouteSelected(String(route.id), route));
-      const output = [line];
       if (typeof this.AMap.Marker === 'function') {
         for (const [kind, point, label] of [
-          ['route-start', coordinates[0], '路线起点'],
-          ['route-end', coordinates.at(-1), '路线终点']
+          ['route-start', coordinates[0][0], '路线起点'],
+          ['route-end', coordinates.at(-1).at(-1), '路线终点']
         ]) {
           const marker = new this.AMap.Marker({
             position: point,
@@ -923,15 +917,13 @@ export class AmapMapController {
       this.mouseTool.close(true);
     }
     this.closeBoundaryEditor();
-    for (const overlays of Object.values(this.layers)) {
-      if (overlays.length) this.map.remove(overlays);
-    }
-    for (const cluster of Object.values(this.clusters)) cluster?.setMap?.(null);
+    for (const layer of Object.values(this.layerControllers)) layer.destroy();
     this.infoWindow?.close?.();
     this.map.destroy();
     this.mapView = null;
     this._issueData = [];
     this.clusters = {};
+    this.layerControllers = {};
     for (const name of Object.keys(this.layers)) this.layers[name] = [];
   }
 }

@@ -129,24 +129,55 @@ function photoFeature(photo) {
   }
 }
 
-function decimateLineGeometry(geometry, maximumPoints) {
-  const coordinates = Array.isArray(geometry?.coordinates) ? geometry.coordinates : [];
-  if (coordinates.length <= maximumPoints) return geometry;
+function decimateLineCoordinates(coordinates, maximumPoints) {
+  if (coordinates.length <= maximumPoints) return coordinates;
   const output = [];
   const lastIndex = coordinates.length - 1;
   for (let index = 0; index < maximumPoints; index += 1) {
     output.push(coordinates[Math.round(index * lastIndex / (maximumPoints - 1))]);
   }
-  return { type: 'LineString', coordinates: output };
+  return output;
+}
+
+function linePointCount(geometry) {
+  if (geometry?.type === 'LineString') return geometry.coordinates?.length || 0;
+  if (geometry?.type === 'MultiLineString') {
+    return (geometry.coordinates || []).reduce((total, line) => total + line.length, 0);
+  }
+  return 0;
+}
+
+function decimateLineGeometry(geometry, maximumPoints) {
+  if (geometry?.type === 'LineString') {
+    return {
+      type: 'LineString',
+      coordinates: decimateLineCoordinates(geometry.coordinates || [], maximumPoints)
+    };
+  }
+  if (geometry?.type !== 'MultiLineString') return geometry;
+  let lines = (geometry.coordinates || []).filter((line) => line.length >= 2);
+  const maximumSegments = Math.max(1, Math.floor(maximumPoints / 2));
+  if (lines.length > maximumSegments) {
+    lines = decimateLineCoordinates(lines, maximumSegments);
+  }
+  const total = lines.reduce((sum, line) => sum + line.length, 0);
+  if (total <= maximumPoints) return { type: 'MultiLineString', coordinates: lines };
+  const minimum = lines.length * 2;
+  const distributable = Math.max(0, maximumPoints - minimum);
+  const extraSource = Math.max(1, total - minimum);
+  const coordinates = lines.map((line) => {
+    const extra = Math.floor((line.length - 2) / extraSource * distributable);
+    return decimateLineCoordinates(line, Math.max(2, Math.min(line.length, 2 + extra)));
+  });
+  return { type: 'MultiLineString', coordinates };
 }
 
 function routeFeature(route, maximumPoints = 2000) {
-  if (!route?.geometry) return null;
+  if (!route?.geometry || (route.cleaning && !route.displayGeometry)) return null;
   try {
-    const sourcePointCount = Array.isArray(route.geometry.coordinates)
-      ? route.geometry.coordinates.length
-      : 0;
-    const geometry = decimateLineGeometry(route.geometry, maximumPoints);
+    const routeGeometry = route.displayGeometry || route.geometry;
+    const sourcePointCount = linePointCount(routeGeometry);
+    const geometry = decimateLineGeometry(routeGeometry, maximumPoints);
     return createSpatialFeature({
       id: route.id,
       kind: 'survey-route',
@@ -157,8 +188,11 @@ function routeFeature(route, maximumPoints = 2000) {
         name: route.name || '',
         status: route.status || 'draft',
         sourcePointCount,
-        displayPointCount: geometry.coordinates.length,
-        displaySimplified: geometry.coordinates.length < sourcePointCount,
+        displayPointCount: linePointCount(geometry),
+        displaySegmentCount: geometry.type === 'MultiLineString'
+          ? geometry.coordinates.length
+          : 1,
+        displaySimplified: linePointCount(geometry) < sourcePointCount,
         anomalies: (route.cleaning?.rejected || []).slice(0, 100)
           .filter((item) => Array.isArray(item.coordinates))
           .map((item) => ({
@@ -225,6 +259,8 @@ function withBoundaryStatus(feature, boundaryGeometry, boundaryCrs) {
     ? [feature.geometry.coordinates]
     : feature.geometry?.type === 'LineString'
       ? feature.geometry.coordinates
+      : feature.geometry?.type === 'MultiLineString'
+        ? feature.geometry.coordinates.flat()
       : [];
   if (!points.length) return feature;
   const outsideBoundary = points.some((point) => !pointInBoundaryGeometry(point, boundaryGeometry));
@@ -318,15 +354,20 @@ function displayFeature(feature, transforms) {
 }
 
 function simplifyDisplayedRoute(feature, maximumPoints) {
-  if (!feature?.geometry || feature.geometry.type !== 'LineString') return feature;
+  if (!feature?.geometry || !['LineString', 'MultiLineString'].includes(feature.geometry.type)) {
+    return feature;
+  }
   const geometry = decimateLineGeometry(feature.geometry, maximumPoints);
   return {
     ...feature,
     geometry,
     properties: {
       ...feature.properties,
-      displayPointCount: geometry.coordinates.length,
-      displaySimplified: geometry.coordinates.length
+      displayPointCount: linePointCount(geometry),
+      displaySegmentCount: geometry.type === 'MultiLineString'
+        ? geometry.coordinates.length
+        : 1,
+      displaySimplified: linePointCount(geometry)
         < Number(feature.properties?.sourcePointCount || geometry.coordinates.length)
     }
   };
@@ -522,6 +563,11 @@ export async function getProjectMapView(dependencies, projectId, query = {}) {
     boundaryRevisionRepository,
     coordinateTransformRepository
   } = dependencies;
+  const requestedBounds = parseSpatialBounds(query.bounds);
+  const spatialList = (repository, fallbackArguments = [projectId]) =>
+    requestedBounds && typeof repository?.listInBounds === 'function'
+      ? repository.listInBounds(projectId, requestedBounds)
+      : repository?.list(...fallbackArguments) || [];
   const [
     project,
     businessIssues,
@@ -536,14 +582,14 @@ export async function getProjectMapView(dependencies, projectId, query = {}) {
     coordinateTransforms
   ] = await Promise.all([
     client.getProject(projectId),
-    issueRepository?.list(projectId) || [],
+    spatialList(issueRepository),
     client.listIssues({ projectId }),
     client.listPhotos({ projectId }),
     photoMetadataRepository?.list(projectId) || [],
     uploadSessionRepository?.list(projectId) || [],
-    spatialAnalysisRepository?.list(projectId) || [],
-    surveyRouteRepository?.list(projectId) || [],
-    surveyStopRepository?.list(projectId) || [],
+    spatialList(spatialAnalysisRepository),
+    spatialList(surveyRouteRepository),
+    spatialList(surveyStopRepository),
     boundaryRevisionRepository?.list(projectId) || [],
     coordinateTransformRepository?.list(projectId) || []
   ]);

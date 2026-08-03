@@ -463,10 +463,11 @@ rejected
 
 ### 13.2 SurveyRoute与SurveyStop
 
-`SurveyRoute`保存LineString、CRS、原始采样时间/精度、SourceAsset来源、清洗规则和
+`SurveyRoute`保存原始/有效LineString、用于展示的LineString或MultiLineString、CRS、原始采样时间/精度、SourceAsset来源、清洗规则和
 `routeRevision`。`SurveyStop`保存候选Point、到离时间、停留时长、检测规则、路线修订、
 人工结论和独立`revision`。路线修订不一致时，读模型派生`status: stale`、
 `originalStatus`和`staleReasons`，不覆盖历史确认记录。
+被拒绝的低精度或异常速度采样会切断显示几何，不会用Polyline跨越异常区间虚构路径。
 
 ### 13.3 PhotoRouteBinding
 
@@ -481,14 +482,15 @@ rejected
 - `purpose`、`mapStyle`、`viewport`和`visibleLayers`；
 - 项目、问题、照片、路线、停留节点及分析运行的源修订；
 - 可选冻结报告ID与报告版本；
-- `queued|generated|failed|stale`状态、失败原因和重试次数；
+- `queued|running|generated|failed|stale`状态、失败原因、恢复和重试次数；
 - SVG内容哈希、内容类型、字节数和存储引用；
 - 生成与确认人员、时间和审计信息。
 
 报告型地图快照从报告冻结内容生成；当前业务数据变化不得重写历史报告地图。
 
-以上GIS新增模型在`URBAN_HEALTH_PROVIDER=sqlite`时使用统一事务型记录表持久化，按实体、
-项目、状态、报告和路线建立索引；payload保留完整版本化对象。地图快照二进制内容与元数据
+正式问题与以上GIS新增模型在`URBAN_HEALTH_PROVIDER=sqlite`时使用统一事务型记录表持久化，按实体、
+项目、状态、报告和路线建立索引，并将可提取边界的Geometry同步写入SQLite RTree；
+payload保留完整版本化对象。地图快照二进制内容与元数据
 分离，可由filesystem或私有S3兼容StorageProvider保存。
 
 ## 14. IndicatorRun

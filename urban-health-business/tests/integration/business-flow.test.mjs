@@ -64,6 +64,20 @@ async function jsonRequest(base, pathname, options = {}) {
   return payload?.ok === true ? payload.data : payload;
 }
 
+async function waitForMapSnapshot(base, snapshotId, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const result = await jsonRequest(base, `/api/map-snapshots/${snapshotId}`);
+    const snapshot = result.item || result;
+    if (snapshot.status === 'generated') return snapshot;
+    if (snapshot.status === 'failed') {
+      throw new Error(`Map snapshot failed: ${snapshot.failure?.message || snapshot.id}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  throw new Error(`Timed out waiting for map snapshot ${snapshotId}`);
+}
+
 test('isolated local BFF completes the real manual workflow across both services', { timeout: 30000 }, async () => {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'urban-health-business-integration-'));
   const resolvedTemporaryRoot = path.resolve(temporaryRoot);
@@ -925,7 +939,10 @@ test('isolated local BFF completes the real manual workflow across both services
         }
       }
     );
-    const mapSnapshot = mapSnapshotResult.item || mapSnapshotResult;
+    const queuedMapSnapshot = mapSnapshotResult.item || mapSnapshotResult;
+    assert.equal(queuedMapSnapshot.status, 'queued');
+    assert.equal('generationPayload' in queuedMapSnapshot, false);
+    const mapSnapshot = await waitForMapSnapshot(businessBase, queuedMapSnapshot.id);
     assert.equal(mapSnapshot.status, 'generated');
     assert.equal(mapSnapshot.contentHash.length, 64);
     const mapSnapshotContent = await fetch(

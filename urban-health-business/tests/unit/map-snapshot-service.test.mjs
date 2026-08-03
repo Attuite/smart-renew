@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createMapSnapshot,
+  enqueueMapSnapshot,
+  MapSnapshotRunner,
   markMapSnapshotStaleness,
+  publicMapSnapshot,
   renderMapSnapshotSvg
 } from '../../server/services/map-snapshot-service.mjs';
 import { ProviderMapSnapshotRepository } from '../../server/repositories/map-snapshot-repository.mjs';
@@ -64,6 +67,27 @@ test('map snapshot SVG is deterministic and contains only supplied real records'
   assert.doesNotMatch(first.content, /MAP-\d|42个问题|xian-city-map/);
 });
 
+test('map snapshot keeps route anomaly gaps as separate path segments', () => {
+  const view = realMapView();
+  view.routes.items = [{
+    id: 'ROUTE-segmented-real-001',
+    geometry: {
+      type: 'MultiLineString',
+      coordinates: [
+        [[108.951, 34.271], [108.952, 34.272]],
+        [[108.957, 34.277], [108.958, 34.278]]
+      ]
+    },
+    properties: { name: '异常断点路线' }
+  }];
+  const rendered = renderMapSnapshotSvg(view, { mapStyle: 'dark' });
+  const routePath = rendered.content.match(
+    /<path d="([^"]+)" fill="none" stroke="#a78bfa"/
+  );
+  assert.ok(routePath);
+  assert.equal((routePath[1].match(/M/g) || []).length, 2);
+});
+
 test('map snapshot persists queued-to-generated lifecycle and content hash', async () => {
   const records = [];
   let content = '';
@@ -97,6 +121,86 @@ test('map snapshot persists queued-to-generated lifecycle and content hash', asy
   assert.equal(records.at(-1).status, 'generated');
   assert.equal(snapshot.contentHash.length, 64);
   assert.match(content, /^<svg/);
+});
+
+test('map snapshot enqueue freezes source input and redacts it from the public record', async () => {
+  const records = new Map();
+  const queued = await enqueueMapSnapshot({
+    reportRepository: { async get() { return null; } },
+    mapViewDependencies: {},
+    mapSnapshotRepository: {
+      async put(value) { records.set(value.id, structuredClone(value)); return value; }
+    }
+  }, '1', {
+    purpose: 'audit',
+    mapStyle: 'light',
+    createdBy: '排队人员'
+  }, {
+    id: 'MAPSNAP-queued-real-001',
+    now: '2026-07-30T04:30:00Z',
+    mapView: realMapView()
+  });
+  assert.equal(queued.status, 'queued');
+  assert.equal(queued.generationPayload.view.project.revision, 3);
+  assert.equal(records.get(queued.id).generationPayload.input.mapStyle, 'light');
+  assert.equal('generationPayload' in publicMapSnapshot(queued), false);
+});
+
+test('map snapshot runner enforces concurrency and recovers an interrupted running job', async () => {
+  const records = new Map();
+  const contents = new Map();
+  let activeWrites = 0;
+  let maximumActiveWrites = 0;
+  const repository = {
+    async put(value) {
+      records.set(value.id, structuredClone(value));
+      return value;
+    },
+    async get(id) {
+      const value = records.get(id);
+      return value ? structuredClone(value) : null;
+    },
+    async list(_projectId = '', _reportId = '', options = {}) {
+      return [...records.values()].filter((item) =>
+        !options.status || item.status === options.status
+      );
+    },
+    async writeContent(id, content) {
+      activeWrites += 1;
+      maximumActiveWrites = Math.max(maximumActiveWrites, activeWrites);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      contents.set(id, content);
+      activeWrites -= 1;
+      return `${id}.svg`;
+    }
+  };
+  const dependencies = {
+    reportRepository: { async get() { return null; } },
+    mapViewDependencies: {},
+    mapSnapshotRepository: repository
+  };
+  const queued = [];
+  for (let index = 0; index < 4; index += 1) {
+    queued.push(await enqueueMapSnapshot(dependencies, '1', {
+      purpose: 'audit',
+      createdBy: '后台人员'
+    }, {
+      id: `MAPSNAP-runner-real-00${index + 1}`,
+      mapView: realMapView()
+    }));
+  }
+  await repository.put({ ...queued[0], status: 'running', startedAt: '2026-07-30T04:40:00Z' });
+
+  const runner = new MapSnapshotRunner({ dependencies, concurrency: 2 });
+  const recovered = await runner.recover();
+  assert.equal(recovered, 4);
+  await runner.waitForIdle();
+
+  assert.equal(maximumActiveWrites, 2);
+  assert.equal(contents.size, 4);
+  assert.ok([...records.values()].every((item) => item.status === 'generated'));
+  assert.equal(records.get(queued[0].id).recoveryCount, 1);
+  assert.ok([...records.values()].every((item) => item.generationPayload === null));
 });
 
 test('report-backed map snapshot uses frozen report geometry', async () => {

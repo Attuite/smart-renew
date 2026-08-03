@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProjectMapView } from '../../server/services/map-view-service.mjs';
+import {
+  buildProjectMapView,
+  getProjectMapView
+} from '../../server/services/map-view-service.mjs';
 
 const project = {
   id: '170000000000001',
@@ -254,4 +257,55 @@ test('map view bounds 10,000 issue points and simplifies 50,000-point routes', (
   assert.equal(view.spatialAnalyses.items[0].result.mapItemTotal, 5000);
   assert.equal(view.spatialAnalyses.items[0].result.items.length, 2000);
   assert.equal(view.spatialAnalyses.items[0].result.mapItemsTruncated, true);
+});
+
+test('bounded map requests use repository spatial-index methods when available', async () => {
+  const calls = [];
+  const indexedRepository = (name, items = []) => ({
+    async listInBounds(projectId, bounds) {
+      calls.push({ name, projectId, bounds });
+      return items;
+    },
+    async list() {
+      throw new Error(`${name} should use listInBounds`);
+    }
+  });
+  const view = await getProjectMapView({
+    client: {
+      async getProject() { return project; },
+      async listIssues() { return { items: [] }; },
+      async listPhotos() { return { items: [] }; }
+    },
+    issueRepository: indexedRepository('issues'),
+    photoMetadataRepository: { async list() { return []; } },
+    uploadSessionRepository: { async list() { return []; } },
+    spatialAnalysisRepository: indexedRepository('spatialAnalyses'),
+    surveyRouteRepository: indexedRepository('routes', [{
+      id: 'ROUTE-INDEXED-IN',
+      projectId: project.id,
+      name: '索引内路线',
+      status: 'confirmed',
+      crs: 'GCJ02',
+      geometry: {
+        type: 'LineString',
+        coordinates: [[108.945, 34.265], [108.955, 34.275]]
+      }
+    }]),
+    surveyStopRepository: indexedRepository('stops'),
+    boundaryRevisionRepository: { async list() { return []; } },
+    coordinateTransformRepository: { async list() { return []; } }
+  }, project.id, {
+    bounds: '108.94,34.26,108.96,34.28',
+    includePhotos: false,
+    limit: 100
+  });
+
+  assert.deepEqual(calls.map((call) => call.name), [
+    'issues',
+    'spatialAnalyses',
+    'routes',
+    'stops'
+  ]);
+  assert.ok(calls.every((call) => call.bounds.join(',') === '108.94,34.26,108.96,34.28'));
+  assert.equal(view.routes.total, 1);
 });
