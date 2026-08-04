@@ -492,12 +492,16 @@ body{background:var(--editorial-bg);color:var(--editorial-ink)}
 .project-record-list{display:grid;gap:16px}
 .project-record-card{display:grid;grid-template-columns:240px minmax(0,1fr) 270px;min-height:252px;background:var(--editorial-paper);border:1px solid var(--editorial-line);cursor:pointer;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;overflow:hidden;outline:none}
 .project-record-card:hover,.project-record-card:focus-visible{transform:translateY(-2px);border-color:#9f978b;box-shadow:0 16px 42px rgba(17,17,17,.08)}
-body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-stage{opacity:0;transform:translateY(-20px) scale(.985);pointer-events:none}
+body.home-project-exit .home-cinematic{opacity:0;transform:translateY(-20px) scale(.985);pointer-events:none}
+body.home-project-exit .home-capability-stage{opacity:1;transform:none;pointer-events:none}
+body.home-project-exit .capability-photo-field{opacity:0;transform:scale(2.35);filter:blur(4px)}
+body.home-project-exit .home-capability-content,body.home-project-exit .home-capability-meta{opacity:0;transform:scale(1.08);transition:opacity .38s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
+body.home-project-exit .home-capability-stage::after{background:rgba(0,6,8,1)}
 @keyframes project-row-reveal{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 #page-projects.project-enter .projects-atlas,#page-projects.project-enter .projects-toolbar,#page-projects.project-enter .projects-count,#page-projects.project-enter .project-record-card{opacity:0;animation:project-row-reveal .7s ease forwards}
 #page-projects.project-enter .projects-atlas{animation-delay:.08s}#page-projects.project-enter .projects-toolbar{animation-delay:.34s}#page-projects.project-enter .projects-count{animation-delay:.46s}
 #page-projects.project-enter .project-record-card:nth-child(1){animation-delay:.8s}#page-projects.project-enter .project-record-card:nth-child(2){animation-delay:.92s}#page-projects.project-enter .project-record-card:nth-child(3){animation-delay:1.04s}#page-projects.project-enter .project-record-card:nth-child(n+4){animation-delay:1.16s}
-@media (prefers-reduced-motion:reduce){body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-stage{transition:none}#page-projects.project-enter .projects-atlas,#page-projects.project-enter .projects-toolbar,#page-projects.project-enter .projects-count,#page-projects.project-enter .project-record-card{opacity:1;animation:none}}
+@media (prefers-reduced-motion:reduce){body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-stage,body.home-project-exit .capability-photo-field,body.home-project-exit .home-capability-content,body.home-project-exit .home-capability-meta{transition:none}#page-projects.project-enter .projects-atlas,#page-projects.project-enter .projects-toolbar,#page-projects.project-enter .projects-count,#page-projects.project-enter .project-record-card{opacity:1;animation:none}}
 .project-record-card.is-active{border-left:4px solid var(--editorial-accent)}
 .project-record-media{position:relative;min-height:250px;background:#d8d4ca;overflow:hidden;display:grid;place-items:center;color:rgba(17,17,17,.32)}
 .project-record-media::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,17,17,.03),rgba(17,17,17,.32));pointer-events:none}
@@ -509,10 +513,9 @@ body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-s
 .project-record-title{font-size:1.28rem;color:var(--editorial-ink);line-height:1.35;margin-bottom:7px}
 .project-record-location{font-size:.8rem;color:var(--editorial-muted);margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .project-record-description{font-size:.84rem;color:var(--editorial-muted);line-height:1.75;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:18px}
-.project-record-flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}
-.project-record-flow span{font-size:.7rem;padding:5px 8px;border:1px solid var(--editorial-line);color:var(--editorial-muted);background:#fff}
-.project-record-flow span.done{color:var(--green-500);border-color:rgba(26,122,76,.22);background:var(--green-100)}
-.project-record-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.project-record-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:auto}
+.project-record-flow .btn{width:100%;min-width:0;padding:8px 6px;font-size:.72rem;white-space:nowrap}
+.project-record-flow .btn.done{color:var(--green-500);border-color:rgba(26,122,76,.22);background:var(--green-100)}
 .project-record-metrics{padding:24px;border-left:1px solid var(--editorial-line);background:#f4f1ea;display:flex;flex-direction:column}
 .project-record-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--editorial-line);border:1px solid var(--editorial-line)}
 .project-record-data{background:var(--editorial-paper);padding:12px}
@@ -534,10 +537,9 @@ body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-s
 #page-projects .project-record-eyebrow{color:#22d3ee}
 #page-projects .project-record-title,#page-projects .project-record-open,#page-projects .project-record-data strong{color:#fff}
 #page-projects .project-record-location,#page-projects .project-record-description,#page-projects .project-record-update,#page-projects .project-record-data span{color:rgba(233,255,255,.58)}
-#page-projects .project-record-flow span{color:rgba(233,255,255,.68);background:rgba(255,255,255,.03);border-color:rgba(34,211,238,.18)}
-#page-projects .project-record-flow span.done{color:#67e8f9;background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.3)}
-#page-projects .project-record-actions .btn-outline{color:#e9ffff;background:transparent;border-color:rgba(34,211,238,.24)}
-#page-projects .project-record-actions .btn-outline:hover{background:rgba(34,211,238,.1);border-color:#22d3ee}
+#page-projects .project-record-flow .btn{color:rgba(233,255,255,.68);background:rgba(255,255,255,.03);border-color:rgba(34,211,238,.18)}
+#page-projects .project-record-flow .btn.done{color:#67e8f9;background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.3)}
+#page-projects .project-record-flow .btn:hover{color:#e9ffff;background:rgba(34,211,238,.1);border-color:#22d3ee}
 #page-projects .project-record-metrics{background:#061b20;border-color:rgba(34,211,238,.18)}
 #page-projects .project-record-data-grid{background:rgba(34,211,238,.16);border-color:rgba(34,211,238,.16)}
 #page-projects .project-record-data{background:#082329}
@@ -641,15 +643,19 @@ body.home-project-exit .home-cinematic,body.home-project-exit .home-capability-s
 .project-scope-metric strong{display:block;font-size:1.25rem;color:var(--editorial-ink)}
 .project-scope-metric span{display:block;font-size:.7rem;color:var(--editorial-muted);margin-top:5px}
 .housing-indicator-note{font-size:.78rem;color:var(--editorial-muted);line-height:1.7;margin:-3px 0 15px}
-.housing-indicator-table{width:100%;border-collapse:collapse;min-width:760px;font-size:.82rem}
+.housing-indicator-table{width:100%;border-collapse:collapse;min-width:980px;font-size:.82rem}
 .housing-indicator-table th,.housing-indicator-table td{border:1px solid var(--editorial-line);padding:13px 16px;text-align:left;vertical-align:middle}
 .housing-indicator-table thead th{background:#f7f5f0;color:var(--editorial-ink);font-size:.8rem;font-weight:700}
 .housing-indicator-table .indicator-number{width:90px;color:var(--editorial-muted);font-size:1rem}
 .housing-indicator-table .indicator-group{width:285px;color:var(--editorial-ink);font-weight:600;line-height:1.65}
 .housing-indicator-items{display:grid;gap:7px}
-.housing-indicator-item{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:start;line-height:1.55}
+.housing-indicator-item{display:grid;grid-template-columns:92px minmax(180px,.7fr) minmax(260px,1.3fr);gap:10px;align-items:start;line-height:1.55}
 .housing-indicator-code{display:inline-block;background:#f3f2ef;color:#555;padding:2px 7px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap}
 .housing-indicator-name{color:var(--editorial-ink)}
+.housing-indicator-findings{display:grid;gap:5px}
+.housing-indicator-finding{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--editorial-muted)}
+.housing-indicator-finding .btn{flex:0 0 auto;padding:4px 8px}
+.housing-indicator-empty{color:#9aa09b}
 @media (max-width:1050px){.projects-atlas-shell{grid-template-columns:280px minmax(360px,1fr)}.projects-atlas-workflow{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:0;border-top:1px solid rgba(34,211,238,.18)}.projects-atlas-workflow h3{grid-column:1/-1}.project-record-card{grid-template-columns:210px minmax(0,1fr)}.project-record-metrics{grid-column:1/-1;border-left:0;border-top:1px solid var(--editorial-line)}.project-record-data-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.project-overview-focus{grid-template-columns:1fr 1.35fr}.project-overview-side{grid-column:1/-1;grid-template-columns:1fr 1fr}.project-db-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-grid,.project-db-overview-grid{grid-template-columns:1fr}}
 @media (max-width:720px){.projects-atlas{padding:76px 20px 16px}.projects-atlas-shell{grid-template-columns:1fr}.projects-atlas-map-wrap{min-height:320px}.projects-atlas-workflow{grid-template-columns:1fr}.project-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.projects-toolbar{align-items:flex-start;flex-direction:column}.project-record-card{grid-template-columns:1fr}.project-record-media{min-height:210px}.project-record-content{padding:22px}.project-record-data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.project-db-heading{flex-direction:column}.project-overview-focus,.project-overview-side{grid-template-columns:1fr}.project-overview-side{grid-column:auto}.project-overview-map,.project-overview-map img,.project-overview-map svg{min-height:340px}.project-db-kpis{grid-template-columns:1fr}.project-db-tabs{top:64px}.project-db-tab{padding:12px 14px}.project-db-facts{grid-template-columns:1fr}.project-scope-toolbar{grid-template-columns:1fr}.project-scope-map{height:360px}.project-scope-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:1050px){.projects-stage-shade{position:fixed;inset:0}.projects-stage-drawer{position:fixed;top:72px;right:20px;bottom:20px;width:min(520px,calc(100vw - 40px))}}
@@ -698,26 +704,21 @@ body.home-mode #page-home>.stats-bar,body.home-mode #page-home>.section,body.hom
 body.home-step-2 .home-cinematic{opacity:0;pointer-events:none;transform:translateY(-24px)}
 body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:translateY(0)}
 .home-capability-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(31,122,113,.5),transparent 35%),radial-gradient(circle at 52% 100%,rgba(143,61,43,.58),transparent 32%),linear-gradient(180deg,rgba(0,16,17,.2),rgba(0,6,8,.96));z-index:2}
-.home-capability-stage::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:3}
-.capability-photo-field{position:absolute;inset:-8% -22%;z-index:1;perspective:1000px;overflow:hidden;opacity:.88}
-.photo-row{position:absolute;left:0;right:0;overflow:visible;transform-style:preserve-3d}
-.photo-track{display:flex;align-items:center;gap:28px;width:max-content;will-change:transform;animation:photo-track-scroll var(--scroll-speed,22s) linear infinite}
-.photo-row i{display:block;flex:0 0 auto;width:190px;height:116px;border:1px solid rgba(255,255,255,.15);background-color:#c9c3b6;background-image:linear-gradient(135deg,rgba(255,255,255,.48),rgba(17,17,17,.22)),repeating-linear-gradient(90deg,transparent 0 34px,rgba(17,17,17,.24) 34px 36px,transparent 36px 68px),repeating-linear-gradient(0deg,transparent 0 28px,rgba(17,17,17,.18) 28px 30px,transparent 30px 58px);box-shadow:0 18px 52px rgba(0,0,0,.46);opacity:.64;filter:saturate(.62) contrast(1.1)}
+.home-capability-stage::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:3;transition:background 1.8s ease-in .3s}
+.capability-photo-field{position:absolute;inset:-8% -22%;z-index:1;perspective:1100px;perspective-origin:50% 48%;overflow:hidden;opacity:.88;transform-style:preserve-3d;transition:transform 2s cubic-bezier(.42,0,.58,1),opacity .75s ease 1.25s,filter 1.4s ease .45s}
+.photo-row,.photo-track{position:absolute;inset:0;overflow:visible;transform-style:preserve-3d}
+.photo-row i{display:block;position:absolute;left:50%;top:50%;translate:-50% -50%;width:190px;height:116px;border:1px solid rgba(255,255,255,.15);background-color:#c9c3b6;background-image:linear-gradient(135deg,rgba(255,255,255,.48),rgba(17,17,17,.22)),repeating-linear-gradient(90deg,transparent 0 34px,rgba(17,17,17,.24) 34px 36px,transparent 36px 68px),repeating-linear-gradient(0deg,transparent 0 28px,rgba(17,17,17,.18) 28px 30px,transparent 30px 58px);box-shadow:0 18px 52px rgba(0,0,0,.46);opacity:.64;filter:saturate(.62) contrast(1.1);will-change:transform,opacity;backface-visibility:hidden}
 .photo-row i:nth-child(9n+2),.photo-row i:nth-child(9n+6){width:228px;height:132px;background-image:linear-gradient(145deg,rgba(255,255,255,.38),rgba(0,0,0,.32)),linear-gradient(90deg,#77786f 0 34%,#d8d2c7 34% 64%,#545955 64%)}
 .photo-row i:nth-child(9n+3),.photo-row i:nth-child(9n+8){width:152px;height:92px;background-image:linear-gradient(135deg,rgba(255,255,255,.32),rgba(0,0,0,.28)),repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 8px,rgba(0,0,0,.16) 8px 12px)}
 .photo-row i:nth-child(9n+5){width:172px;height:190px}
-.row-a{top:-1%;transform:translateZ(-150px) rotateX(6deg);--scroll-speed:22s}.row-b{top:25%;transform:translateZ(-35px) rotateX(3deg);--scroll-speed:18s}.row-c{top:48%;transform:translateZ(-70px) rotateX(2deg);--scroll-speed:20s}.row-d{top:73%;transform:translateZ(-165px) rotateX(8deg);--scroll-speed:24s}
-.row-b .photo-track,.row-d .photo-track{animation-name:photo-track-scroll-reverse}
 .row-b i,.row-c i{opacity:.58}.row-d i{opacity:.38}
-@keyframes photo-track-scroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(calc(-50% - 14px),0,0)}}
-@keyframes photo-track-scroll-reverse{from{transform:translate3d(calc(-50% - 14px),0,0)}to{transform:translate3d(0,0,0)}}
 .home-capability-meta{position:absolute;left:42px;top:96px;z-index:5;display:flex;align-items:center;gap:14px;color:#e9fff9;font-size:.84rem;font-weight:700}
 .home-capability-meta span{width:34px;height:34px;border:1px solid rgba(216,255,242,.55);border-radius:50%;display:grid;place-items:center}.home-capability-meta i{width:46px;height:1px;background:rgba(216,255,242,.48)}
 .home-capability-content{position:relative;z-index:5;width:min(1080px,calc(100% - 64px));text-align:center}
 .home-capability-content .hero-tag{justify-content:center;color:rgba(216,255,242,.82);margin-bottom:20px}
-.home-capability-content h2{font-size:clamp(2.4rem,5.6vw,5.4rem);line-height:1.06;color:#fff;font-weight:760;margin:0 0 34px;text-shadow:0 18px 70px rgba(0,0,0,.5)}
-.capability-grid-cinematic{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;text-align:left}
-.capability-grid-cinematic article{min-height:210px;padding:22px;border:1px solid rgba(255,255,255,.16);background:rgba(0,22,22,.42);backdrop-filter:blur(10px)}
+.home-capability-content h2{font-size:clamp(2.4rem,5.6vw,5.4rem);line-height:1.06;color:#fff;font-weight:760;margin:0 0 56px;text-shadow:0 18px 70px rgba(0,0,0,.5)}
+.capability-grid-cinematic{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;width:94%;margin:0 auto;text-align:left;overflow:visible}
+.capability-grid-cinematic article{position:relative;min-height:190px;padding:20px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(0,22,22,.42);backdrop-filter:blur(10px);transform:translateY(var(--dock-y,0)) scale(var(--dock-scale,1));transform-origin:center bottom;transition:transform .28s cubic-bezier(.2,.8,.2,1),border-color .2s ease,box-shadow .2s ease,filter .2s ease;z-index:var(--dock-z,0)}
 .capability-grid-cinematic span{display:block;color:rgba(216,255,242,.7);font-size:.76rem;font-weight:800;margin-bottom:18px}.capability-grid-cinematic h3{font-size:1.35rem;color:#fff;margin-bottom:12px}.capability-grid-cinematic p{font-size:.84rem;color:rgba(255,255,255,.7);line-height:1.8}
 .home-capability-actions{display:flex;gap:12px;justify-content:center;margin-top:28px}.story-advance.ghost{background:rgba(0,20,20,.12);color:rgba(255,255,255,.64)}
 @media (max-width:900px){.capability-grid-cinematic{grid-template-columns:repeat(2,1fr)}.capability-grid-cinematic article{min-height:170px}.cap-photo{width:130px;height:82px}.home-capability-content h2{font-size:2.55rem}}
@@ -1217,6 +1218,8 @@ low:{label:'低风险',className:'severity-low',icon:'🟢',statColor:'var(--gre
 };
 
 var currentPage='home',currentRoute=null,currentFilters={type:'all',status:'all'},projectDatabaseView='overview';
+// ponytail: 会话内缓存；其他设备更新的数据在刷新页面时重新同步。
+var projectReadCache={},projectRecordsReadCache={};
 var amapPluginLoads={};
 function ensureAMapPlugins(names){var key=names.slice().sort().join(',');if(!amapPluginLoads[key])amapPluginLoads[key]=new Promise(function(resolve){AMap.plugin(names,resolve);});return amapPluginLoads[key];}
 function renderFeaturedProjects(){}
@@ -1379,8 +1382,7 @@ var dateStr=new Date(p.updatedAt||p.createdAt).toLocaleString('zh-CN');
 return'<article class="project-record-card'+(active?' is-active':'')+'" role="button" tabindex="0" aria-label="打开 '+escapeHtml(p.name||'未命名体检项目')+' 项目数据库" onclick="openProjectHub('+p.id+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openProjectHub('+p.id+');}">'
 +'<div class="project-record-media">'+thumb+'<span class="project-tag">'+escapeHtml(typeMap[p.type]||'体检项目')+'</span><span class="project-badge '+(active?'badge-done':'badge-progress')+'">'+(active?'当前项目':'项目档案')+'</span></div>'
 +'<div class="project-record-content"><div class="project-record-eyebrow">PROJECT DATABASE · '+escapeHtml(String(p.id))+'</div><h3 class="project-record-title">'+escapeHtml(p.name||'未命名体检项目')+'</h3><div class="project-record-location">📍 '+escapeHtml(p.area||'未填写位置')+'</div><p class="project-record-description">'+escapeHtml(p.desc||p.scope||'该项目已建立档案，可继续进行住区维度、社区/街区维度分析和体检报告生成。')+'</p>'
-+'<div class="project-record-flow"><span class="done">项目档案</span><span class="'+(records.length?'done':'')+'">住区分析</span><span class="'+(community?'done':'')+'">社区/街区</span><span class="'+(records.length&&community?'done':'')+'">体检报告</span></div>'
-+'<div class="project-record-actions"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();selectProject('+p.id+')">设为当前</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectAi('+p.id+')">住区分析</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProjectCommunity('+p.id+')">社区/街区</button></div></div>'
++'<div class="project-record-flow"><button class="btn btn-outline btn-sm done" onclick="event.stopPropagation();openProjectHub('+p.id+')">项目档案</button><button class="btn btn-outline btn-sm '+(records.length?'done':'')+'" onclick="event.stopPropagation();openProjectAi('+p.id+')">住区分析</button><button class="btn btn-outline btn-sm '+(community?'done':'')+'" onclick="event.stopPropagation();openProjectCommunity('+p.id+')">社区/街区</button><button class="btn btn-outline btn-sm '+(records.length&&community?'done':'')+'" onclick="event.stopPropagation();openProjectReport('+p.id+')">体检报告</button></div></div>'
 +'<aside class="project-record-metrics"><div class="project-record-data-grid"><div class="project-record-data"><strong>'+issuesCount+'</strong><span>问题记录</span></div><div class="project-record-data"><strong>'+images+'</strong><span>现场照片</span></div><div class="project-record-data"><strong>'+records.length+'</strong><span>AI 分析批次</span></div><div class="project-record-data"><strong>'+communityTotal+'</strong><span>设施空间</span></div></div><div class="project-record-risk"><span style="color:var(--red-500);">高 '+high+'</span><span style="color:var(--amber-500);">中 '+medium+'</span><span style="color:var(--green-500);">低 '+low+'</span></div><div class="project-record-update">指标库数据：<strong id="project-index-count-'+p.id+'">读取中</strong><br>数据更新时间：'+escapeHtml(dateStr)+'</div><div class="project-record-open">打开项目数据库 <span>→</span></div></aside></article>';
 }
 async function renderDetailPage(){
@@ -1388,9 +1390,8 @@ var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=d
 if(pid===null){navigateTo('#projects');return;}
 if(main)main.innerHTML='<div class="result-empty">正在读取项目档案...</div>';
 try{
-var p=await getProjectById(pid);if(!p){navigateTo('#projects');return;}
+var loaded=await Promise.all([getProjectById(pid),getProjectRecords(pid)]),p=loaded[0],allRecords=loaded[1];if(!p){navigateTo('#projects');return;}
 setActiveProjectId(p.id);
-var allRecords=await getAllRecords();
 var records=allRecords.filter(function(r){return String(r.projectId)===String(p.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
 var stat=collectDiagnosticStats(records),issues=buildDiagnosticIssueRows(records),community=p.communityAnalysis||null,communityTotal=getCommunityTotal(community),scopeStats=getProjectScopeStats(p);
 var dataRecords=1+records.length+(community?1:0)+(p.residentialInventory?1:0),reportReady=records.length>0&&!!community;
@@ -1402,10 +1403,10 @@ overview:'<div class="project-overview-focus">'+projectDatabasePanel('项目档�
 ledger:'<div class="project-db-tab-section">'+projectDatabasePanel('住宅台账',projectScopeDatabaseHtml(p,scopeStats))+'</div>',
 review:'<div class="project-db-tab-section">'+projectDatabasePanel('人工复核',projectReviewDatabaseHtml(records,p))+'</div>',
 issues:'<div class="project-db-tab-section">'+projectDatabasePanel('分析批次',projectAnalysisRecordsHtml(records))+'</div><div class="project-db-tab-section">'+projectDatabasePanel('正式问题台账',projectIssueDatabaseHtml(issues))+'</div>',
-indicators:'<div class="project-db-tab-section">'+projectDatabasePanel('项目指标库','<section class="project-indicator-catalog project-indicator-catalog--standalone" aria-labelledby="housingIndicatorHeading"><div class="project-indicator-catalog-heading"><div><h4 id="housingIndicatorHeading">住房安全指标分类</h4><p>AI 识别、人工复核、问题台账和报告统一按这里的 PRB 编码索引，不再建立第二套数据索引。</p></div><span class="project-indicator-catalog-badge">内置标准指标</span></div>'+projectHousingIndicatorHtml()+'</section>')+'</div>',
+indicators:projectHousingIndicatorHtml(p,records),
 reports:'<div class="project-db-grid">'+projectDatabasePanel('报告生成状态',projectReportStatusHtml(records,community))+projectDatabasePanel('整治建议',projectAdvicePreviewHtml(issues,community))+'</div><div style="margin-top:18px;"><a class="btn btn-primary" href="'+SmartRenewStructure.projectHash(p.id,'reports')+'">进入报告成果</a></div>'
 };
-if(main)main.innerHTML=heading+(bodies[view]||bodies.overview);
+if(main)main.innerHTML=(view==='indicators'?'':heading)+(bodies[view]||bodies.overview);
 if(view==='overview')setTimeout(function(){initProjectOverviewMap(p);},80);
 }catch(e){if(main)main.innerHTML='<div class="result-empty" style="color:var(--red-500);">项目中枢加载失败：'+escapeHtml(e.message)+'</div>';console.error(e);}
 }
@@ -1481,7 +1482,7 @@ async function deleteScopeCommunity(projectId,index){return deleteScopeCommuniti
 async function deleteSelectedScopeCommunities(projectId){var indexes=selectedScopeIndexes();if(!indexes.length){showToast('请先选择需要删除的小区','error');return;}return deleteScopeCommunitiesByIndexes(projectId,indexes);}
 async function deleteScopeCommunitiesByIndexes(projectId,indexes){try{var project=await getProjectById(projectId);collectScopeTableEdits(project);var inventory=project.residentialInventory,items=inventory.items||[],trash=Array.isArray(inventory.deletedItems)?inventory.deletedItems:[],removed=[];inventory.items=items.filter(function(item,index){if(indexes.indexOf(index)>=0){removed.push(Object.assign({},item,{deletedAt:new Date().toISOString()}));return false;}return true;});inventory.deletedItems=trash.concat(removed);await persistScopeInventory(project,'已将 '+removed.length+' 个小区移入回收站');}catch(e){showToast('删除失败：'+e.message,'error');}}
 async function restoreScopeCommunity(projectId,trashIndex){try{var project=await getProjectById(projectId),inventory=project.residentialInventory,trash=inventory&&Array.isArray(inventory.deletedItems)?inventory.deletedItems:[];if(!trash[trashIndex])return;var restored=Object.assign({},trash[trashIndex]);delete restored.deletedAt;restored.restoredAt=new Date().toISOString();inventory.deletedItems.splice(trashIndex,1);if(!Array.isArray(inventory.items))inventory.items=[];inventory.items.push(restored);await persistScopeInventory(project,'已从回收站恢复 '+(restored.name||'小区'));}catch(e){showToast('恢复失败：'+e.message,'error');}}
-function projectHousingIndicatorHtml(){
+function projectHousingIndicatorHtml(project,records){
 var groups=[
 {number:'1',name:'存在结构安全隐患的住宅数量',items:[['PRB-01-01','混凝土结构构件裂缝'],['PRB-01-02','违规拆除结构承重构件'],['PRB-01-03','砖体缺棱掉角砂浆饱满度差'],['PRB-01-04','违规加建改变结构']]},
 {number:'2',name:'存在燃气安全隐患的住宅数量',items:[['PRB-02-01','燃气管道锈蚀破损'],['PRB-02-02','燃气橡胶软管老化'],['PRB-02-03','燃气管道私改私接'],['PRB-02-04','燃气器具无熄火保护装置'],['PRB-02-05','未安装燃气自闭阀'],['PRB-02-06','未安装燃气报警器']]},
@@ -1490,8 +1491,13 @@ var groups=[
 {number:'5',name:'非成套住宅数量',items:[['PRB-05-01','缺独立厨房卫生间']]},
 {number:'6',name:'存在管线管道破损的住宅数量',items:[['PRB-06-01','给水管线跑冒滴漏'],['PRB-06-02','给水管线老化破损'],['PRB-06-03','排水管线老化破损'],['PRB-06-04','给排水管线渗漏堵塞'],['PRB-06-05','采暖季温度不达标'],['PRB-06-06','电力电信管线老化破损及裸露'],['PRB-06-07','私搭乱接电线']]}
 ];
-var rows=groups.map(function(group){var items=group.items.map(function(item){return'<div class="housing-indicator-item"><code class="housing-indicator-code">'+escapeHtml(item[0])+'</code><span class="housing-indicator-name">'+escapeHtml(item[1])+'</span></div>';}).join('');return'<tr><td class="indicator-number">'+escapeHtml(group.number)+'</td><td class="indicator-group">'+escapeHtml(group.name)+'</td><td><div class="housing-indicator-items">'+items+'</div></td></tr>';}).join('');
-return'<p class="housing-indicator-note">住房维度问题按国标指标大类和细分编码统一归档，后续 AI 识别、人工复核、问题台账和报告均使用同一套编码。</p><div class="project-record-table-wrap"><table class="housing-indicator-table"><thead><tr><th>指标号</th><th>国标指标（大类）</th><th>细分小类（编码 名称）</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+var rows=groups.map(function(group){var items=group.items.map(function(item){return'<div class="housing-indicator-item"><code class="housing-indicator-code">'+escapeHtml(item[0])+'</code><span class="housing-indicator-name">'+escapeHtml(item[1])+'</span>'+projectIndicatorIssueHtml(item[0],project,records)+'</div>';}).join('');return'<tr><td class="indicator-number">'+escapeHtml(group.number)+'</td><td class="indicator-group">'+escapeHtml(group.name)+'</td><td><div class="housing-indicator-items">'+items+'</div></td></tr>';}).join('');
+return'<div class="project-record-table-wrap"><table class="housing-indicator-table"><thead><tr><th>指标号</th><th>国标指标（大类）</th><th>细分小类（编码 名称）</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function projectIndicatorIssueHtml(code,project,records){
+var findings=[],communities=activeResidentialItems(project);
+for(var i=0;i<records.length;i++){var record=records[i],issues=record.result&&Array.isArray(record.result.issues)?record.result.issues:[],matched=issues.filter(function(issue){return(issue.problemCode||inferProblemCode(issue))===code;});if(!matched.length)continue;var community=communities.find(function(item,index){return residentialItemId(item,index)===String(record.communityId||'');}),buildings=community&&Array.isArray(community.buildings)?community.buildings:[],building=buildings.find(function(item){return item&&item.status!=='deleted'&&String(item.id)===String(record.buildingId||'');}),households=building&&building.householdCount!=null?building.householdCount:(community&&community.householdCount!=null?community.householdCount:null),place=(community&&community.name||'未关联小区')+' · '+(building&&building.name||'公共区域'),hasPhoto=(record.photoIds&&record.photoIds.length)||(record.annotatedPhotoIds&&record.annotatedPhotoIds.length)||(record.imagesBase64&&record.imagesBase64.length)||(record.annotatedImages&&record.annotatedImages.length),button=hasPhoto?'<button class="btn btn-outline btn-sm" onclick="openProjectIndicatorIssue('+(parseInt(record.id,10)||0)+','+project.id+','+(matched[0].imageIndex||1)+')">查看照片</button>':'<span>暂无照片</span>';findings.push('<div class="housing-indicator-finding"><span>'+escapeHtml(place)+' · '+(households==null?'户数待补录':escapeHtml(String(households))+' 户')+' · '+matched.length+' 处问题</span>'+button+'</div>');}
+return'<div class="housing-indicator-findings">'+(findings.join('')||'<span class="housing-indicator-empty">暂无问题记录 · 小区、楼栋、户数和照片位置待数据接入后显示</span>')+'</div>';
 }
 function projectAnalysisRecordsHtml(records){if(!records.length)return'<div class="result-empty" style="padding:26px 12px;">暂无住区维度分析记录。</div>';var rows=records.map(function(record,index){var issues=record.result&&record.result.issues?record.result.issues:[],date=record.archivedAt||record.timestamp||record.createdAt,status=record.status==='archived'?'已归档':(record.status==='reviewing'?'待复核':'已保存');return'<tr><td>'+(index+1)+'</td><td>'+escapeHtml(record.analysisType||record.type||'住区隐患分析')+'</td><td>'+escapeHtml(String(record.imagesCount||0))+' 张</td><td>'+issues.length+' 个</td><td>'+escapeHtml(status)+'</td><td>'+escapeHtml(date?new Date(date).toLocaleString('zh-CN'):'未记录')+'</td></tr>';}).join('');return'<div class="project-record-table-wrap"><table class="project-record-table"><thead><tr><th>序号</th><th>分析类型</th><th>照片</th><th>问题</th><th>状态</th><th>保存时间</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}
 function projectReviewDatabaseHtml(records,project){if(!records.length)return'<div class="result-empty" style="padding:26px 12px;">暂无待复核记录。完成一次住区分析后，识别结果会进入这里复核。</div>';var pendingRecords=0,archivedRecords=0,pendingIssues=0,acceptedIssues=0,rejectedIssues=0;for(var i=0;i<records.length;i++){var reviewIssues=records[i].reviewIssues&&records[i].reviewIssues.length?records[i].reviewIssues:[],finalIssues=records[i].result&&records[i].result.issues?records[i].result.issues:[];if(records[i].status==='reviewing')pendingRecords++;if(records[i].status==='archived')archivedRecords++;if(reviewIssues.length){for(var j=0;j<reviewIssues.length;j++){var status=reviewIssues[j].reviewStatus||'pending';if(status==='accepted'||status==='modified')acceptedIssues++;else if(status==='rejected')rejectedIssues++;else pendingIssues++;}}else acceptedIssues+=finalIssues.length;}var cards='<div class="project-db-kpis" style="margin-bottom:16px;">'+projectDatabaseKpiHtml('待复核批次',pendingRecords+' 次','来自 AI 识别后未归档记录')+projectDatabaseKpiHtml('已归档批次',archivedRecords+' 次','人工确认后正式入库')+projectDatabaseKpiHtml('待确认问题',pendingIssues+' 个','暂无则为 0')+projectDatabaseKpiHtml('已确认/修正',acceptedIssues+' 个','读取实际复核状态')+projectDatabaseKpiHtml('已驳回',rejectedIssues+' 个','读取实际复核状态')+'</div>';var rows=records.map(function(record,index){var reviewIssues=record.reviewIssues&&record.reviewIssues.length?record.reviewIssues:[],finalIssues=record.result&&record.result.issues?record.result.issues:[],pending=0,accepted=0,rejected=0;if(reviewIssues.length){for(var k=0;k<reviewIssues.length;k++){var status=reviewIssues[k].reviewStatus||'pending';if(status==='accepted'||status==='modified')accepted++;else if(status==='rejected')rejected++;else pending++;}}else accepted=finalIssues.length;var date=record.archivedAt||record.timestamp||record.createdAt,statusLabel=record.status==='archived'?'已归档':(record.status==='reviewing'?'待复核':'已保存');return'<tr><td>'+(index+1)+'</td><td>'+escapeHtml(record.analysisType||record.type||'住区隐患分析')+'</td><td>'+escapeHtml(String(record.imagesCount||0))+' 张</td><td>'+pending+'</td><td>'+accepted+'</td><td>'+rejected+'</td><td>'+escapeHtml(record.reviewerName||'暂无')+'</td><td>'+escapeHtml(statusLabel)+'</td><td>'+escapeHtml(date?new Date(date).toLocaleString('zh-CN'):'暂无')+'</td><td><button class="btn btn-outline btn-sm" onclick="openProjectReviewRecord('+JSON.stringify(String(record.id))+','+JSON.stringify(String(record.projectId||project.id))+')">'+(record.status==='reviewing'?'去复核':'查看')+'</button></td></tr>';}).join('');return cards+'<p class="housing-indicator-note">人工复核只展示系统真实保存的 AI 识别记录。没有复核人、没有结果或没有驳回项时显示“暂无”或 0。</p><div class="project-record-table-wrap"><table class="project-record-table"><thead><tr><th>序号</th><th>分析类型</th><th>照片</th><th>待确认</th><th>已确认/修正</th><th>已驳回</th><th>复核人员</th><th>状态</th><th>时间</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}
@@ -1634,12 +1640,14 @@ function buildDiagnosticIssueRows(records){var rows=[];for(var i=0;i<records.len
 function reportRow(k,v){return'<tr><th style="width:190px;border:1px solid var(--border);padding:10px;background:var(--bg-soft);text-align:left;color:var(--ink-900);">'+escapeHtml(k)+'</th><td style="border:1px solid var(--border);padding:10px;">'+escapeHtml(v)+'</td></tr>';}
 function diagnosticStep(title,ok,desc){return'<div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-start;"><span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:'+(ok?'rgba(22,163,74,.12)':'rgba(217,119,6,.12)')+';color:'+(ok?'var(--green-600)':'var(--amber-600)')+';font-size:.72rem;font-weight:800;flex:0 0 20px;">'+(ok?'✓':'!')+'</span><div><div style="font-size:.9rem;font-weight:700;color:var(--ink-900);">'+escapeHtml(title)+'</div><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;">'+escapeHtml(desc)+'</div></div></div>';}
 
-document.addEventListener('click',function(e){var link=e.target.closest('[data-nav]');if(!link)return;e.preventDefault();var nav=link.dataset.nav,pid=link.dataset.pid;if(nav==='projects'&&currentPage==='home'){if(document.body.classList.contains('home-project-exit'))return;document.body.classList.add('home-project-exit');setTimeout(function(){navigateTo('#projects');},200);return;}if(nav==='detail'&&pid){navigateTo('#project/'+pid);}else{navigateTo('#'+nav);}});
+document.addEventListener('click',function(e){var link=e.target.closest('[data-nav]');if(!link)return;e.preventDefault();var nav=link.dataset.nav,pid=link.dataset.pid;if(nav==='projects'&&currentPage==='home'){if(document.body.classList.contains('home-project-exit'))return;document.body.classList.add('home-project-exit');setTimeout(function(){navigateTo('#projects');},window.matchMedia('(prefers-reduced-motion:reduce)').matches?0:2100);return;}if(nav==='detail'&&pid){navigateTo('#project/'+pid);}else{navigateTo('#'+nav);}});
 var typeFilters=document.getElementById('typeFilters');if(typeFilters){typeFilters.addEventListener('click',function(e){if(!e.target.classList.contains('filter-btn'))return;var btns=this.querySelectorAll('.filter-btn');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');e.target.classList.add('active');currentFilters.type=e.target.dataset.filter;renderProjectsPage();});}
 var statusFilters=document.getElementById('statusFilters');if(statusFilters){statusFilters.addEventListener('click',function(e){if(!e.target.classList.contains('filter-btn'))return;var btns=this.querySelectorAll('.filter-btn');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');e.target.classList.add('active');currentFilters.status=e.target.dataset.filter;renderProjectsPage();});}
 document.getElementById('mobileMenuBtn').addEventListener('click',function(){document.getElementById('navLinks').classList.toggle('open');});
 var homeForwardBtn=document.getElementById('homeForwardBtn');if(homeForwardBtn){homeForwardBtn.addEventListener('click',function(){document.body.classList.add('home-step-2');});}
 var homeBackBtn=document.getElementById('homeBackBtn');if(homeBackBtn){homeBackBtn.addEventListener('click',function(){document.body.classList.remove('home-step-2');});}
+(function(){var dock=document.querySelector('.capability-grid-cinematic');if(!dock)return;var cards=dock.querySelectorAll('article'),distance=240;function reset(){for(var i=0;i<cards.length;i++){cards[i].style.removeProperty('--dock-scale');cards[i].style.removeProperty('--dock-y');cards[i].style.removeProperty('--dock-z');cards[i].style.removeProperty('border-color');cards[i].style.removeProperty('box-shadow');cards[i].style.removeProperty('filter');}}dock.addEventListener('pointermove',function(e){var x=e.clientX-dock.getBoundingClientRect().left;for(var i=0;i<cards.length;i++){var force=Math.max(0,1-Math.abs(x-(cards[i].offsetLeft+cards[i].offsetWidth/2))/distance);cards[i].style.setProperty('--dock-scale',1+force*.09);cards[i].style.setProperty('--dock-y',-18*force+'px');cards[i].style.setProperty('--dock-z',Math.round(force*10));cards[i].style.borderColor='rgba(216,255,242,'+(.16+force*.34)+')';cards[i].style.boxShadow='0 '+Math.round(force*18)+'px '+Math.round(force*52)+'px rgba(0,0,0,.34)';cards[i].style.filter='brightness('+(1+force*.08)+')';}});dock.addEventListener('pointerleave',reset);}());
+(function(){var stage=document.querySelector('.home-capability-stage'),tracks=document.querySelectorAll('.photo-track');if(!stage||!tracks.length)return;var angle=0,dragging=false,lastX=0,baseVelocity=window.matchMedia('(prefers-reduced-motion:reduce)').matches?0:.000055,velocity=baseVelocity,previous=performance.now(),rowY=[-300,-105,105,300];function frame(now){var dt=Math.min(now-previous,32);previous=now;if(document.body.classList.contains('home-step-2')){var exiting=document.body.classList.contains('home-project-exit');if(!dragging){angle+=(exiting?baseVelocity*9:velocity)*dt;if(!exiting)velocity+=(baseVelocity-velocity)*.02;}var radius=Math.min(innerWidth*.57,760),depth=Math.min(innerWidth*.38,520);for(var r=0;r<tracks.length;r++){var tiles=tracks[r].children;for(var i=0;i<tiles.length;i++){var a=angle+i/tiles.length*Math.PI*2+r*.38,x=Math.sin(a)*radius,z=Math.cos(a)*depth-100,y=rowY[r]+Math.sin(i*1.7+r)*28;tiles[i].style.transform='translate3d('+x+'px,'+y+'px,'+z+'px)';tiles[i].style.opacity=.22+(z+depth+100)/(depth*2)*.62;tiles[i].style.zIndex=Math.round(z+depth);}}}requestAnimationFrame(frame);}stage.addEventListener('pointerdown',function(e){if(e.target.closest('a,button'))return;dragging=true;lastX=e.clientX;stage.setPointerCapture(e.pointerId);});stage.addEventListener('pointermove',function(e){if(!dragging)return;var dx=e.clientX-lastX;lastX=e.clientX;angle+=dx*.0045;velocity=dx*.00004;});function release(){dragging=false;if(baseVelocity&&Math.abs(velocity)<baseVelocity)velocity=baseVelocity;}stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);console.assert(tracks.length===4,'capability orbit rows');requestAnimationFrame(frame);}());
 window.addEventListener('hashchange',function(){showPage();});
 window.addEventListener('scroll',function(){var h=document.getElementById('header');if(window.scrollY>50)h.classList.add('scrolled');else h.classList.remove('scrolled');});
 
@@ -2049,7 +2057,7 @@ function setActiveProjectId(id){localStorage.setItem('smart_renew_active_project
 
 async function saveProject(project){
 try{await ensureServerStorage();await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
-await saveProjectLocal(project);if(window.scheduleProjectDataIndexSync)window.scheduleProjectDataIndexSync(project.id);return project;
+await saveProjectLocal(project);projectReadCache[project.id]=project;if(window.scheduleProjectDataIndexSync)window.scheduleProjectDataIndexSync(project.id);return project;
 }
 
 async function getAllProjects(){
@@ -2058,7 +2066,9 @@ try{await ensureServerStorage();var data=await storageApi('/api/projects');setSt
 
 async function getProjectById(id){
 var projectId=normalizeStorageKey(id);if(projectId===null)return null;
-try{await ensureServerStorage();return await storageApi('/api/projects/'+projectId);}catch(e){return getProjectByIdLocal(projectId);}
+if(projectReadCache[projectId])return projectReadCache[projectId];
+try{await ensureServerStorage();projectReadCache[projectId]=await storageApi('/api/projects/'+projectId);}catch(e){projectReadCache[projectId]=await getProjectByIdLocal(projectId);}
+return projectReadCache[projectId];
 }
 
 var projectScopeMap=null,projectScopeMouseTool=null,projectScopePolygon=null,projectScopeGeocoder=null,projectScopeSearchToken=0,projectScopeEditingProjectId=null;
@@ -2151,7 +2161,14 @@ try{var wasEditing=!!projectScopeEditingProjectId;await saveProject(project);set
 
 async function saveRecord(record){
 try{await ensureServerStorage();await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
-var saved=await saveRecordLocal(record);if(window.scheduleProjectDataIndexSync&&record.projectId)window.scheduleProjectDataIndexSync(record.projectId);return saved;
+var saved=await saveRecordLocal(record);delete projectRecordsReadCache[record.projectId];if(window.scheduleProjectDataIndexSync&&record.projectId)window.scheduleProjectDataIndexSync(record.projectId);return saved;
+}
+
+async function getProjectRecords(projectId){
+var id=normalizeStorageKey(projectId);if(id===null)return[];
+if(projectRecordsReadCache[id])return projectRecordsReadCache[id];
+try{await ensureServerStorage();var data=await storageApi('/api/analysis-records?projectId='+encodeURIComponent(id));projectRecordsReadCache[id]=data.items||[];}catch(e){projectRecordsReadCache[id]=(await getAllRecordsLocal()).filter(function(record){return String(record.projectId)===String(id);});}
+return projectRecordsReadCache[id];
 }
 
 async function getAllRecords(){
@@ -2163,7 +2180,7 @@ try{await ensureServerStorage();return await storageApi('/api/analysis-records/'
 }
 
 async function deleteAllRecords(){
-try{await storageApi('/api/analysis-records',{method:'DELETE'});}catch(e){console.warn(e);}return deleteAllRecordsLocal();
+projectRecordsReadCache={};try{await storageApi('/api/analysis-records',{method:'DELETE'});}catch(e){console.warn(e);}return deleteAllRecordsLocal();
 }
 
 var serverStorageMigration=null;
@@ -2205,7 +2222,7 @@ listEl.innerHTML=html;
 }catch(e){listEl.innerHTML='<div class="history-empty"><p style="color:var(--red-500);">加载历史记录失败: '+e.message+'</p></div>';console.error(e);}
 }
 
-async function viewHistoryDetail(id){
+async function viewHistoryDetail(id,imageIndex){
 try{
 var record=await getRecordById(id);
 if(!record){showToast('记录不存在','error');return;}
@@ -2219,7 +2236,7 @@ var historyImages=await resolveRecordImages(record);renderAnalysisResults(result
 setAnalysisWorkflowStep(record.status==='archived'?5:4);
 document.getElementById('analysisResultsBlock').classList.remove('hidden');
 document.getElementById('runAiAnalysisBtn').style.display='none';
-window.scrollTo({top:document.getElementById('analysisResultsBlock').offsetTop-100,behavior:'smooth'});
+var targetPhoto=imageIndex?document.querySelectorAll('#analysisAnnotationGallery .annotated-photo')[Math.max(0,imageIndex-1)]:null,target=targetPhoto||document.getElementById('analysisResultsBlock');if(targetPhoto)targetPhoto.style.outline='3px solid var(--spice-500)';window.scrollTo({top:target.getBoundingClientRect().top+window.scrollY-100,behavior:'smooth'});
 showToast('已加载历史记录: '+(record.projectName||'未命名'),'info');
 }catch(e){showToast('加载失败: '+e.message,'error');}finally{hideLoading();}
 }
@@ -2234,9 +2251,14 @@ renderProjectsPage();
 }catch(e){showToast('选择项目失败: '+e.message,'error');}
 }
 
-async function openProjectAi(id){
-await selectProject(id);
+function openProjectAi(id){
 navigateTo(SmartRenewStructure.projectHash(id,'analysis'));
+}
+
+function openProjectIndicatorIssue(recordId,projectId,imageIndex){
+setActiveProjectId(projectId);
+navigateTo(SmartRenewStructure.projectHash(projectId,'analysis'));
+setTimeout(function(){viewHistoryDetail(recordId,imageIndex);},350);
 }
 
 async function openProjectReviewRecord(recordId,projectId){
@@ -2245,14 +2267,16 @@ navigateTo(SmartRenewStructure.projectHash(projectId||getActiveProjectId(),'anal
 setTimeout(function(){viewHistoryDetail(recordId);},350);
 }
 
-async function openProjectCommunity(id){
-await selectProject(id);
+function openProjectCommunity(id){
 navigateTo(SmartRenewStructure.projectHash(id,'community'));
 }
 
-async function openProjectHub(id){
-await selectProject(id);
+function openProjectHub(id){
 navigateTo(SmartRenewStructure.projectHash(id,'overview'));
+}
+
+function openProjectReport(id){
+navigateTo(SmartRenewStructure.projectHash(id,'reports'));
 }
 
 /* ===== COMMUNITY ===== */
