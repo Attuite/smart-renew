@@ -606,8 +606,7 @@ async function handlePhotoApi(req, res, url, pathname) {
       res.writeHead(200, {
         'Content-Type': record.mimeType || 'application/octet-stream',
         'Cache-Control': 'private, max-age=3600',
-        'X-Content-Type-Options': 'nosniff',
-        'Access-Control-Allow-Origin': '*'
+        'X-Content-Type-Options': 'nosniff'
       });
       return res.end(downloaded.fileContent);
     }
