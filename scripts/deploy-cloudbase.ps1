@@ -27,8 +27,12 @@ if ($title -ne $target.expectedTitle) {
   throw "Unexpected page title: $title"
 }
 
+$previousErrorAction = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 $envDetail = tcb env detail --env-id $target.envId --json 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0 -or $envDetail -notmatch [regex]::Escape($target.envId)) {
+$envDetailExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorAction
+if ($envDetailExitCode -ne 0 -or $envDetail -notmatch [regex]::Escape($target.envId)) {
   throw 'CloudBase environment check failed.'
 }
 if ($envDetail -notmatch [regex]::Escape($target.expectedDomain)) {
