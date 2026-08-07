@@ -1,0 +1,594 @@
+# Business BFF 当前接口
+
+> 基准版本：`0.1.0`  
+> 本地地址：`http://127.0.0.1:4182`  
+> 上游smart-renew：默认 `http://127.0.0.1:4173`
+
+本文记录当前代码已经实现的接口，不代表最终目标接口已全部完成。
+
+## 1. 通用响应
+
+Business BFF自有接口使用：
+
+```json
+{
+  "ok": true,
+  "data": {},
+  "requestId": "uuid"
+}
+```
+
+错误：
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "错误说明",
+    "details": {},
+    "retryable": false
+  },
+  "requestId": "uuid"
+}
+```
+
+未被BFF接管的 `/api/*` 会转发到原smart-renew，可能保留原接口响应结构。
+
+## 2. 能力与工作流
+
+```http
+GET /api/health
+GET /api/ready
+GET /api/metrics
+GET /api/meta
+GET /api/projects/{projectId}/summary
+GET /api/projects/{projectId}/workflow
+```
+
+`/api/meta` 必须真实报告AI、指标、地图、报告及原smart-renew复用能力，不得因界面需要伪造ready。`services.legacy`中的每项能力使用`available/degraded/unavailable`状态，并声明适配器、访问模式和主数据源。
+
+`/api/meta.dataSources`返回项目、照片、分析、Candidate、正式问题、SourceAsset、空间分析、报告、ProjectData和外业任务的唯一主数据源规则。正式问题和报告以Business为主，原数据只读兼容并仅允许显式迁移。
+
+`features.projectDataSqlite`、`features.businessLegacyMigration`、`features.migratedReportsReadOnly`、`features.amapProvider`和`features.poiAnalysis`用于声明真实接入状态；具体运行可用性仍分别受Node运行时、smart-renew上游及高德运行配置约束。
+
+`/api/health` 是进程存活检查，不依赖上游；`/api/ready` 检查运行所需的smart-renew数据库与存储连接。AI、地图底图、指标和服务端PDF作为可选能力单独报告，不会因为未配置而把整个Business服务判为不可运行。
+
+`/api/metrics` 返回当前进程启动时间、运行秒数、请求数、错误数和HTTP状态码分布。每个请求完成后输出单行JSON日志，包含 `requestId/method/path/status/durationMs`，不记录请求体和照片内容。
+
+## 3. 项目与空间层级
+
+```http
+GET  /api/projects
+GET  /api/projects/{projectId}
+PATCH /api/projects/{projectId}
+GET  /api/projects/{projectId}/export
+POST /api/projects
+POST /api/projects/{projectId}/communities
+GET  /api/projects/{projectId}/communities
+PATCH /api/projects/{projectId}/communities/{communityId}
+GET  /api/field/projects/{projectId}/communities
+POST /api/projects/{projectId}/communities/{communityId}/buildings
+GET  /api/projects/{projectId}/communities/{communityId}/buildings
+PATCH /api/projects/{projectId}/communities/{communityId}/buildings/{buildingId}
+GET  /api/field/projects/{projectId}/communities/{communityId}/buildings
+PATCH /api/projects/{projectId}/boundary
+GET   /api/projects/{projectId}/boundary
+```
+
+新项目使用兼容原smart-renew的数字ID，但不会生成边界、照片、问题或分析结果。
+
+项目PATCH可修订名称、区域、类型、范围和说明，并使用 `expectedRevision` 检测冲突；不会覆盖项目边界、小区、楼栋或其他业务集合。
+
+项目导出返回可下载JSON，汇总旧后端照片元数据、分析、问题、报告和Business上传会话、任务、候选、人工复核、正式问题、空间分析及报告。导出清单明确 `includesPhotoBinaries: false`，当前不包含照片二进制。
+
+新建小区只写入人工提供的名称和地址，不生成楼栋、户数和坐标。
+
+Business小区列表包含active和inactive记录。PATCH可修正名称和地址，或软停用/恢复小区；已有楼栋、照片和问题引用保持稳定。修改使用 `expectedRevision` 检测并发冲突。
+
+新增楼栋可保存名称、户数、单元数和层数，且必须属于当前项目的有效小区。
+
+Business楼栋列表包含active和inactive记录。PATCH可修正楼栋字段，或用 `status: inactive|active` 软停用和恢复；楼栋ID不会变化，已有照片引用不会被物理删除。修改使用 `expectedRevision` 检测并发冲突。
+
+边界请求：
+
+```json
+{
+  "coordinates": [
+    [108.94, 34.26],
+    [108.96, 34.26],
+    [108.96, 34.28],
+    [108.94, 34.28]
+  ],
+  "crs": "WGS84",
+  "updatedBy": "录入人员",
+  "expectedRevision": 3
+}
+```
+
+边界接口执行：
+
+- 经度、纬度范围校验；
+- 至少3个不同点；
+- 最大5000点；
+- 闭合重复点清理；
+- 自相交检测；
+- 零面积检测；
+- WGS84或GCJ02坐标系校验；
+- 项目修订冲突检测；
+- 面积和中心点计算。
+
+每次通过Business保存边界后，同时写入不可覆盖的边界修订快照；GET返回按项目修订倒序排列的坐标、坐标系、面积、中心、更新人员与时间。迁移前已存在但未经过Business保存的旧边界不会被伪造成历史版本。
+
+### 3.1 高德地图运行配置与地址定位
+
+```http
+GET  /api/gis/config
+POST /api/projects/{projectId}/gis/geocode
+```
+
+`/api/gis/config`只返回浏览器高德JS SDK所需的Web端Key、SecurityCode及功能可用状态，不返回服务端`AMAP_WEB_SERVICE_KEY`。未配置时`browser/geocoding/poi.ready`如实为`false`，前端保留真实经纬度和GeoJSON录入能力，但不创建默认地图边界。
+
+地址定位由BFF使用高德Web服务代理，结果明确声明为GCJ-02。地址点只用于调整地图视野，不会自动扩展成项目边界。地图绘制得到GCJ-02坐标草稿，最终仍通过现有边界PATCH执行几何校验、项目revision检测和修订留痕。
+
+### 3.2 ProjectData复用接口
+
+```http
+GET  /api/projects/{projectId}/project-data
+POST /api/projects/{projectId}/project-data
+GET  /api/projects/{projectId}/project-data/export
+POST /api/projects/{projectId}/project-data/sqlite-import
+GET  /api/projects/{projectId}/project-data/imports
+POST /api/projects/{projectId}/project-data/rebuild
+GET  /api/projects/{projectId}/project-data/sqlite-export
+```
+
+查询支持原接口的`type/tag/communityId/buildingId/referenceId/q`过滤。POST接收ProjectData记录数组或`envelope.records`，支持`append/replace`模式；跨项目导入时会重定向记录ID和记录间引用。
+
+SQLite文件必须先作为SourceAsset上传，再以`assetId`、`importedBy`和`clientRequestId`显式导入。服务端复用原版表映射、字段转换和引用重建规则，支持原业务已知表及`project_data_index`交换表；每个ProjectData记录保存SourceAsset ID、修订和内容哈希。导入完成后调用原ProjectData索引重建接口，运行记录可通过`imports`查询。单文件沿用SourceAsset 20MB限制，单次最多转换20000条记录。
+
+`sqlite-export`返回真实`application/vnd.sqlite3`文件，包含`project_data_meta`和`project_data_index`。服务端SQLite能力依赖Node.js 22.13或更高版本；当前使用Node内置SQLite接口，不能在更低运行时误报可用。
+
+### 3.3 外业复用接口
+
+```http
+GET  /api/projects/{projectId}/field/communities
+GET  /api/projects/{projectId}/field/communities/{communityId}/buildings
+POST /api/projects/{projectId}/field/tasks
+GET  /api/projects/{projectId}/field/tasks
+GET  /api/projects/{projectId}/field/tasks/{taskId}
+```
+
+任务主体始终保存在原smart-renew。Business只保存项目与任务ID引用，用于恢复列表；列表读取时重新向原服务取得任务主体。上游任务缺失时返回`errors`，不得用Business引用伪造任务内容。
+
+### 3.4 Legacy迁移复用接口
+
+```http
+GET  /api/projects/{projectId}/legacy-migration
+POST /api/projects/{projectId}/legacy-migration
+```
+
+GET同时返回原迁移预检、Business迁移计划和运行审计。计划区分可迁移、已迁移和“源数据在迁移后发生变化”的冲突项。
+
+POST必须提供`clientRequestId`、`executedBy`和`confirmed: true`，相同请求编号幂等返回。执行顺序为：先调用原smart-renew整理嵌入照片、标注图和旧问题，再读取旧OfficialIssue及旧报告并迁入Business主仓储。迁移问题保留来源指纹和旧编码，但当前`indicatorCode`仍为`null`，不会恢复旧指标映射。迁移报告分配新的Business版本号，完整保留原快照并标记`migration.readOnly: true`，PATCH返回`MIGRATED_REPORT_READ_ONLY`。源指纹变化时整个Business迁移在写入前以409冲突停止，不静默覆盖。
+
+## 4. 照片与持久化上传会话
+
+```http
+GET  /api/photos?projectId={projectId}&includeInactive={true|false}
+PATCH /api/projects/{projectId}/photos/{photoId}
+POST  /api/projects/{projectId}/photos/batch-metadata
+POST /api/photos/upload
+GET  /api/photos/{photoId}/content
+GET  /api/uploads?projectId={projectId}
+POST /api/uploads
+GET  /api/uploads/{uploadId}
+PUT  /api/uploads/{uploadId}
+POST /api/uploads/{uploadId}/cancel
+```
+
+浏览器先创建持久化上传会话，再把原始文件二进制写入 `PUT /api/uploads/{uploadId}`。BFF当前仍通过适配层转换后写入原smart-renew文件存储：
+
+- JPEG、PNG或WebP；
+- 单张不超过12MB；
+- 必须绑定当前项目中的真实小区；
+- 可以进一步绑定该小区中的真实楼栋；
+- `clientRequestId` 支持幂等创建；
+- 会话持久化 `ready/uploading/completed/failed/canceled`、尝试次数、已接收字节、文件哈希和稳定照片ID；
+- `kind: annotated` 会话额外保存 `analysisId/sourcePhotoId/candidateIds/imageIndex/createdBy` 派生关系，并校验分析、原图和候选归属；
+- 失败会话保留且允许使用同一会话重试；
+- 刷新页面后可恢复查看上传队列；
+- BFF同源代理 `GET /api/photos/{photoId}/content`，供照片预览和Canvas安全读取；
+- 标注派生照片默认不进入现场原图列表、资料完成度、AI照片选择和报告原始证据快照；治理查询可显式使用`includeDerived=true`读取并追溯；
+- 文件保存到原smart-renew本地文件存储；
+- 最终仍应把BFF存储适配器替换为对象存储分片或预签名直传。
+
+照片治理PATCH不改写原smart-renew照片记录或二进制文件，而是在Business仓储中保存可修订覆盖层。可修订字段包括显示名称、小区/楼栋绑定、拍摄时间、经纬度、坐标系、治理备注和 `active|inactive` 状态；请求必须提供治理人员，并可用 `expectedRevision` 检测并发冲突。
+
+JPEG上传完成时，BFF会在服务端解析 `DateTimeOriginal/DateTimeDigitized/DateTime` 和GPS经纬度。提取成功后以“系统EXIF解析”写入照片治理覆盖层，并分别保存 `capturedAtSource`、`coordinateSource`；EXIF时间不含时区时记录为时区未知，不擅自换算。人工表单再次修订相应字段后来源变为 `manual`。无EXIF、格式损坏或不支持的PNG/WebP不会阻断上传，也不会产生备用坐标。
+
+批量治理接口每次接受1—200项 `photoId/longitude/latitude/capturedAt?/expectedRevision` 和统一 `updatedBy`。同批次照片ID不可重复；后端逐项调用同一照片治理规则，返回 `updated|failed`、新修订号或明确错误。部分失败使用HTTP 207，成功项不回滚，失败项可按返回清单修正后重试。Business工作台支持对应CSV清单输入，并在部分失败后只保留失败行。
+
+普通照片列表默认隐藏已停用照片；治理工作台使用 `includeInactive=true` 查看并恢复停用记录。工作流统计、AI任务和人工问题证据只接受使用中的照片，引用停用照片创建AI任务时返回 `PHOTO_INACTIVE`。项目JSON导出在 `business.photoMetadata` 中包含治理覆盖记录，但仍不包含照片二进制。
+
+### 4.1 通用资料资产
+
+```http
+GET   /api/projects/{projectId}/assets?includeInactive=true
+POST  /api/projects/{projectId}/assets
+PATCH /api/projects/{projectId}/assets/{assetId}
+PUT   /api/assets/{assetId}/content
+GET   /api/assets/{assetId}/content
+GET   /api/assets/{assetId}/preview
+POST  /api/projects/{projectId}/boundary/import
+```
+
+资料资产采用两步上传：先POST登记文件名、MIME、字节数、分类、可选小区、上传人员和 `clientRequestId`，再PUT原始二进制。当前支持PDF、JSON/GeoJSON、CSV、TXT、XLSX、DOCX和ZIP，单个1字节—20MB；BFF校验声明大小和MIME，完成后记录SHA-256。大小或MIME失败会持久化失败原因；前端重新选择同名、同大小、同类型、同分类和同归属文件时续传原资产，不重复登记。已完成资产的相同内容PUT幂等返回，不同内容禁止覆盖；同项目新资产命中已有SHA-256时保存为重复引用，不再写第二份二进制。资产支持乐观修订、软停用和恢复，治理操作必须填写本次操作人员。
+
+当前二进制保存在Business本地文件仓储，项目导出包含 `business.sourceAssets` 元数据及 `includesSourceAssetBinaries: false` 声明，不把二进制嵌入JSON。对象存储、分片上传和重复文件合并仍是待接入能力。
+
+CSV、JSON和GeoJSON可请求只读结构预览。CSV支持引号、转义引号和逗号字段，返回字段、总行数及最多200行；JSON数组返回字段和样例行，GeoJSON返回要素数、几何类型和属性键，不回传整份坐标。预览不自动写入业务对象，后续字段映射引擎必须在用户明确确认映射后单独导入。
+
+GIS分类的JSON/GeoJSON资产可通过边界导入接口转成真实项目边界。只接受一个无孔洞Polygon，单面MultiPolygon可兼容；多个面、分离MultiPolygon、孔洞或无Polygon会明确拒绝，不静默选择。边界版本保存来源资产ID和内容哈希，GeoJSON按WGS84处理。
+
+### 4.2 资料完整度校验
+
+```http
+GET  /api/projects/{projectId}/collection/validation
+POST /api/projects/{projectId}/collection/validate
+GET  /api/projects/{projectId}/collection/validation-runs
+```
+
+GET实时计算当前资料状态。POST需要 `validatedBy`，把同一规则结果保存为不可覆盖的人工校验快照；历史记录和项目JSON导出均包含该快照。
+
+阶段01的完成状态不再由“照片数量大于0”决定。当前6个必需项为项目档案、有效小区、项目边界、使用中照片、照片空间归属和上传队列已结束；照片坐标、楼栋台账、辅助资料和失败上传治理是建议项，只形成警告。必需项未全部通过时，阶段01保持 `in_progress` 或 `ready`，不会伪装为已完成。
+
+## 5. AI分析任务
+
+```http
+GET  /api/analysis-records?projectId={projectId}
+POST /api/projects/{projectId}/analyses
+GET  /api/projects/{projectId}/analysis-jobs
+POST /api/projects/{projectId}/analysis-jobs
+GET  /api/analysis-jobs/{jobId}
+GET  /api/analysis-jobs/{jobId}/candidates
+POST /api/analysis-jobs/{jobId}/cancel
+POST /api/analysis-jobs/{jobId}/retry
+```
+
+前端业务入口使用异步任务接口。创建任务：
+
+```json
+{
+  "photoIds": ["PHOTO-..."],
+  "analysisType": "综合巡检分析",
+  "description": "本次重点",
+  "clientRequestId": "前端生成的UUID"
+}
+```
+
+限制：
+
+- 单个任务至少1张，服务端按每20张自动拆批；
+- 每批状态、照片证据快照、模型、requestId、usage和promptVersion写入AnalysisJob；
+- 全部批次成功后跨批合并，并按同照片、同分类、BBox IoU或标题归一化去重；
+- 任一批次失败时整个任务失败，部分结果不会进入人工复核；
+- AI未配置时返回 `AI_NOT_CONFIGURED`；
+- 模型非JSON结果返回 `AI_RESPONSE_INVALID`；
+- 不生成回退候选；
+- 持久化任务状态为 `queued/running/completed/failed/canceled`，查询和工作流可根据当前照片证据派生 `stale`；
+- 任务创建时保存照片内容哈希、治理修订、归属和坐标快照；
+- 照片停用、治理修订或内容变化后，已完成任务返回 `stale` 和明确 `staleReasons`；
+- 尚未归档的stale候选必须重新分析后才能进入人工复核；
+- 服务重启后会把未结束任务恢复到队列；
+- 前端轮询任务状态，刷新页面不丢失任务；
+- 完成后候选问题独立写入Business仓储，并通过任务候选接口读取；
+- 排队和失败任务可取消，失败任务可创建子任务重试；
+- 当前版本不支持中断已经发出的模型请求；
+- 旧同步 `POST /analyses` 仅保留兼容，不再由Business前端调用。
+
+## 6. 人工复核和正式问题
+
+```http
+POST /api/analyses/{analysisId}/review/finalize
+GET  /api/analysis-candidates?projectId={projectId}&analysisId={analysisId}&jobId={jobId}
+GET  /api/analysis-candidates/{candidateId}
+PATCH /api/analysis-candidates/{candidateId}
+GET  /api/issues?projectId={projectId}
+POST /api/projects/{projectId}/issues
+PATCH /api/issues/{issueId}
+GET  /api/projects/{projectId}/manual-reviews
+POST /api/projects/{projectId}/manual-reviews
+```
+
+归档请求：
+
+```json
+{
+  "reviewerName": "复核人员",
+  "decisions": [
+    {
+      "candidateId": "CAND-...",
+      "status": "accepted"
+    },
+    {
+      "candidateId": "CAND-...",
+      "status": "excluded"
+    }
+  ],
+  "annotatedPhotos": [{
+    "sourcePhotoId": "PHOTO-...",
+    "annotatedPhotoId": "PHOTO-ANNOTATED-...",
+    "uploadSessionId": "UPL-..."
+  }]
+}
+```
+
+所有候选均可排除，0个正式问题是合法归档结果。
+
+接受且含有效BBox的候选必须按原始照片生成Canvas标注图，并先通过持久化上传会话完成归档。finalize会再次校验上传会话状态和分析/原图/候选来源；缺失或失败时保持分析为`reviewing`，相同客户端请求可继续重试。成功后分析保存`annotationEvidence/annotatedPhotoIds`，正式问题保存`annotatedPhotoId/annotationUploadSessionId`。
+
+候选归档请求允许在 `changes` 中修正标题、描述、证据、分类、风险等级、位置、建议和标注框；后端使用字段白名单，发生修正的接受项记录为 `modified`。
+
+候选PATCH用于归档前逐条保存，要求 `analysisId`、`updatedBy` 和 `expectedRevision`，可同时保存字段修正与 `pending|accepted|excluded` 结论。每次保存递增 `candidateRevision` 并追加审计轨迹；旧分析记录中的候选会在第一次保存时建立独立候选记录并同步回分析，刷新页面不会丢失。分析归档后候选不可再修改，最终归档会再追加 `candidate_archived` 审计。
+
+风险筛选仅改变前端可见候选；“接受当前筛选中的待复核项”逐条调用同一Candidate PATCH，不绕过乐观修订和审计。照片证据已stale时，逐条保存、标注图会话创建和最终归档均返回`AI_ANALYSIS_STALE`。
+
+AI不可用或漏检时可人工补录正式问题。人工复核结论必须显式归档；当正式问题为0时，必须传 `zeroIssueConfirmed: true`，不能把空数据静默当成零问题。正式问题PATCH使用 `expectedRevision` 检测冲突，并追加问题级审计记录。
+
+Business正式问题不再依赖旧问题—指标映射：
+
+```json
+{
+  "indicatorCode": null,
+  "indicatorBindingStatus": "not_integrated"
+}
+```
+
+## 7. GIS基础绑定
+
+```http
+PATCH /api/issues/{issueId}/geometry
+```
+
+请求：
+
+```json
+{
+  "longitude": 108.95,
+  "latitude": 34.27,
+  "crs": "WGS84",
+  "confirmedBy": "GIS人员"
+}
+```
+
+当前支持Business正式问题的人工点坐标，以及真实经纬度矢量预览。项目必须先有有效边界；问题坐标系必须与边界坐标系一致，点位必须位于项目多边形内部或边界线上。前端可选择正式问题后点击矢量预览回填真实经纬度，后端仍会再次做范围、坐标系和边界归属校验。无项目边界时不会生成或推测坐标。请求可带 `expectedGeometryRevision` 防止覆盖他人点位修订，每次成功保存均递增 `geometryRevision` 并追加前后坐标、坐标系、确认人员和时间审计。
+
+参数化空间分析：
+
+```http
+GET  /api/projects/{projectId}/spatial-analyses
+POST /api/projects/{projectId}/spatial-analyses
+```
+
+```json
+{
+  "radiusMeters": 650,
+  "createdBy": "GIS人员"
+}
+```
+
+半径必须由用户在50—10000米间提供，且必须填写实际操作人员；中心默认取真实项目边界中心，也可由接口显式提供。结果保存项目修订、正式问题修订、真实距离和命中ID，不生成固定500/800/1000米结果。Business前端在项目无边界时禁用运行按钮。
+
+高德POI：
+
+```http
+GET  /api/projects/{projectId}/poi-analyses
+POST /api/projects/{projectId}/poi-analyses
+```
+
+```json
+{
+  "category": "residential",
+  "radiusMeters": 1000,
+  "keywords": "小区,家园",
+  "createdBy": "GIS人员",
+  "maxPages": 3
+}
+```
+
+POI请求由BFF使用服务端Web服务Key分页查询。运行记录作为`type: poi-search`写入同一`SpatialAnalysisRepository`，保存查询中心、半径、分类、关键词、Provider、GCJ-02声明、原始POI、过滤/合并数量、清洗规则版本及清洗结果。住宅小区分类默认进一步按真实项目多边形裁剪。自动POI结论不会写入指标分数。
+
+WGS84与GCJ-02转换已接入。原始Geometry保持不变，显示Geometry通过独立
+`CoordinateTransformRecord`保存来源对象、修订、转换方向、方法版本、人员和时间。
+WGS84对象在没有匹配转换记录时不会叠加到高德底图；POI运行仍要求分析中心已明确为
+GCJ-02，避免把显示坐标与业务原始坐标静默混用。
+
+工作流会比较空间运行保存的边界时间、正式问题集合和问题更新时间；输入变化后阶段04返回 `stale` 和原因，要求重新运行。
+
+### 7.1 地图聚合读模型与显示坐标准备
+
+```http
+GET  /api/projects/{projectId}/map-view
+POST /api/projects/{projectId}/map-view/display-transforms
+```
+
+`map-view`统一返回项目边界、正式问题、照片、路线、停留节点和空间运行，支持
+`bounds`、`zoom`、`limit`、风险、类型、问题状态、绑定状态、stale状态、搜索和历史运行
+过滤。每类集合都包含`total/limit/truncated`；路线显示Geometry按缩放级别确定性抽稀，
+不改写原始路线。显示坐标准备接口每次最多处理500个对象，并写入可审计转换记录。
+
+### 7.2 边界、问题和照片几何修订
+
+```http
+GET  /api/projects/{projectId}/boundary-revisions
+GET  /api/issues/{issueId}/geometry-revisions
+POST /api/projects/{projectId}/issues/geometry-batch-confirm
+GET  /api/projects/{projectId}/photos/map-points
+PATCH /api/projects/{projectId}/photos/{photoId}/geometry
+POST /api/projects/{projectId}/photos/geometry-batch
+```
+
+边界支持Polygon、MultiPolygon和孔洞；保存执行闭合、点数、自相交、面积、坐标范围与
+项目revision校验。问题和照片点位支持逐条及1—200条批量修订，返回逐项结果；所有正式
+写入都校验坐标系、边界归属、操作者及乐观修订号。
+
+### 7.3 POI人工复核
+
+```http
+GET  /api/spatial-analyses/{runId}/poi-items
+PATCH /api/spatial-analyses/{runId}/poi-items/{poiId}
+POST /api/spatial-analyses/{runId}/poi-items/batch-review
+```
+
+POI原始、清洗、确认和排除状态均保留。批量复核一次最多500项，先校验全部修订号再原子
+保存，避免部分覆盖；过期分析只读。
+
+### 7.4 踏勘路线、停留节点和照片关联
+
+```http
+GET|POST /api/projects/{projectId}/survey-routes
+GET|PATCH /api/survey-routes/{routeId}
+POST      /api/survey-routes/{routeId}/clean
+GET       /api/survey-routes/{routeId}/stops
+POST      /api/survey-routes/{routeId}/stops/detect
+PATCH     /api/survey-stops/{stopId}
+GET       /api/survey-routes/{routeId}/photo-bindings
+POST      /api/survey-routes/{routeId}/photo-bindings/suggest
+PATCH     /api/photo-route-bindings/{bindingId}
+```
+
+路线可手工录入或从已完成的GPX、GeoJSON、JSON、CSV `SourceAsset`导入，保存原始采样、
+时间、精度、资产ID和内容哈希。清洗、停留检测和照片时空关联均保存规则版本、修订及人工
+确认记录。读取停留节点和照片关联时会对比当前路线修订及照片元数据修订；不一致时派生
+`stale`和`staleReasons`，保留原审核状态用于追溯，要求重新检测或重新建议。
+
+### 7.5 确定性地图快照
+
+```http
+GET|POST /api/projects/{projectId}/map-snapshots
+GET       /api/map-snapshots/{snapshotId}
+GET       /api/map-snapshots/{snapshotId}/content
+POST      /api/map-snapshots/{snapshotId}/retry
+```
+
+快照任务保存用途、样式、视口、可见图层、源对象修订、状态、内容哈希和存储引用。报告
+快照只读取冻结的报告`contentSnapshot`，生成后回写报告引用；非报告快照在源修订变化后
+标记stale。失败任务可重试，不覆盖历史内容。
+
+POST创建和重试均返回HTTP 202，初始状态为`queued`。客户端用详情或项目列表GET轮询
+`queued → running → generated|failed`。冻结的内部生成payload不出现在公开响应中；服务重启会恢复
+未完成任务。
+
+### 7.6 GIS鉴权
+
+生产环境设置`URBAN_HEALTH_AUTH_MODE=required`。可信反向代理必须清除外部同名身份头并
+注入已认证用户、角色和项目范围；BFF按`gis.view`、边界编辑、点位编辑、分析、POI复核、
+路线管理和快照创建等权限执行401/403隔离。required模式下审计人员取认证身份，忽略请求体
+伪造姓名。
+
+### 7.7 生产Provider
+
+`URBAN_HEALTH_PROVIDER=sqlite`时，GIS新增记录写入带WAL、FULL同步、常规索引和RTree空间索引的SQLite数据库，
+批量坐标转换、停留节点和照片路线建议使用数据库事务；`/api/meta`返回实际Provider、
+事务模式和存储模式。`GIS_MAP_SNAPSHOT_PROVIDER=s3`时地图快照内容写入私有S3兼容对象
+存储，使用SigV4且不生成包含密钥的公开URL。本地默认仍为JSON/文件Provider，方便隔离开发，
+但不会在能力声明中伪装成正式数据库或对象存储。
+
+## 8. 指标引擎预留
+
+```http
+GET  /api/indicator-engine/meta
+POST /api/projects/{projectId}/indicator-runs
+```
+
+能力查询返回draft契约。运行入口在未接入时固定返回：
+
+```text
+HTTP 501
+INDICATOR_ENGINE_NOT_INTEGRATED
+```
+
+不得返回演示指标、权重、扣分或综合得分。
+
+### 8.1 标准库只读目录
+
+```http
+GET /api/standards?sourceTable={type}&dimension={code}&q={keyword}&limit={1..200}&offset={n}
+GET /api/standards/indicators
+GET /api/standards/indicators/{code}
+GET /api/standards/problem-types
+GET /api/standards/problem-types/{code}
+GET /api/standards/categories
+GET /api/standards/remediations
+```
+
+目录直接读取原 `city-health-standard-library-v1.js`，当前汇总为412条记录：61个指标、35个问题分类、124个问题类型和124条整改建议，另含维度、要素、严重度和码表记录。查询最多返回200条并保留原记录与`payload`，不会把目录转换成指标运行、综合分或整改任务。
+
+## 9. 报告快照
+
+```http
+GET  /api/reports?projectId={projectId}
+POST /api/projects/{projectId}/reports
+GET  /api/projects/{projectId}/reports/compare?baseReportId={id}&targetReportId={id}
+GET  /api/reports/{reportId}
+PATCH /api/reports/{reportId}
+GET  /api/reports/{reportId}/json
+GET  /api/reports/{reportId}/print
+```
+
+生成请求：
+
+```json
+{
+  "title": "项目城市体检报告",
+  "generatedBy": "报告人员"
+}
+```
+
+必须先存在已归档的人工复核结论。0个正式问题仍允许生成报告。
+
+当前报告是JSON数据快照，不是PDF。指标部分固定记录为：
+
+```json
+{
+  "status": "unavailable",
+  "reason": "indicator_engine_not_integrated",
+  "results": [],
+  "score": null
+}
+```
+
+报告可修订标题、执行摘要、建议和内部备注；PATCH使用 `expectedRevision` 检测并发冲突，并追加修订审计。新报告的`contentSnapshot`冻结项目、小区/楼栋、正式问题、分析、空间结果、原始照片、标注照片和来源ID，`sections`保存动态章节索引。`/json` 返回下载附件；`/print`只读取该版本冻结快照，动态渲染概况、风险、问题、小区、空间、研判、建议、标注照片画廊、指标缺失说明和来源索引，可由浏览器打印或另存为PDF。服务端稳定PDF渲染尚未接入。
+
+新报告保存项目修订、正式问题修订、空间分析引用、照片集合和照片治理修订；这些输入变化后报告列表和阶段06返回 `stale`。旧报告文件仍保留并显示原因；使用当前证据生成更高版本后，最新报告恢复有效，历史过期版本不会被覆盖。
+
+版本比较接口只接受同一项目的两个不同报告，返回标题/摘要/建议/备注差异、项目与问题统计口径差异，以及正式问题、空间分析和照片证据集合的新增、移除或修订。接口返回结构化差异，不修改任一报告版本。
+
+## 10. 数据目录和环境变量
+
+```text
+URBAN_HEALTH_PORT
+URBAN_HEALTH_HOST
+URBAN_HEALTH_DATA_DIR
+SMART_RENEW_API_BASE
+SMART_RENEW_API_TIMEOUT_MS
+AMAP_JS_KEY
+AMAP_JS_SECURITY_CODE
+AMAP_WEB_SERVICE_KEY
+URBAN_HEALTH_PROVIDER
+TCB_ENV
+SCF_NAMESPACE
+```
+
+`AMAP_JS_KEY`和`AMAP_JS_SECURITY_CODE`是高德JS SDK的浏览器端运行凭据；`AMAP_WEB_SERVICE_KEY`只供BFF地址解析和POI查询使用，不通过接口返回。只配置浏览器凭据时可以显示和绘制地图，但地址解析与POI保持不可用；只配置Web服务Key时可以调用BFF地理服务，但前端不显示底图。
+
+`URBAN_HEALTH_PROVIDER`默认是`local`。CloudBase Provider代码支持数据库基础CRUD、文件上传、下载和临时URL，但真实运行还需要`TCB_ENV`或`SCF_NAMESPACE`、CloudBase SDK、Collection、存储权限和部署凭据。`/api/meta.providers`分别报告本地与CloudBase状态，未实际探测生产环境时`productionVerified`始终为`false`。
+
+Business扩展数据默认写入：
+
+```text
+urban-health-business/.data/
+```
+
+该目录被Git忽略。原smart-renew项目、照片和分析记录继续使用其本地数据目录。

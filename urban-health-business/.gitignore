@@ -1,0 +1,11 @@
+node_modules/
+.data/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+*.log
+.runtime/
+apps/demo-v9.1/preview-v9.1.html

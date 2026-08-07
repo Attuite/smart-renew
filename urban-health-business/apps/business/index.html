@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>城市数智体检 · Business</title>
+  <link rel="stylesheet" href="./src/styles/app.css">
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <header class="topbar">
+      <a class="brand" href="/business/" aria-label="城市数智体检Business首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M7 5h18v22H7zM11 10h10M11 15h10M11 20h6"/></svg>
+        </span>
+        <span>
+          <strong>城市数智体检</strong>
+          <small>URBAN HEALTH · BUSINESS</small>
+        </span>
+      </a>
+
+      <div class="environment-badge">
+        <i></i>
+        <span>真实业务模式</span>
+      </div>
+
+      <div class="topbar-actions">
+        <a class="quiet-link" href="/demo/">打开V9.1 Demo</a>
+        <button class="icon-button" id="refreshButton" type="button" aria-label="刷新业务数据">
+          <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="contextbar">
+      <div class="project-picker">
+        <span>当前项目</span>
+        <select id="projectSelect" aria-label="选择项目">
+          <option value="">正在加载项目…</option>
+        </select>
+        <button class="primary-compact-button" id="createProjectButton" type="button">新建项目</button>
+      </div>
+      <div class="service-strip" id="serviceStrip" aria-label="服务连接状态"></div>
+    </section>
+
+    <div class="error-banner" id="errorBanner" hidden>
+      <strong>连接异常</strong>
+      <span id="errorMessage"></span>
+      <button id="dismissErrorButton" type="button">关闭</button>
+    </div>
+
+    <main class="workspace">
+      <aside class="stage-rail" aria-label="六阶段业务导航">
+        <div class="rail-heading">
+          <span>WORKFLOW</span>
+          <strong>六阶段体检</strong>
+        </div>
+        <nav id="stageRail"></nav>
+        <footer>
+          <span>阶段状态来自后端工作流</span>
+          <small>不使用Demo固定结果</small>
+        </footer>
+      </aside>
+
+      <section class="dashboard">
+        <div id="overviewView">
+          <header class="dashboard-header">
+            <div>
+              <span>PROJECT OVERVIEW</span>
+              <h1 id="projectTitle">请选择项目</h1>
+              <p id="projectDescription">Business模式只读取真实项目和真实业务数据。</p>
+            </div>
+            <div class="workflow-summary" id="workflowSummary">
+              <article><span>已完成</span><strong>—</strong><small>/ 6</small></article>
+              <article><span>阻塞</span><strong>—</strong><small>阶段</small></article>
+              <article><span>待接入</span><strong>—</strong><small>模块</small></article>
+            </div>
+          </header>
+
+          <section class="metric-grid" id="metricGrid">
+            <article><span>现场照片</span><strong>—</strong><small>真实入库</small></article>
+            <article><span>AI分析</span><strong>—</strong><small>运行记录</small></article>
+            <article><span>正式问题</span><strong>—</strong><small>人工确认</small></article>
+            <article><span>报告版本</span><strong>—</strong><small>数据快照</small></article>
+          </section>
+
+          <section class="stage-board">
+            <header>
+              <div>
+                <span>LIVE WORKFLOW</span>
+                <h2>全过程业务状态</h2>
+              </div>
+              <p id="workflowTimestamp">等待项目工作流</p>
+            </header>
+            <div class="stage-grid" id="stageGrid"></div>
+          </section>
+        </div>
+
+        <section class="collection-workspace" id="collectionWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <div class="module-header-actions">
+                <button class="back-button" id="backToOverviewButton" type="button">← 返回项目总览</button>
+                <a class="back-button" id="projectExportLink" target="_blank" rel="noopener">导出项目JSON</a>
+              </div>
+              <span>01 / DATA GOVERNANCE</span>
+              <h1>资料上传与治理</h1>
+              <p>先建立真实空间层级，再把现场照片持久化到smart-renew本地后端。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>小区</span><strong id="communityCount">0</strong></article>
+              <article><span>照片</span><strong id="photoCount">0</strong></article>
+              <article><span>通用资料</span><strong id="sourceAssetCount">0</strong></article>
+              <article><span>项目边界</span><strong id="boundaryStatus">未设置</strong></article>
+            </div>
+          </header>
+
+          <section class="work-panel collection-validation-panel">
+            <header>
+              <div><span>COLLECTION VALIDATION</span><h2>资料完整度校验</h2></div>
+              <strong id="collectionValidationScore">等待校验</strong>
+            </header>
+            <div class="collection-validation-checks" id="collectionValidationChecks"></div>
+            <form id="collectionValidationForm" class="collection-validation-form">
+              <label class="form-field"><span>校验人员 <b>*</b></span><input name="validatedBy" maxlength="120" required placeholder="归档本次校验快照"></label>
+              <button class="secondary-button" id="runCollectionValidationButton" type="submit">运行并归档校验</button>
+              <p class="form-error" id="collectionValidationFormError" hidden></p>
+            </form>
+            <div class="collection-validation-history" id="collectionValidationHistory"></div>
+          </section>
+
+          <section class="work-panel project-metadata-panel">
+            <header><span>PROJECT PROFILE</span><h2>项目档案修订</h2></header>
+            <form id="projectMetadataForm">
+              <div class="coordinate-grid">
+                <label class="form-field"><span>项目名称 <b>*</b></span><input name="name" maxlength="120" required></label>
+                <label class="form-field"><span>所在区域</span><input name="area" maxlength="160"></label>
+              </div>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>项目类型</span><select name="type"><option value="residential">住区</option><option value="community">社区</option><option value="block">街区</option><option value="district">片区</option><option value="other">其他</option></select></label>
+                <label class="form-field"><span>体检范围</span><input name="scope" maxlength="500"></label>
+              </div>
+              <label class="form-field"><span>项目说明</span><textarea name="description" maxlength="2000" rows="2"></textarea></label>
+              <button class="primary-button" id="saveProjectMetadataButton" type="submit">保存项目档案</button>
+              <p class="form-error" id="projectMetadataFormError" hidden></p>
+            </form>
+          </section>
+
+          <section class="work-panel boundary-panel">
+            <header><span>PROJECT BOUNDARY</span><h2>项目真实边界</h2></header>
+            <div class="provider-map-shell">
+              <div class="provider-map-toolbar">
+                <form id="boundaryGeocodeForm" class="map-geocode-form">
+                  <input name="city" maxlength="100" placeholder="城市（可选）">
+                  <input name="address" maxlength="300" required placeholder="输入真实地址定位地图">
+                  <button id="locateBoundaryAddressButton" type="submit">地址定位</button>
+                </form>
+                <button id="drawBoundaryButton" type="button">绘制边界</button>
+                <button id="editBoundaryButton" type="button">编辑节点</button>
+                <button id="undoBoundaryButton" type="button">撤销</button>
+                <button id="redoBoundaryButton" type="button">重做</button>
+                <button id="finishBoundaryEditButton" type="button">完成编辑</button>
+                <button id="clearBoundaryDraftButton" type="button">清除绘制草稿</button>
+              </div>
+              <div class="provider-status" id="boundaryMapStatus">正在读取地图运行配置。</div>
+              <div class="provider-map-canvas" id="boundaryMapCanvas" aria-label="项目边界高德地图"></div>
+              <p class="form-error" id="boundaryMapError" hidden></p>
+            </div>
+            <div class="boundary-layout">
+              <form id="boundaryForm">
+                <label class="form-field">
+                  <span>边界坐标 <b>*</b></span>
+                  <textarea id="boundaryCoordinatesInput" name="coordinates" rows="6" required placeholder="每行一个点：经度,纬度&#10;108.9400,34.2600&#10;108.9600,34.2600&#10;108.9600,34.2800"></textarea>
+                </label>
+                <div class="coordinate-grid">
+                  <label class="form-field">
+                    <span>坐标系</span>
+                    <select name="crs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select>
+                  </label>
+                  <label class="form-field">
+                    <span>更新人员 <b>*</b></span>
+                    <input name="updatedBy" maxlength="120" required placeholder="填写实际录入人员">
+                  </label>
+                </div>
+                <button class="primary-button" id="saveBoundaryButton" type="submit">校验并保存边界</button>
+                <p class="form-error" id="boundaryFormError" hidden></p>
+              </form>
+              <div class="boundary-summary" id="boundarySummary">
+                <strong>尚未设置项目边界</strong>
+                <span>不会使用Demo固定项目范围。</span>
+              </div>
+            </div>
+            <div class="boundary-revision-list" id="boundaryRevisionList"></div>
+          </section>
+
+          <div class="collection-layout">
+            <section class="work-panel hierarchy-panel">
+              <header><span>SPATIAL HIERARCHY</span><h2>项目空间层级</h2></header>
+              <div class="community-list" id="communityList"></div>
+              <form class="inline-form" id="communityForm">
+                <label>
+                  <span>新增小区名称</span>
+                  <input name="name" maxlength="160" required placeholder="录入真实小区名称">
+                </label>
+                <label>
+                  <span>地址（可选）</span>
+                  <input name="address" maxlength="300" placeholder="街道、门牌或位置描述">
+                </label>
+                <div class="community-form-actions">
+                  <button id="saveCommunityButton" type="submit">保存小区</button>
+                  <button id="cancelCommunityEditButton" type="button" hidden>取消编辑</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="work-panel building-panel">
+              <header><span>BUILDING INVENTORY</span><h2>楼栋台账</h2></header>
+              <div class="building-toolbar">
+                <label class="form-field">
+                  <span>所属小区</span>
+                  <select id="buildingCommunitySelect"></select>
+                </label>
+              </div>
+              <div class="building-list" id="buildingList"></div>
+              <form class="inline-form" id="buildingForm">
+                <label><span>楼栋名称</span><input name="name" maxlength="160" required placeholder="例如：1号楼"></label>
+                <div class="building-count-grid">
+                  <label><span>户数</span><input name="householdCount" type="number" min="0" step="1" placeholder="可选"></label>
+                  <label><span>单元数</span><input name="unitCount" type="number" min="0" step="1" placeholder="可选"></label>
+                  <label><span>层数</span><input name="floorCount" type="number" min="0" step="1" placeholder="可选"></label>
+                </div>
+                <div class="building-form-actions">
+                  <button id="saveBuildingButton" type="submit">保存楼栋</button>
+                  <button id="cancelBuildingEditButton" type="button" hidden>取消编辑</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="work-panel upload-panel">
+              <header><span>PHOTO ARCHIVE</span><h2>现场照片入库</h2></header>
+              <form id="photoUploadForm">
+                <label class="form-field">
+                  <span>关联小区 <b>*</b></span>
+                  <select id="uploadCommunitySelect" name="communityId" required></select>
+                </label>
+                <label class="form-field">
+                  <span>关联楼栋（可选）</span>
+                  <select id="uploadBuildingSelect" name="buildingId"></select>
+                </label>
+                <label class="drop-field" id="photoDropField">
+                  <input id="photoFileInput" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                  <strong>选择真实现场照片</strong>
+                  <span>JPEG / PNG / WebP；单张不超过12MB</span>
+                </label>
+                <div class="upload-selection" id="uploadSelection">尚未选择文件</div>
+                <button class="primary-button" id="uploadPhotosButton" type="submit">上传并归档</button>
+                <p class="form-error" id="photoUploadError" hidden></p>
+              </form>
+              <div class="upload-session-list" id="uploadSessionList"></div>
+            </section>
+
+            <section class="work-panel source-asset-panel">
+              <header class="source-asset-header">
+                <div><span>SOURCE ASSETS</span><h2>调查表、GIS与文档资料</h2></div>
+                <div class="module-header-actions">
+                  <button class="secondary-button compact-button" id="rebuildProjectDataButton" type="button">同步数据索引</button>
+                  <button class="secondary-button compact-button" id="exportProjectDataSqliteButton" type="button">导出SQLite</button>
+                </div>
+              </header>
+              <form id="sourceAssetForm">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>资料分类</span><select name="category"><option value="gis">GIS数据</option><option value="survey">调查表</option><option value="document">文档</option><option value="drone">无人机资料</option><option value="other">其他</option></select></label>
+                  <label class="form-field"><span>关联小区（可选）</span><select id="sourceAssetCommunitySelect" name="communityId"><option value="">项目级资料</option></select></label>
+                </div>
+                <label class="drop-field">
+                  <input id="sourceAssetFileInput" name="asset" type="file" accept=".pdf,.json,.geojson,.gpx,.csv,.db,.sqlite,.sqlite3,.txt,.xlsx,.docx,.zip">
+                  <strong>选择真实资料文件</strong>
+                  <span>PDF、JSON/GeoJSON、GPX、CSV、SQLite、TXT、XLSX、DOCX、ZIP；单个不超过20MB</span>
+                </label>
+                <div class="upload-selection" id="sourceAssetSelection">尚未选择文件</div>
+                <label class="form-field"><span>资料备注</span><textarea name="notes" maxlength="2000" rows="2"></textarea></label>
+                <label class="form-field"><span>上传人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+                <button class="primary-button" id="uploadSourceAssetButton" type="submit">上传资料资产</button>
+                <p class="form-error" id="sourceAssetFormError" hidden></p>
+              </form>
+              <label class="form-field source-asset-governance">
+                <span>资料治理人员（停用、恢复或导入边界时必填）</span>
+                <input id="sourceAssetGovernanceBy" maxlength="120" placeholder="填写本次操作人员">
+              </label>
+              <div class="source-asset-list" id="sourceAssetList"></div>
+              <div class="source-asset-preview" id="sourceAssetPreview">
+                <p class="workspace-empty">选择CSV、JSON或GeoJSON资料可预览结构；SQLite资料可导入ProjectData并重建引用。</p>
+              </div>
+            </section>
+
+            <section class="work-panel field-task-panel">
+              <header><span>FIELD COLLECTION</span><h2>外业采集任务</h2></header>
+              <form id="fieldTaskForm">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>任务编号 <b>*</b></span><input name="clientTaskId" maxlength="80" required placeholder="例如：SURVEY-2026-001"></label>
+                  <label class="form-field"><span>采集人员 <b>*</b></span><input name="collectorId" maxlength="120" required></label>
+                </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>关联小区 <b>*</b></span><select id="fieldTaskCommunitySelect" name="communityId" required></select></label>
+                  <label class="form-field"><span>关联楼栋（可选）</span><select id="fieldTaskBuildingSelect" name="buildingId"><option value="">小区级任务</option></select></label>
+                </div>
+                <label class="form-field"><span>任务说明</span><textarea name="description" maxlength="1000" rows="2"></textarea></label>
+                <button class="primary-button" id="createFieldTaskButton" type="submit">创建外业任务</button>
+                <p class="form-error" id="fieldTaskFormError" hidden></p>
+              </form>
+              <div class="field-task-list" id="fieldTaskList"></div>
+            </section>
+          </div>
+
+          <section class="work-panel photo-library">
+            <header>
+              <div><span>REAL PROJECT DATA</span><h2>已归档照片</h2></div>
+              <button class="secondary-button" id="refreshCollectionButton" type="button">刷新列表</button>
+            </header>
+            <div class="photo-grid" id="photoGrid"></div>
+            <form id="photoMetadataForm" class="photo-metadata-form">
+              <header><span>PHOTO GOVERNANCE</span><h2>照片治理信息修订</h2></header>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>照片</span><select id="photoMetadataSelect" name="photoId" required></select></label>
+                <label class="form-field"><span>显示名称</span><input name="displayName" maxlength="240"></label>
+              </div>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>关联小区</span><select id="photoMetadataCommunitySelect" name="communityId" required></select></label>
+                <label class="form-field"><span>关联楼栋</span><select id="photoMetadataBuildingSelect" name="buildingId"></select></label>
+              </div>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>经度（可选）</span><input name="longitude" type="number" min="-180" max="180" step="any"></label>
+                <label class="form-field"><span>纬度（可选）</span><input name="latitude" type="number" min="-90" max="90" step="any"></label>
+              </div>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>拍摄时间（可选）</span><input name="capturedAt" type="datetime-local"></label>
+                <label class="form-field"><span>治理状态</span><select name="status"><option value="active">使用中</option><option value="inactive">已停用</option></select></label>
+              </div>
+              <label class="form-field"><span>治理备注</span><textarea name="notes" maxlength="2000" rows="2"></textarea></label>
+              <label class="form-field"><span>治理人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+              <button class="primary-button" id="savePhotoMetadataButton" type="submit">保存照片治理信息</button>
+              <p class="form-error" id="photoMetadataFormError" hidden></p>
+            </form>
+            <form id="photoBatchForm" class="photo-batch-form">
+              <header><span>BATCH LOCATION</span><h2>照片坐标清单批量治理</h2></header>
+              <p class="form-note">每行：照片ID,经度,纬度,拍摄时间（可空）。支持1—200行；逐项返回结果，不会因部分成功隐藏失败项。</p>
+              <label class="form-field"><span>CSV坐标清单 <b>*</b></span><textarea name="csv" rows="5" required placeholder="PHOTO-...,108.9501,34.2701,2026-07-26T12:30:00"></textarea></label>
+              <label class="form-field"><span>批量治理人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+              <button class="primary-button" id="applyPhotoBatchButton" type="submit">校验并批量保存</button>
+              <p class="form-error" id="photoBatchResult" hidden></p>
+            </form>
+          </section>
+
+          <aside class="deferred-capabilities">
+            <strong>本模块尚待接入</strong>
+            <span>高德GCJ-02边界绘制、地址定位和外业任务工作台已接入。仍待WebP EXIF、时区校正、对象存储直传、断点续传和复杂资料内容解析；缺失或解析失败时不会生成假值。</span>
+          </aside>
+        </section>
+
+        <section class="analysis-workspace" id="analysisWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <button class="back-button" id="backFromAnalysisButton" type="button">← 返回项目总览</button>
+              <span>02 / AI ANALYSIS</span>
+              <h1>AI智能识别</h1>
+              <p>从当前项目的真实照片创建分析，候选问题和统计仅来自模型实际返回。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>可分析照片</span><strong id="analyzablePhotoCount">0</strong></article>
+              <article><span>分析批次</span><strong id="analysisCount">0</strong></article>
+              <article><span>候选问题</span><strong id="candidateCount">0</strong></article>
+            </div>
+          </header>
+
+          <div class="capability-banner" id="aiCapabilityBanner">
+            <i></i>
+            <div><strong id="aiCapabilityTitle">正在读取AI能力</strong><span id="aiCapabilityMessage"></span></div>
+          </div>
+
+          <div class="analysis-layout">
+            <section class="work-panel analysis-setup">
+              <header><span>ANALYSIS INPUT</span><h2>选择真实照片</h2></header>
+              <form id="analysisForm">
+                <div class="analysis-photo-picker" id="analysisPhotoPicker"></div>
+                <label class="form-field">
+                  <span>分析类型</span>
+                  <select name="analysisType">
+                    <option value="综合巡检分析">综合巡检分析</option>
+                    <option value="建筑外立面隐患识别">建筑外立面隐患识别</option>
+                    <option value="结构安全可见风险初筛">结构安全可见风险初筛</option>
+                    <option value="屋面渗漏与防水问题识别">屋面渗漏与防水问题识别</option>
+                    <option value="公共设施损坏识别">公共设施损坏识别</option>
+                    <option value="消防安全隐患排查">消防安全隐患排查</option>
+                    <option value="电气与燃气可见风险排查">电气与燃气可见风险排查</option>
+                    <option value="道路与无障碍问题识别">道路与无障碍问题识别</option>
+                  </select>
+                </label>
+                <label class="form-field">
+                  <span>重点关注（可选）</span>
+                  <textarea name="description" maxlength="1000" rows="3" placeholder="只写本次真实分析需要关注的内容"></textarea>
+                </label>
+                <button class="primary-button" id="startAnalysisButton" type="submit">开始真实AI分析</button>
+                <p class="form-error" id="analysisFormError" hidden></p>
+              </form>
+            </section>
+
+            <section class="work-panel analysis-results">
+              <header><span>DYNAMIC RESULT</span><h2>最近一次识别结果</h2></header>
+              <div class="analysis-result-summary" id="analysisResultSummary"></div>
+              <div class="candidate-list" id="candidateList"></div>
+            </section>
+          </div>
+
+          <section class="work-panel analysis-history">
+            <header>
+              <div><span>PERSISTED RUNS</span><h2>分析历史</h2></div>
+              <button class="secondary-button" id="refreshAnalysisButton" type="button">刷新记录</button>
+            </header>
+            <div id="analysisHistoryList"></div>
+          </section>
+
+          <aside class="deferred-capabilities">
+            <strong>当前任务能力与剩余增强</strong>
+            <span>已支持持久化异步任务、刷新恢复、排队任务取消、失败任务重试和候选独立存储。仍待补充运行中模型请求取消、分页、原始响应归档、模型与提示词版本管理及超大批次拆分。</span>
+          </aside>
+        </section>
+
+        <section class="review-workspace" id="reviewWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <button class="back-button" id="backFromReviewButton" type="button">← 返回项目总览</button>
+              <span>03 / HUMAN REVIEW</span>
+              <h1>人工复核</h1>
+              <p>逐项接受或排除AI候选；只有人工接受的内容才会成为正式问题。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>待复核</span><strong id="pendingReviewCount">0</strong></article>
+              <article><span>接受</span><strong id="acceptedReviewCount">0</strong></article>
+              <article><span>排除</span><strong id="excludedReviewCount">0</strong></article>
+            </div>
+          </header>
+
+          <div class="review-zero-note">
+            <strong>允许零问题结论</strong>
+            <span>如果全部候选均不成立，可全部排除并归档；系统不会强制制造一个正式问题。</span>
+          </div>
+
+          <form id="reviewForm">
+            <section class="work-panel review-candidates">
+              <header><span>ANALYSIS CANDIDATES</span><h2 id="reviewBatchTitle">待复核候选</h2></header>
+              <div class="review-toolbar">
+                <label class="form-field">
+                  <span>风险筛选</span>
+                  <select id="reviewRiskFilter">
+                    <option value="all">全部风险</option>
+                    <option value="high">仅高风险</option>
+                    <option value="medium">仅中风险</option>
+                    <option value="low">仅低风险</option>
+                  </select>
+                </label>
+                <span id="reviewFilterSummary">显示全部候选</span>
+                <button class="secondary-button compact-button" id="acceptVisibleCandidatesButton" type="button">接受当前筛选中的待复核项</button>
+              </div>
+              <div id="reviewCandidateList"></div>
+            </section>
+
+            <section class="review-finalize-bar">
+              <label class="form-field">
+                <span>复核人员 <b>*</b></span>
+                <input name="reviewerName" maxlength="120" required placeholder="填写实际复核人员">
+              </label>
+              <button class="primary-button" id="finalizeReviewButton" type="submit">完成复核并归档</button>
+              <p class="form-error" id="reviewFormError" hidden></p>
+            </section>
+          </form>
+
+          <div class="review-manual-layout">
+            <section class="work-panel">
+              <header><span>MANUAL ISSUE</span><h2>人工补录正式问题</h2></header>
+              <p class="form-note">AI不可用或漏检时，允许基于真实现场观察直接补录；不会自动生成问题内容。</p>
+              <form id="manualIssueForm">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>问题标题 <b>*</b></span><input name="title" maxlength="120" required></label>
+                  <label class="form-field"><span>风险等级</span><select name="severity"><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select></label>
+                </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>问题分类</span><input name="categoryName" maxlength="120" placeholder="例如：公共设施"></label>
+                  <label class="form-field"><span>关联照片（可选）</span><select name="originalPhotoId" id="manualIssuePhotoSelect"><option value="">不关联照片</option></select></label>
+                </div>
+                <label class="form-field"><span>问题描述</span><textarea name="description" maxlength="2000" rows="2"></textarea></label>
+                <label class="form-field"><span>现场证据</span><textarea name="evidence" maxlength="2000" rows="2"></textarea></label>
+                <label class="form-field"><span>处置建议（可选）</span><textarea name="suggestion" maxlength="2000" rows="2"></textarea></label>
+                <label class="form-field"><span>补录人员 <b>*</b></span><input name="recordedBy" maxlength="120" required></label>
+                <button class="primary-button" id="createManualIssueButton" type="submit">保存正式问题</button>
+                <p class="form-error" id="manualIssueFormError" hidden></p>
+              </form>
+            </section>
+
+            <section class="work-panel">
+              <header><span>MANUAL CONCLUSION</span><h2>归档人工复核结论</h2></header>
+              <div id="manualReviewSummary"></div>
+              <form id="manualReviewForm">
+                <label class="form-field"><span>复核人员 <b>*</b></span><input name="reviewerName" maxlength="120" required></label>
+                <label class="form-field"><span>复核说明（可选）</span><textarea name="notes" maxlength="2000" rows="3"></textarea></label>
+                <label class="checkbox-field"><input name="zeroIssueConfirmed" type="checkbox"><span>若当前正式问题为0，确认本次结论为“未发现问题”</span></label>
+                <button class="primary-button" id="finalizeManualReviewButton" type="submit">归档人工复核结论</button>
+                <p class="form-error" id="manualReviewFormError" hidden></p>
+              </form>
+            </section>
+          </div>
+
+          <aside class="deferred-capabilities">
+            <strong>后续增强</strong>
+            <span>已支持风险筛选、批量接受、BBox预览、标注图归档、候选字段修正、逐条保存与修订审计、人工补录问题和人工零问题结论。仍待补充附件、多人协作锁、批次级完整审计查询和问题合并拆分。</span>
+          </aside>
+        </section>
+
+        <section class="gis-workspace" id="gisWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <button class="back-button" id="backFromGisButton" type="button">← 返回项目总览</button>
+              <span>04 / GIS & ISSUES</span>
+              <h1>GIS落图与问题清单</h1>
+              <p>正式问题是唯一输入；支持高德GCJ-02底图与真实经纬度人工绑定，不使用西安静态图或百分比坐标。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>正式问题</span><strong id="gisIssueCount">0</strong></article>
+              <article><span>已定位</span><strong id="locatedIssueCount">0</strong></article>
+              <article><span>待定位</span><strong id="unlocatedIssueCount">0</strong></article>
+            </div>
+          </header>
+
+          <div class="gis-mobile-switch" role="group" aria-label="移动端GIS视图切换">
+            <button id="gisShowListButton" type="button">显示问题清单</button>
+            <button id="gisShowMapButton" type="button">显示地图与编辑</button>
+          </div>
+
+          <div class="gis-layout" id="gisLayout">
+            <section class="work-panel issue-ledger">
+              <header><span>OFFICIAL ISSUE LEDGER</span><h2>正式问题清单</h2></header>
+              <div class="gis-filter-grid">
+                <label><span>搜索</span><input id="gisIssueSearch" type="search" placeholder="编号、标题、分类、小区或楼栋"></label>
+                <label><span>风险</span><select id="gisRiskFilter"><option value="all">全部风险</option><option value="high">高风险</option><option value="medium">中风险</option><option value="low">低风险</option></select></label>
+                <label><span>类型</span><select id="gisTypeFilter"><option value="all">全部类型</option></select></label>
+                <label><span>状态</span><select id="gisStatusFilter"><option value="active">有效</option><option value="stale">过期</option><option value="inactive">停用</option><option value="all">全部状态</option></select></label>
+                <label><span>定位</span><select id="gisBindingFilter"><option value="all">全部状态</option><option value="located">已定位</option><option value="unlocated">待定位</option><option value="pending">待确认</option></select></label>
+                <label><span>陈旧度</span><select id="gisStaleFilter"><option value="all">全部</option><option value="current">当前</option><option value="stale">已过期</option></select></label>
+              </div>
+              <p class="gis-visible-count">当前显示 <strong id="gisVisibleCount">0</strong> 项</p>
+              <div id="gisIssueList"></div>
+            </section>
+
+            <section class="work-panel coordinate-panel">
+              <header><span>MANUAL SPATIAL BINDING</span><h2>经纬度绑定</h2></header>
+              <div class="provider-map-shell">
+                <div class="gis-map-toolbar">
+                  <label><span>底图</span><select id="gisMapStyle"><option value="dark">深色</option><option value="light">浅色</option><option value="satellite-road">卫星 + 道路</option></select></label>
+                  <label><span>点击落点</span><select id="gisPointTarget"><option value="issue">正式问题</option><option value="photo">现场照片</option></select></label>
+                  <button id="gisFitVisibleButton" type="button">适配可见图层</button>
+                  <button id="gisFullscreenButton" type="button">全屏地图</button>
+                  <button id="gisMeasureDistanceButton" type="button">测量距离</button>
+                  <button id="gisMeasureAreaButton" type="button">测量面积</button>
+                  <button id="gisClearMeasureButton" type="button">清除测量</button>
+                  <input id="gisTransformOperator" maxlength="120" placeholder="坐标转换人员">
+                  <button id="gisPrepareDisplayButton" type="button">准备高德显示坐标</button>
+                </div>
+                <div class="provider-status" id="gisMapStatus">正在读取地图运行配置。</div>
+                <div class="provider-map-stage">
+                  <div class="provider-map-canvas provider-map-canvas-large" id="gisMapCanvas" aria-label="正式问题高德地图"></div>
+                  <fieldset class="gis-layer-control" id="gisLayerControl">
+                    <legend>LAYERS / 图层</legend>
+                    <label><input type="checkbox" data-gis-layer="boundary" checked><span>项目边界</span></label>
+                    <label><input type="checkbox" data-gis-layer="boundaryLabel" checked><span>边界标签</span></label>
+                    <label><input type="checkbox" data-gis-layer="boundaryHistory"><span>历史边界对比</span></label>
+                    <label><input type="checkbox" data-gis-layer="issues" checked><span>正式问题</span></label>
+                    <label><input type="checkbox" data-gis-layer="pendingIssues" checked><span>待确认点位</span></label>
+                    <label><input type="checkbox" data-gis-layer="issueLabels" checked><span>问题标签</span></label>
+                    <label><input type="checkbox" data-gis-layer="photos"><span>现场照片</span></label>
+                    <label><input type="checkbox" data-gis-layer="manualPhotos"><span>人工补绑照片</span></label>
+                    <label><input type="checkbox" data-gis-layer="routes"><span>踏勘路线</span></label>
+                    <label><input type="checkbox" data-gis-layer="stops"><span>停留节点</span></label>
+                    <label><input type="checkbox" data-gis-layer="poi"><span>POI设施</span></label>
+                    <label><input type="checkbox" data-gis-layer="excludedPoi"><span>已排除POI</span></label>
+                    <label><input type="checkbox" data-gis-layer="analysisRange"><span>分析范围</span></label>
+                    <label><input type="checkbox" data-gis-layer="distanceLines"><span>距离连线</span></label>
+                  </fieldset>
+                  <div class="gis-map-legend" id="gisMapLegend" aria-live="polite"></div>
+                </div>
+                <p class="form-error" id="gisMapError" hidden></p>
+              </div>
+              <form id="geometryForm">
+                <label class="form-field">
+                  <span>正式问题</span>
+                  <select id="geometryIssueSelect" name="issueId" required></select>
+                </label>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>经度</span><input name="longitude" type="number" min="-180" max="180" step="any" required placeholder="例如 108.95"></label>
+                  <label class="form-field"><span>纬度</span><input name="latitude" type="number" min="-90" max="90" step="any" required placeholder="例如 34.27"></label>
+                </div>
+                <label class="form-field">
+                  <span>坐标系</span>
+                  <select name="crs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select>
+                </label>
+                <label class="form-field"><span>确认人员</span><input name="confirmedBy" maxlength="120" required placeholder="填写实际定位人员"></label>
+                <p class="form-note" id="geometryComparison">选择问题后显示保存前坐标；点击地图或拖拽问题点形成草稿。</p>
+                <button id="cancelGeometryDraftButton" type="button" disabled>取消草稿并恢复</button>
+                <button class="primary-button" id="saveGeometryButton" type="submit">保存真实坐标</button>
+                <p class="form-error" id="geometryFormError" hidden></p>
+              </form>
+
+              <details class="gis-batch-geometry">
+                <summary>批量确认问题点位</summary>
+                <form id="geometryBatchForm">
+                  <label class="form-field">
+                    <span>问题ID、经度、纬度、坐标系</span>
+                    <textarea name="rows" rows="4" required placeholder="每行一条，例如：&#10;ISS-123,108.9501,34.2701,WGS84"></textarea>
+                  </label>
+                  <label class="form-field"><span>确认人员</span><input name="confirmedBy" maxlength="120" required></label>
+                  <p class="form-note">每次1—200条；坐标系留空时使用当前项目边界坐标系。服务端逐条执行边界与修订校验。</p>
+                  <button class="primary-button" id="geometryBatchSubmitButton" type="submit">批量校验并确认</button>
+                  <p class="form-error" id="geometryBatchFormError" hidden></p>
+                </form>
+              </details>
+
+              <form id="photoGeometryForm" class="photo-geometry-map-form">
+                <header><span>PHOTO LOCATION</span><h3>照片点位补绑</h3></header>
+                <label class="form-field"><span>现场照片</span><select id="photoGeometrySelect" name="photoId" required></select></label>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>经度</span><input name="longitude" type="number" min="-180" max="180" step="any" required></label>
+                  <label class="form-field"><span>纬度</span><input name="latitude" type="number" min="-90" max="90" step="any" required></label>
+                </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>坐标系</span><select name="coordinateCrs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select></label>
+                  <label class="form-field"><span>治理人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+                </div>
+                <p class="form-note" id="photoGeometryComparison">选择照片后显示保存前坐标；点击地图或拖拽照片点形成草稿。</p>
+                <button id="cancelPhotoGeometryDraftButton" type="button" disabled>取消草稿并恢复</button>
+                <button class="primary-button" id="savePhotoGeometryButton" type="submit">保存照片点位修订</button>
+                <p class="form-error" id="photoGeometryFormError" hidden></p>
+              </form>
+
+              <div class="spatial-preview" id="spatialPreview"></div>
+              <p class="spatial-click-hint">高德地图可用且项目为GCJ-02时，可直接点击底图回填；矢量预览仍可作为不依赖底图的真实坐标校验视图。保存仍需确认人员。</p>
+              <div class="geometry-audit-list" id="geometryAuditList"></div>
+            </section>
+          </div>
+
+          <section class="work-panel issue-edit-panel">
+            <header><span>ISSUE REVISION</span><h2>正式问题内容修订</h2></header>
+            <form id="issueEditForm">
+              <div class="coordinate-grid">
+                <label class="form-field"><span>正式问题</span><select id="issueEditSelect" name="issueId" required></select></label>
+                <label class="form-field"><span>风险等级</span><select name="severity"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
+              </div>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>标题</span><input name="title" maxlength="120" required></label>
+                <label class="form-field"><span>分类</span><input name="categoryName" maxlength="120"></label>
+              </div>
+              <label class="form-field"><span>描述</span><textarea name="description" maxlength="2000" rows="2"></textarea></label>
+              <label class="form-field"><span>证据</span><textarea name="evidence" maxlength="2000" rows="2"></textarea></label>
+              <label class="form-field"><span>建议</span><textarea name="suggestion" maxlength="2000" rows="2"></textarea></label>
+              <label class="form-field"><span>修改人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+              <button class="primary-button" id="updateIssueButton" type="submit">保存问题修订</button>
+              <p class="form-error" id="issueEditFormError" hidden></p>
+            </form>
+          </section>
+
+          <section class="work-panel spatial-analysis-panel">
+            <header><span>PARAMETRIC SPATIAL RUN</span><h2>自定义半径问题分析</h2></header>
+            <form id="spatialAnalysisForm" class="inline-analysis-form">
+              <label class="form-field"><span>半径（米，50—10000）</span><input name="radiusMeters" type="number" min="50" max="10000" step="10" required placeholder="例如 650"></label>
+              <label class="form-field"><span>操作人员 <b>*</b></span><input name="createdBy" maxlength="120" required placeholder="填写实际分析人员"></label>
+              <button class="primary-button" id="runSpatialAnalysisButton" type="submit">运行真实参数分析</button>
+              <p class="form-error" id="spatialAnalysisFormError" hidden></p>
+            </form>
+            <div id="spatialAnalysisHistory"></div>
+          </section>
+
+          <section class="work-panel poi-analysis-panel">
+            <header><span>AMAP POI ANALYSIS</span><h2>高德POI检索与清洗</h2></header>
+            <form id="poiAnalysisForm" class="poi-analysis-form">
+              <label class="form-field"><span>设施分类</span><select id="poiCategorySelect" name="category" required></select></label>
+              <label class="form-field"><span>检索半径（米）</span><input name="radiusMeters" type="number" min="50" max="10000" step="50" value="1000" required></label>
+              <label class="form-field"><span>自定义关键词（可选）</span><input name="keywords" maxlength="200" placeholder="以逗号分隔；留空使用分类规则"></label>
+              <label class="form-field"><span>操作人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+              <button class="primary-button" id="runPoiAnalysisButton" type="submit">检索并保存分析快照</button>
+              <p class="form-error" id="poiAnalysisFormError" hidden></p>
+            </form>
+            <div class="poi-analysis-history" id="poiAnalysisHistory"></div>
+          </section>
+
+          <section class="work-panel survey-route-panel">
+            <header>
+              <div><span>FIELD SURVEY ROUTE</span><h2>踏勘路线与停留节点</h2></div>
+              <span class="route-panel-count" id="surveyRouteCount">0 条路线</span>
+            </header>
+            <div class="survey-route-layout">
+              <form id="surveyRouteForm" class="survey-route-form">
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>路线名称</span><input name="name" maxlength="200" placeholder="例如：上午踏勘路线"></label>
+                  <label class="form-field"><span>原始坐标系</span><select name="crs"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option></select></label>
+                </div>
+                <label class="form-field">
+                  <span>轨迹采样点 <b>*</b></span>
+                  <textarea name="samples" rows="6" required placeholder="每行：经度,纬度,采集时间,精度米&#10;108.9500,34.2700,2026-07-30T09:00:00+08:00,10"></textarea>
+                </label>
+                <p class="form-note">至少2个真实采样点；时间和精度可空。服务端保存原始采样、来源、清洗规则和修订。</p>
+                <label class="form-field"><span>或从已上传资料导入</span><select id="surveyRouteAssetSelect" name="sourceAssetId"><option value="">手工录入采样点</option></select></label>
+                <label class="form-field"><span>创建人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+                <button class="primary-button" id="createSurveyRouteButton" type="submit">保存踏勘路线</button>
+                <p class="form-error" id="surveyRouteFormError" hidden></p>
+              </form>
+              <div>
+                <label class="form-field">
+                  <span>当前路线</span>
+                  <select id="surveyRouteSelect"><option value="">尚无路线</option></select>
+                </label>
+                <div class="survey-route-actions">
+                  <label class="form-field"><span>操作人员</span><input id="surveyRouteOperator" maxlength="120" placeholder="清洗、检测和确认时必填"></label>
+                  <div>
+                    <button type="button" id="cleanSurveyRouteButton">清洗路线</button>
+                    <button type="button" id="detectSurveyStopsButton">检测停留点</button>
+                    <button type="button" id="suggestPhotoBindingsButton">关联现场照片</button>
+                    <button type="button" id="confirmSurveyRouteButton">确认路线</button>
+                  </div>
+                </div>
+                <p class="form-error" id="surveyRouteActionError" hidden></p>
+                <div id="surveyRouteDetail"></div>
+                <div id="surveyStopList"></div>
+                <div id="photoRouteBindingList"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="work-panel map-snapshot-panel">
+            <header><span>FROZEN MAP OUTPUT</span><h2>报告地图快照</h2></header>
+            <div class="map-snapshot-layout">
+              <form id="mapSnapshotForm">
+                <label class="form-field"><span>快照用途</span><select name="purpose"><option value="report">报告引用</option><option value="export">导出</option><option value="audit">审计留档</option></select></label>
+                <label class="form-field"><span>冻结报告（可选）</span><select id="mapSnapshotReportSelect" name="reportId"><option value="">使用当前地图数据</option></select></label>
+                <label class="form-field"><span>地图样式</span><select name="mapStyle"><option value="dark">深色</option><option value="light">浅色</option><option value="satellite-road">卫星道路视觉</option></select></label>
+                <label class="form-field"><span>生成人员 <b>*</b></span><input name="createdBy" maxlength="120" required></label>
+                <button class="primary-button" id="createMapSnapshotButton" type="submit">生成确定性地图快照</button>
+                <p class="form-error" id="mapSnapshotFormError" hidden></p>
+              </form>
+              <div id="mapSnapshotList"></div>
+            </div>
+          </section>
+
+          <aside class="deferred-capabilities">
+            <strong>GIS专项本地交付已完成</strong>
+            <span>统一Geometry/CRS、复杂边界、图层控制、问题/照片点位、POI复核、踏勘路线、停留节点、照片关联和报告地图快照均已接入。生产发布仍须使用真实高德账号完成在线验收。</span>
+          </aside>
+        </section>
+
+        <section class="indicator-workspace" id="indicatorWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <button class="back-button" id="backFromIndicatorButton" type="button">← 返回项目总览</button>
+              <span>05 / INDICATOR ENGINE</span>
+              <h1>指标核算接入位</h1>
+              <p>当前只提供接口契约和真实输入摘要，不提供10个演示指标、权重、扣分或综合得分。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>正式问题输入</span><strong id="indicatorIssueCount">0</strong></article>
+              <article><span>已定位输入</span><strong id="indicatorLocatedCount">0</strong></article>
+              <article><span>标准指标</span><strong id="standardIndicatorCount">0</strong></article>
+              <article><span>整改建议</span><strong id="standardRemediationCount">0</strong></article>
+              <article><span>引擎状态</span><strong>待接入</strong></article>
+            </div>
+          </header>
+
+          <div class="indicator-contract-grid">
+            <section class="work-panel">
+              <header><span>CAPABILITY</span><h2>接口状态</h2></header>
+              <div class="contract-body">
+                <strong id="indicatorContractStatus">indicator_engine_not_integrated</strong>
+                <p>能力查询：<code>GET /api/indicator-engine/meta</code></p>
+                <p>运行入口：<code>POST /api/projects/{projectId}/indicator-runs</code></p>
+                <p>未接入前运行入口固定返回501，不生成占位结果。</p>
+              </div>
+            </section>
+            <section class="work-panel">
+              <header><span>EXPECTED CONTRACT</span><h2>待接引擎输入输出</h2></header>
+              <div class="contract-body">
+                <p>输入：项目ID、正式问题快照、空间分析快照、外业数据快照。</p>
+                <p>输出：运行ID、真实运行状态、IndicatorResult列表、数据来源与版本。</p>
+                <p>Business版不会预置问题映射、扣分值或权重。</p>
+              </div>
+            </section>
+          </div>
+
+          <div class="standard-library-grid">
+            <section class="work-panel">
+              <header><span>STANDARD LIBRARY</span><h2>国家标准指标目录</h2></header>
+              <p class="standard-library-note" id="standardLibrarySummary">正在读取标准库…</p>
+              <div class="standard-record-list" id="standardIndicatorList"></div>
+            </section>
+            <section class="work-panel">
+              <header><span>REMEDIATION</span><h2>问题整改建议</h2></header>
+              <p class="standard-library-note">只读展示原标准库内容，不自动映射正式问题，不参与评分。</p>
+              <div class="standard-record-list" id="standardRemediationList"></div>
+            </section>
+          </div>
+
+          <aside class="deferred-capabilities">
+            <strong>外部依赖</strong>
+            <span>标准库与整改建议已作为只读依据接入。指标计算仍等待外部引擎；届时补充认证、异步运行、结果Schema、版本与过期传播。</span>
+          </aside>
+        </section>
+
+        <section class="report-workspace" id="reportWorkspace" hidden>
+          <header class="module-header">
+            <div>
+              <button class="back-button" id="backFromReportButton" type="button">← 返回项目总览</button>
+              <span>06 / REPORTS</span>
+              <h1>报告生成与归档</h1>
+              <p>报告使用生成时的真实业务快照；指标未接入会作为数据缺口写入版本。</p>
+            </div>
+            <div class="module-stat-strip">
+              <article><span>报告版本</span><strong id="reportVersionCount">0</strong></article>
+              <article><span>正式问题</span><strong id="reportIssueCount">0</strong></article>
+              <article><span>指标数据</span><strong>未接入</strong></article>
+            </div>
+          </header>
+
+          <div class="report-layout">
+            <section class="work-panel report-create-panel">
+              <header><span>CREATE SNAPSHOT</span><h2>生成报告快照</h2></header>
+              <form id="reportForm">
+                <label class="form-field"><span>报告标题</span><input name="title" maxlength="200" placeholder="默认使用项目名称"></label>
+                <label class="form-field"><span>执行摘要（可选）</span><textarea name="executiveSummary" maxlength="4000" rows="3"></textarea></label>
+                <label class="form-field"><span>建议（可选）</span><textarea name="recommendations" maxlength="4000" rows="3"></textarea></label>
+                <label class="form-field"><span>生成人员 <b>*</b></span><input name="generatedBy" maxlength="120" required placeholder="填写实际操作人员"></label>
+                <button class="primary-button" id="createReportButton" type="submit">生成新版本</button>
+                <p class="form-error" id="reportFormError" hidden></p>
+              </form>
+              <div class="report-warning">
+                <strong>数据完整性说明</strong>
+                <span>当前报告不包含指标结果、权重、扣分和综合得分，也不使用Demo固定统计。</span>
+              </div>
+            </section>
+
+            <section class="work-panel report-preview-panel">
+              <header><span>LATEST SNAPSHOT</span><h2>最近报告版本</h2></header>
+              <div id="reportPreview"></div>
+              <form id="reportEditForm" hidden>
+                <label class="form-field"><span>报告标题</span><input name="title" maxlength="200" required></label>
+                <label class="form-field"><span>执行摘要</span><textarea name="executiveSummary" maxlength="4000" rows="3"></textarea></label>
+                <label class="form-field"><span>建议</span><textarea name="recommendations" maxlength="4000" rows="3"></textarea></label>
+                <label class="form-field"><span>内部备注</span><textarea name="notes" maxlength="4000" rows="2"></textarea></label>
+                <label class="form-field"><span>修改人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
+                <div class="report-actions">
+                  <button class="primary-button" id="updateReportButton" type="submit">保存报告修订</button>
+                  <a class="secondary-button" id="reportJsonLink" target="_blank" rel="noopener">下载JSON</a>
+                  <a class="secondary-button" id="reportPrintLink" target="_blank" rel="noopener">打开打印版</a>
+                </div>
+                <p class="form-error" id="reportEditFormError" hidden></p>
+              </form>
+            </section>
+          </div>
+
+          <section class="work-panel report-history">
+            <header><span>VERSION HISTORY</span><h2>报告版本历史</h2></header>
+            <div id="reportHistoryList"></div>
+          </section>
+
+          <section class="work-panel report-comparison-panel">
+            <header><span>VERSION COMPARISON</span><h2>报告版本比较</h2></header>
+            <form id="reportComparisonForm">
+              <label class="form-field"><span>基准版本</span><select id="baseReportSelect" name="baseReportId"></select></label>
+              <label class="form-field"><span>目标版本</span><select id="targetReportSelect" name="targetReportId"></select></label>
+              <button class="secondary-button" id="compareReportsButton" type="submit">比较版本</button>
+              <p class="form-error" id="reportComparisonFormError" hidden></p>
+            </form>
+            <div class="report-comparison-result" id="reportComparisonResult"></div>
+          </section>
+
+          <aside class="deferred-capabilities">
+            <strong>尚待接入</strong>
+            <span>已支持来源快照、动态章节、风险统计、问题与社区表格、标注照片画廊、摘要与建议编辑、修订审计、版本比较、JSON下载和打印版。仍待接入多模板、自由章节、服务端PDF、审批签发、发布和指标结果章节。</span>
+          </aside>
+        </section>
+      </section>
+
+      <aside class="detail-panel" id="detailPanel">
+        <header>
+          <span id="detailKicker">STAGE DETAIL</span>
+          <strong id="detailTitle">选择一个阶段</strong>
+          <p id="detailDescription">查看该阶段的真实输入、输出、阻塞条件和当前能力。</p>
+        </header>
+
+        <section class="detail-status">
+          <span>当前状态</span>
+          <strong id="detailStatus">未加载</strong>
+        </section>
+
+        <section class="detail-section">
+          <h3>真实输入</h3>
+          <div class="detail-list" id="detailInputs">
+            <p>选择项目后显示</p>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <h3>业务输出</h3>
+          <div class="detail-list" id="detailOutputs">
+            <p>选择项目后显示</p>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <h3>阻塞与说明</h3>
+          <div class="detail-list" id="detailMessages">
+            <p>暂无信息</p>
+          </div>
+        </section>
+
+        <footer>
+          <button id="stageActionButton" type="button" disabled>进入阶段工作台</button>
+          <small id="stageActionHint">当前仅建立统一业务骨架</small>
+        </footer>
+      </aside>
+    </main>
+
+    <div class="loading-layer" id="loadingLayer" hidden>
+      <div class="loader"></div>
+      <strong>正在读取真实业务数据</strong>
+      <span>不会回退到Demo预置结果</span>
+    </div>
+
+    <dialog class="project-dialog" id="projectDialog">
+      <form id="projectForm">
+        <header>
+          <div>
+            <span>NEW BUSINESS PROJECT</span>
+            <h2>建立真实项目档案</h2>
+          </div>
+          <button class="dialog-close" id="closeProjectDialogButton" type="button" aria-label="关闭">×</button>
+        </header>
+
+        <div class="form-grid">
+          <label class="form-field form-field-wide">
+            <span>项目名称 <b>*</b></span>
+            <input id="projectNameInput" name="name" maxlength="120" required placeholder="例如：幸福路片区城市体检">
+          </label>
+          <label class="form-field">
+            <span>所在区域</span>
+            <input name="area" maxlength="160" placeholder="区县、街道或地址">
+          </label>
+          <label class="form-field">
+            <span>项目类型</span>
+            <select name="type">
+              <option value="residential">住区</option>
+              <option value="community">社区</option>
+              <option value="block">街区</option>
+              <option value="district">片区</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
+          <label class="form-field form-field-wide">
+            <span>体检范围说明</span>
+            <input name="scope" maxlength="500" placeholder="文字说明；空间边界稍后在采集工作台绘制">
+          </label>
+          <label class="form-field form-field-wide">
+            <span>项目说明</span>
+            <textarea name="description" maxlength="2000" rows="4" placeholder="填写项目背景、目标或现场情况"></textarea>
+          </label>
+        </div>
+
+        <p class="form-note">这里不会生成示例边界、问题点或分析结果。项目建立后，从资料采集工作台录入真实数据。</p>
+        <p class="form-error" id="projectFormError" hidden></p>
+
+        <footer>
+          <button class="secondary-button" id="cancelProjectButton" type="button">取消</button>
+          <button class="primary-button" id="submitProjectButton" type="submit">建立项目</button>
+        </footer>
+      </form>
+    </dialog>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
