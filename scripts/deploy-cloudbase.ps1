@@ -49,10 +49,9 @@ $stageRoot = Join-Path ([IO.Path]::GetTempPath()) ("smart-renew-deploy-" + [guid
 New-Item -ItemType Directory -Path $stageRoot | Out-Null
 try {
   Copy-Item -LiteralPath $indexPath -Destination (Join-Path $stageRoot 'index.html')
+  Copy-Item -LiteralPath (Join-Path $projectRoot 'assets') -Destination (Join-Path $stageRoot 'assets') -Recurse
   tcb hosting deploy $stageRoot --env-id $target.envId --json
   if ($LASTEXITCODE -ne 0) { throw 'Index upload failed.' }
-  tcb hosting deploy (Join-Path $projectRoot 'assets') assets --env-id $target.envId --json
-  if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed.' }
 } finally {
   if (Test-Path -LiteralPath $stageRoot) {
     Remove-Item -LiteralPath $stageRoot -Recurse -Force
