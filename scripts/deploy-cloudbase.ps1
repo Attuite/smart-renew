@@ -60,8 +60,13 @@ try {
 }
 
 $verifyUrl = "https://$($target.expectedDomain)/?verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
-$response = Invoke-WebRequest -Uri $verifyUrl -UseBasicParsing -TimeoutSec 30
-$onlineTitle = [regex]::Match($response.Content, '<title>(.*?)</title>', 'IgnoreCase').Groups[1].Value
+$webClient = New-Object Net.WebClient
+try {
+  $onlineHtml = [Text.Encoding]::UTF8.GetString($webClient.DownloadData($verifyUrl))
+} finally {
+  $webClient.Dispose()
+}
+$onlineTitle = [regex]::Match($onlineHtml, '<title>(.*?)</title>', 'IgnoreCase').Groups[1].Value
 if ($onlineTitle -ne $target.expectedTitle) {
   throw "Unexpected online title: $onlineTitle"
 }
