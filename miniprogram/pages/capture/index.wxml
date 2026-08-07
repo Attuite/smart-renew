@@ -102,5 +102,20 @@
       {{uploading ? '正在上传本张…' : '上传本张照片'}}
     </button>
     <view wx:if="{{lastError}}" class="submit-error">{{lastError}}</view>
+
+    <view wx:if="{{uploadedPhotos.length}}" class="uploaded-section">
+      <view class="uploaded-section__title">已上传照片</view>
+      <view class="uploaded-photo-grid">
+        <image
+          wx:for="{{uploadedPhotos}}"
+          wx:key="id"
+          src="{{item.previewUrl}}"
+          mode="aspectFill"
+          lazy-load="true"
+          bindtap="previewUploadedPhoto"
+          data-index="{{index}}"
+        />
+      </view>
+    </view>
   </view>
 </view>

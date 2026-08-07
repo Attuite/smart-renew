@@ -71,6 +71,7 @@ Page({
     problemIndex: -1,
     photos: [],
     activePhotoIndex: -1,
+    uploadedPhotos: [],
     uploadedCount: 0,
     maxPhotos: config.maxPhotos,
     uploading: false,
@@ -186,7 +187,9 @@ Page({
       communityIndex: -1,
       buildings: [],
       buildingIndex: -1,
-      householdCount: ''
+      householdCount: '',
+      uploadedPhotos: [],
+      uploadedCount: 0
     });
     await this.loadCommunities();
     this.persistDraft();
@@ -210,6 +213,7 @@ Page({
       this.setData({ communities, communityIndex });
       if (communityIndex >= 0) {
         await this.loadBuildings(preferredBuildingId);
+        await this.loadUploadedPhotos();
       }
     } catch (error) {
       wx.showToast({ title: error.message || '小区读取失败', icon: 'none' });
@@ -228,7 +232,40 @@ Page({
       householdCount: ''
     });
     await this.loadBuildings();
+    await this.loadUploadedPhotos();
     this.persistDraft();
+  },
+
+  async loadUploadedPhotos() {
+    const project = this.data.projects[this.data.projectIndex];
+    const community = this.data.communities[this.data.communityIndex];
+    if (!project || !community) {
+      this.setData({ uploadedPhotos: [], uploadedCount: 0 });
+      return;
+    }
+    try {
+      const result = await api.get(
+        `/api/photos?projectId=${encodeURIComponent(project.id)}&communityId=${encodeURIComponent(community.id)}`
+      );
+      const uploadedPhotos = (result.items || []).map((item) => ({
+        ...item,
+        previewUrl: /^https?:\/\//.test(item.url)
+          ? item.url
+          : `${config.apiBaseUrl}${item.url}`
+      }));
+      this.setData({ uploadedPhotos, uploadedCount: uploadedPhotos.length });
+    } catch (error) {
+      this.setData({ uploadedPhotos: [], uploadedCount: 0 });
+    }
+  },
+
+  previewUploadedPhoto(event) {
+    const current = this.data.uploadedPhotos[event.currentTarget.dataset.index]?.previewUrl;
+    if (!current) return;
+    wx.previewImage({
+      current,
+      urls: this.data.uploadedPhotos.map((item) => item.previewUrl)
+    });
   },
 
   async loadBuildings(preferredBuildingId = '') {
@@ -476,9 +513,9 @@ Page({
         problemGroupIndex: -1,
         problemItems: [],
         problemIndex: -1,
-        uploadedCount: this.data.uploadedCount + 1,
         lastError: ''
       });
+      await this.loadUploadedPhotos();
       this.persistDraft();
       wx.showToast({ title: '本张照片已上传', icon: 'success' });
     } catch (error) {
