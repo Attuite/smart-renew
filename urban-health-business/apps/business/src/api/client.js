@@ -71,6 +71,70 @@ export const api = {
     return request('/api/meta');
   },
 
+  async outcomeSummary() {
+    return request('/api/outcomes/summary');
+  },
+
+  async outcomeProjects(options = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+    }
+    return request(`/api/outcomes/projects${query.toString() ? `?${query}` : ''}`);
+  },
+
+  async outcomeIssues(options = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+    }
+    return request(`/api/outcomes/issues${query.toString() ? `?${query}` : ''}`);
+  },
+
+  async outcomeReports(options = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+    }
+    return request(`/api/outcomes/reports${query.toString() ? `?${query}` : ''}`);
+  },
+
+  async settingsMeta() {
+    return request('/api/settings/meta');
+  },
+
+  async settingsProviders() {
+    return request('/api/settings/providers');
+  },
+
+  async settingsExternalServices() {
+    return request('/api/settings/external-services');
+  },
+
+  async providerHealth() {
+    return request('/api/provider/health');
+  },
+
+  async providerMigrations() {
+    return itemsFrom(await request('/api/provider-migrations'));
+  },
+
+  async aiConfig() {
+    return request('/api/ai/config/meta');
+  },
+
+  async setAiKey(input) {
+    return request('/api/ai/config/key', { method: 'PUT', body: JSON.stringify(input) });
+  },
+
+  async updateAiPreferences(input) {
+    return request('/api/ai/config/preferences', { method: 'PATCH', body: JSON.stringify(input) });
+  },
+
+  async checkAiConfig() {
+    return request('/api/ai/config/health-check', { method: 'POST', body: '{}' });
+  },
+
   async gisConfig() {
     return request('/api/gis/config');
   },
@@ -209,11 +273,38 @@ export const api = {
     return request(`/api/projects/${encodeURIComponent(projectId)}/field/tasks`);
   },
 
+  async fieldProblemTypes(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/problem-types`
+    ));
+  },
+
   async createFieldTask(projectId, input) {
     return request(`/api/projects/${encodeURIComponent(projectId)}/field/tasks`, {
       method: 'POST',
       body: JSON.stringify(input)
     });
+  },
+
+  async createFieldTaskUpload(projectId, taskId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/tasks/${encodeURIComponent(taskId)}/uploads`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+  },
+
+  async completeFieldTask(projectId, taskId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/tasks/${encodeURIComponent(taskId)}/complete`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+  },
+
+  async retryFieldTask(projectId, taskId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/field/tasks/${encodeURIComponent(taskId)}/retry`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
   },
 
   async legacyMigration(projectId) {
@@ -229,6 +320,49 @@ export const api = {
 
   async communities(projectId) {
     return itemsFrom(await request(`/api/projects/${encodeURIComponent(projectId)}/communities`));
+  },
+
+  async residentialDiscoveryRuns(projectId) {
+    return itemsFrom(await request(
+      `/api/projects/${encodeURIComponent(projectId)}/residential-discovery-runs`
+    ));
+  },
+
+  async createResidentialDiscoveryRun(projectId, input) {
+    const payload = await request(
+      `/api/projects/${encodeURIComponent(projectId)}/residential-discovery-runs`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+    return payload?.item || payload;
+  },
+
+  async confirmResidentialDiscoveryRun(projectId, runId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/residential-discovery-runs/${encodeURIComponent(runId)}/confirm`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+  },
+
+  async mergeCommunities(projectId, input) {
+    return request(`/api/projects/${encodeURIComponent(projectId)}/communities/merge`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  async splitCommunity(projectId, communityId, input) {
+    return request(
+      `/api/projects/${encodeURIComponent(projectId)}/communities/${encodeURIComponent(communityId)}/split`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+  },
+
+  async restoreCommunity(projectId, communityId, input) {
+    const payload = await request(
+      `/api/projects/${encodeURIComponent(projectId)}/communities/${encodeURIComponent(communityId)}/restore`,
+      { method: 'POST', body: JSON.stringify(input) }
+    );
+    return payload?.item || payload;
   },
 
   async addCommunity(projectId, input) {
@@ -705,6 +839,32 @@ export const api = {
 
   async standardRemediations(limit = 12) {
     return request(`/api/standards/remediations?limit=${encodeURIComponent(limit)}`);
+  },
+
+  async standardProblemTypes() {
+    return itemsFrom(await request('/api/standards/problem-types'));
+  },
+
+  async standardProblemType(problemCode) {
+    return request(`/api/standards/problem-types/${encodeURIComponent(problemCode)}`);
+  },
+
+  async standardProblemRemediations(problemCode) {
+    return itemsFrom(await request(
+      `/api/standards/problem-types/${encodeURIComponent(problemCode)}/remediations`
+    ));
+  },
+
+  async updateIssueStandardBinding(issueId, input) {
+    const payload = await request(`/api/issues/${encodeURIComponent(issueId)}/standard-binding`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+    return payload?.item || payload;
+  },
+
+  async issueStandardBindingAudit(issueId) {
+    return request(`/api/issues/${encodeURIComponent(issueId)}/standard-binding-audit`);
   },
 
   async reports(projectId) {

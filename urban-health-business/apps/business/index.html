@@ -26,6 +26,8 @@
       </div>
 
       <div class="topbar-actions">
+        <button class="quiet-link" id="outcomeCenterButton" type="button">成果中心</button>
+        <button class="quiet-link" id="settingsButton" type="button">系统设置</button>
         <a class="quiet-link" href="/demo/">打开V9.1 Demo</a>
         <button class="icon-button" id="refreshButton" type="button" aria-label="刷新业务数据">
           <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
@@ -96,6 +98,26 @@
             <div class="stage-grid" id="stageGrid"></div>
           </section>
         </div>
+
+        <section class="global-workspace outcome-workspace" id="outcomeWorkspace" hidden>
+          <header class="module-header">
+            <div><button class="back-button" id="backFromOutcomeButton" type="button">← 返回项目</button><span>OUTCOME CENTER</span><h1>跨项目成果中心</h1><p>所有数字均来自当前可见项目的实时业务记录，不使用Demo汇总。</p></div>
+            <div class="module-stat-strip" id="outcomeStatStrip"></div>
+          </header>
+          <div class="outcome-grid">
+            <section class="work-panel"><header><span>PROJECT STATUS</span><h2>项目工作台概览</h2></header><div id="outcomeProjectList"></div></section>
+            <section class="work-panel"><header><span>ISSUE / REPORT INDEX</span><h2>问题与报告索引</h2></header><div id="outcomeRecordList"></div></section>
+          </div>
+        </section>
+
+        <section class="global-workspace settings-workspace" id="settingsWorkspace" hidden>
+          <header class="module-header"><div><button class="back-button" id="backFromSettingsButton" type="button">← 返回项目</button><span>SYSTEM SETTINGS</span><h1>统一系统设置</h1><p>配置状态只展示可验证结果；已保存的Key不会在此页面或接口中返回。</p></div></header>
+          <div class="settings-grid">
+            <section class="work-panel"><header><span>PROVIDERS</span><h2>数据与对象存储</h2></header><div id="settingsProviderPanel"></div></section>
+            <section class="work-panel"><header><span>EXTERNAL SERVICES</span><h2>外部服务状态</h2></header><div id="settingsExternalPanel"></div></section>
+            <section class="work-panel"><header><span>STANDARD LIBRARY</span><h2>标准库与运行信息</h2></header><div id="settingsMetaPanel"></div></section>
+          </div>
+        </section>
 
         <section class="collection-workspace" id="collectionWorkspace" hidden>
           <header class="module-header">
@@ -194,10 +216,33 @@
             <div class="boundary-revision-list" id="boundaryRevisionList"></div>
           </section>
 
+          <section class="work-panel residential-discovery-panel">
+            <header>
+              <div><span>RESIDENTIAL DISCOVERY</span><h2>边界内住宅小区识别</h2></div>
+              <small>检索结果先进入待确认快照，不会直接写入正式台账。</small>
+            </header>
+            <form id="residentialDiscoveryForm" class="residential-discovery-form">
+              <label class="form-field"><span>操作人员 <b>*</b></span><input name="createdBy" maxlength="120" required placeholder="记录本次识别人员"></label>
+              <label class="form-field"><span>检索半径（米）</span><input name="radiusMeters" type="number" min="50" max="10000" step="50" placeholder="留空后按项目范围估算"></label>
+              <button class="primary-button" id="runResidentialDiscoveryButton" type="submit">识别住宅小区</button>
+            </form>
+            <div class="residential-discovery-runs" id="residentialDiscoveryRuns"></div>
+            <form id="residentialConfirmForm" class="residential-confirm-form">
+              <label class="form-field"><span>确认人员 <b>*</b></span><input name="confirmedBy" maxlength="120" required placeholder="勾选候选后确认入台账"></label>
+              <button class="secondary-button" id="confirmResidentialCandidatesButton" type="submit">确认所选并写入台账</button>
+              <p class="form-error" id="residentialDiscoveryFormError" hidden></p>
+            </form>
+          </section>
+
           <div class="collection-layout">
             <section class="work-panel hierarchy-panel">
               <header><span>SPATIAL HIERARCHY</span><h2>项目空间层级</h2></header>
               <div class="community-list" id="communityList"></div>
+              <div class="community-governance-toolbar">
+                <input id="communityGovernanceBy" maxlength="120" placeholder="合并、拆分、停用或恢复人员">
+                <button id="mergeCommunitiesButton" type="button">合并所选</button>
+                <small>存在照片、任务、问题等下游引用时，服务端会阻断操作。</small>
+              </div>
               <form class="inline-form" id="communityForm">
                 <label>
                   <span>新增小区名称</span>
@@ -305,10 +350,21 @@
                   <label class="form-field"><span>关联小区 <b>*</b></span><select id="fieldTaskCommunitySelect" name="communityId" required></select></label>
                   <label class="form-field"><span>关联楼栋（可选）</span><select id="fieldTaskBuildingSelect" name="buildingId"><option value="">小区级任务</option></select></label>
                 </div>
+                <div class="coordinate-grid">
+                  <label class="form-field"><span>问题类型</span><select id="fieldTaskProblemSelect" name="problemCode"><option value="">一般采集任务</option></select></label>
+                  <label class="form-field"><span>预计照片数</span><input name="photoCount" type="number" min="0" max="200" step="1" value="0"></label>
+                </div>
+                <div class="building-count-grid">
+                  <label><span>涉及楼栋数</span><input name="buildingCount" type="number" min="0" step="1" placeholder="可选"></label>
+                  <label><span>涉及户数</span><input name="householdCount" type="number" min="0" step="1" placeholder="可选"></label>
+                  <label><span>采集时间</span><input name="capturedAt" type="datetime-local"></label>
+                </div>
+                <label class="form-field"><span>现场位置</span><input name="location" maxlength="300" placeholder="门牌、楼栋入口或公共区域"></label>
                 <label class="form-field"><span>任务说明</span><textarea name="description" maxlength="1000" rows="2"></textarea></label>
                 <button class="primary-button" id="createFieldTaskButton" type="submit">创建外业任务</button>
                 <p class="form-error" id="fieldTaskFormError" hidden></p>
               </form>
+              <label class="form-field field-task-operator"><span>上传、完成或重试人员</span><input id="fieldTaskOperationBy" maxlength="120" placeholder="执行任务操作前填写"></label>
               <div class="field-task-list" id="fieldTaskList"></div>
             </section>
           </div>
@@ -377,6 +433,19 @@
             <i></i>
             <div><strong id="aiCapabilityTitle">正在读取AI能力</strong><span id="aiCapabilityMessage"></span></div>
           </div>
+
+          <section class="work-panel ai-config-panel">
+            <header><div><span>USER AI CONFIG</span><h2>当前用户模型配置</h2></div><strong id="aiConfigStatus">尚未配置</strong></header>
+            <form id="aiConfigForm">
+              <label class="form-field"><span>DashScope Key</span><input name="apiKey" type="password" autocomplete="new-password" placeholder="留空只修改偏好；已保存Key不会回显"></label>
+              <label class="form-field"><span>模型</span><select name="model"><option value="qwen3-vl-plus">qwen3-vl-plus</option><option value="qwen3-vl-flash">qwen3-vl-flash</option><option value="qwen-vl-plus">qwen-vl-plus</option><option value="qwen-vl-max">qwen-vl-max</option><option value="qwen2.5-vl-72b-instruct">qwen2.5-vl-72b-instruct</option></select></label>
+              <label class="form-field"><span>超时（毫秒）</span><input name="timeoutMs" type="number" min="10000" max="300000" step="1000" value="120000"></label>
+              <label class="form-field"><span>单批图片</span><input name="maxImagesPerBatch" type="number" min="1" max="20" step="1" value="20"></label>
+              <button class="primary-button" id="saveAiConfigButton" type="submit">保存配置</button>
+              <button class="secondary-button" id="checkAiConfigButton" type="button">健康检查</button>
+              <p class="form-error" id="aiConfigFormError" hidden></p>
+            </form>
+          </section>
 
           <div class="analysis-layout">
             <section class="work-panel analysis-setup">
@@ -660,6 +729,11 @@
               <label class="form-field"><span>描述</span><textarea name="description" maxlength="2000" rows="2"></textarea></label>
               <label class="form-field"><span>证据</span><textarea name="evidence" maxlength="2000" rows="2"></textarea></label>
               <label class="form-field"><span>建议</span><textarea name="suggestion" maxlength="2000" rows="2"></textarea></label>
+              <div class="coordinate-grid">
+                <label class="form-field"><span>标准绑定状态</span><select name="bindingStatus" id="issueBindingStatusSelect"><option value="unbound">未绑定</option><option value="suggested">建议关联</option><option value="confirmed">已确认</option><option value="not-applicable">不适用</option></select></label>
+                <label class="form-field"><span>问题编码（可选）</span><select name="problemCode" id="issueProblemCodeSelect"><option value="">未绑定问题类型</option></select></label>
+              </div>
+              <label class="form-field"><span>整改建议快照</span><select name="remediationId" id="issueRemediationSelect"><option value="">按问题类型选择</option></select><small>指标和整改建议由同一标准库版本派生，不能由前端自由填写。</small></label>
               <label class="form-field"><span>修改人员 <b>*</b></span><input name="updatedBy" maxlength="120" required></label>
               <button class="primary-button" id="updateIssueButton" type="submit">保存问题修订</button>
               <p class="form-error" id="issueEditFormError" hidden></p>

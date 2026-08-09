@@ -94,6 +94,7 @@ export async function createAnalysisJob(client, repository, projectId, input, op
     batchCount: batches.length,
     analysisType: clean(input?.analysisType, 80) || '综合巡检分析',
     description: clean(input?.description, 1000),
+    requestedBy: clean(input?.requestedBy, 160) || null,
     status: 'queued',
     progress: {
       completed: 0,
@@ -150,6 +151,7 @@ export async function retryAnalysisJob(client, repository, jobId, options = {}) 
     analysisType: parent.analysisType,
     description: parent.description,
     parentJobId: parent.id,
+    requestedBy: parent.requestedBy,
     clientRequestId: options.clientRequestId || `retry:${parent.id}:${options.nowMs ?? Date.now()}`
   }, options);
 }
@@ -160,6 +162,7 @@ export class AnalysisJobRunner {
     this.jobRepository = options.jobRepository;
     this.candidateRepository = options.candidateRepository;
     this.executeAnalysis = options.executeAnalysis || runAnalysis;
+    this.resolveClient = options.resolveClient || (async () => this.client);
     this.active = new Set();
   }
 
@@ -217,8 +220,9 @@ export class AnalysisJobRunner {
         };
         await this.jobRepository.put(current);
         try {
+          const analysisClient = await this.resolveClient(running, this.client);
           const analysis = await this.executeAnalysis(
-            this.client,
+            analysisClient,
             running.projectId,
             {
               photoIds: batch.photoIds,

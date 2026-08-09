@@ -345,6 +345,20 @@ Business正式问题不再依赖旧问题—指标映射：
 }
 ```
 
+### 6.1 可选标准绑定
+
+正式问题可以保持未绑定；绑定不参与指标计算、权重、扣分或综合得分。标准目录接口：
+
+```http
+GET /api/standards/problem-types
+GET /api/standards/problem-types/{problemCode}
+GET /api/standards/problem-types/{problemCode}/remediations
+PATCH /api/issues/{issueId}/standard-binding
+GET /api/issues/{issueId}/standard-binding-audit
+```
+
+绑定请求必须提供 `updatedBy`、`expectedRevision` 和 `bindingStatus`（`unbound`、`suggested`、`confirmed` 或 `not-applicable`）。`problemCode`、`indicatorCode` 和 `remediationSnapshot` 只能由服务端从同一 `standardLibraryVersion` 派生；前端提交的 `indicatorCode` 或整改原文不会被信任。每次绑定、确认、解除或标记不适用都会递增正式问题修订并追加前后值审计。报告生成时冻结问题编码、指标编码、绑定状态和整改建议快照，标准库后续变化不会改写旧报告。
+
 ## 7. GIS基础绑定
 
 ```http
@@ -585,6 +599,8 @@ SCF_NAMESPACE
 
 `URBAN_HEALTH_PROVIDER`默认是`local`。CloudBase Provider代码支持数据库基础CRUD、文件上传、下载和临时URL，但真实运行还需要`TCB_ENV`或`SCF_NAMESPACE`、CloudBase SDK、Collection、存储权限和部署凭据。`/api/meta.providers`分别报告本地与CloudBase状态，未实际探测生产环境时`productionVerified`始终为`false`。
 
+CloudBase默认运行依赖固定为`@cloudbase/node-sdk@3.18.3`。可选的`CLOUDBASE_SDK_MODULE`只用于高级覆盖；`CLOUDBASE_HEALTH_OBJECT`指定对象存储健康探针对象。启动、Collection、数据库和对象存储错误码及部署顺序见 `docs/deployment/cloudbase-runtime.md`。
+
 Business扩展数据默认写入：
 
 ```text
@@ -592,3 +608,48 @@ urban-health-business/.data/
 ```
 
 该目录被Git忽略。原smart-renew项目、照片和分析记录继续使用其本地数据目录。
+
+## 28. NP-05/NP-06 Provider与成果中心接口
+
+```http
+GET  /api/provider/health
+GET  /api/provider/collections
+GET  /api/provider-migrations
+POST /api/provider-migrations
+GET  /api/provider-migrations/{runId}
+POST /api/provider-migrations/{runId}/execute
+POST /api/provider-migrations/{runId}/rollback
+GET  /api/outcomes/summary
+GET  /api/outcomes/projects
+GET  /api/outcomes/issues
+GET  /api/outcomes/reports
+GET  /api/settings/meta
+GET  /api/settings/providers
+GET  /api/settings/external-services
+```
+
+Provider 迁移默认只生成计划；执行和回滚必须使用管理员身份与 `confirmed: true`。迁移运行记录保存集合计数、失败项、迁移来源和 `productionVerified=false`。SourceAsset、地图快照及照片相关二进制只在明确对象存储迁移中处理，普通 JSON 迁移仅保存 reference-only 护栏。接口不返回 CloudBase SDK 密钥、Web Service Key、AI Key 或本地加密主密钥。
+
+成果中心接口返回有界读模型，并按可信身份头过滤项目；Business 记录与旧记录同 ID 冲突时以 Business 为主，不重复计数。`stale`、`inactive`、迁移只读和零问题状态直接沿用项目工作流口径。
+
+当认证模式为 `required` 时，管理员或显式 `*` 项目范围可查看全部成果；普通 GIS 用户只看到可信身份头声明的项目，没有项目范围时返回空结果而不是全部项目。相同 `clientRequestId` 创建 ProviderMigrationRun 会幂等返回原运行；已完成迁移重复执行直接返回原结果，已回滚迁移不能隐式重跑。
+
+## 29. 代码审查整改接口约束（CR-01—CR-08）
+
+### 29.1 标准绑定权限与审计
+
+`PATCH /api/issues/{issueId}/standard-binding` 和 `GET /api/issues/{issueId}/standard-binding-audit` 均先解析可信身份，再校验正式问题是否存在和项目范围。查看者只能读取审计；编辑者、项目经理和管理员才能写入绑定。请求体中的 `updatedBy` 不作为审计身份，审计记录使用认证身份；问题不存在返回404，跨项目返回403，修订号按乐观锁递增。
+
+### 29.2 Provider迁移安全
+
+迁移目标已有不同记录时返回运行失败并记录 `PROVIDER_MIGRATION_TARGET_CONFLICT`，默认不覆盖。执行前通过 CloudBase 事务原子获取持久化租约；每条记录写入后在同一租约令牌下更新 `checkpoint`，至少包含当前集合、当前索引、已处理数、成功数、失败数和心跳。租约丢失后当前执行者立即停止，其他实例只能在租约过期且管理员明确提交 `recover: true` 时接管。回滚会校验 `migrationRunId` 和写入记录哈希，目标被第三方修改时记为 `rollback_conflicted`，不删除该记录。
+
+### 29.3 CloudBase分页与健康
+
+CloudBase Repository 的无界读取会分页读取完整集合，默认不把 `limit` 放入 `where` 条件；业务 Repository 在完整读取并全局排序后只应用一次 `offset/limit`。Provider健康同时探测数据库 Collection 和 `CLOUDBASE_HEALTH_OBJECT` 对象存储探针，任一失败时 `/api/ready` 均返回 not-ready。完整 Provider 健康与 Collection 诊断只允许管理员访问。默认 SDK 版本和部署步骤见 `docs/deployment/cloudbase-runtime.md`。
+
+### 29.4 成果汇总、资料口径与设置鉴权
+
+`GET /api/outcomes/summary` 汇总所有可见项目，再用 `detailLimit`（最大200）限制返回的项目详情；响应中的 `projectsTotal/projectsLimit/projectsTruncated` 区分总量和详情截断。资料字段分别返回 `incompleteCollectionProjectCount` 与 `collectionWarningProjectCount`；`collectionAnomalyProjectCount` 是两类项目的并集，同一项目最多计数一次。
+
+`/api/meta`、`/api/settings/meta`、`/api/settings/providers` 和 `/api/settings/external-services` 均需要 `gis.view`，其中普通用户只得到脱敏后的能力状态；`/api/provider/health`、`/api/provider/collections` 以及完整 CloudBase 环境、Collection、探针和 SDK 诊断只对管理员返回。任何响应都不包含密钥。required模式下未认证为401、无权限为403，前端保留明确的错误状态。

@@ -49,6 +49,11 @@ export function officialIssueFromCandidate(candidate, analysis, reviewerName, op
     location: clean(candidate?.location, 500),
     bbox: Array.isArray(candidate?.bbox) ? candidate.bbox.slice(0, 4) : null,
     suggestion: clean(candidate?.suggestion, 2000),
+    problemCode: null,
+    problemName: null,
+    remediationSnapshot: null,
+    bindingStatus: 'unbound',
+    bindingAudit: [],
     geometry: candidate?.geometry || null,
     spatialBinding: null,
     indicatorCode: null,
@@ -249,6 +254,112 @@ export class OfficialIssueRepository {
     return this.put(updated);
   }
 
+  async updateStandardBinding(issueId, input, options = {}) {
+    const issue = await this.get(issueId);
+    if (!issue) {
+      const error = new Error('正式问题不存在或不是Business正式问题。');
+      error.status = 404;
+      error.code = 'OFFICIAL_ISSUE_NOT_FOUND';
+      throw error;
+    }
+    const expectedRevision = Number(input?.expectedRevision);
+    const currentRevision = Math.max(1, Number(issue.issueRevision) || 1);
+    if (Number.isFinite(expectedRevision) && expectedRevision !== currentRevision) {
+      const error = new Error('正式问题已被其他修改覆盖，请刷新后重试。');
+      error.status = 409;
+      error.code = 'ISSUE_REVISION_CONFLICT';
+      throw error;
+    }
+    const updatedBy = clean(input?.updatedBy, 120);
+    if (!updatedBy) {
+      const error = new Error('请填写绑定操作人员。');
+      error.status = 400;
+      error.code = 'ISSUE_BINDING_ACTOR_REQUIRED';
+      throw error;
+    }
+    const status = clean(input?.bindingStatus, 30).toLowerCase() || 'unbound';
+    if (!['unbound', 'suggested', 'confirmed', 'not-applicable'].includes(status)) {
+      const error = new Error('问题绑定状态无效。');
+      error.status = 400;
+      error.code = 'INVALID_BINDING_STATUS';
+      throw error;
+    }
+    const resolved = input?.resolvedBinding || null;
+    const problemCode = status === 'unbound' || status === 'not-applicable'
+      ? null
+      : clean(resolved?.problemType?.code || input?.problemCode, 50) || null;
+    if (['suggested', 'confirmed'].includes(status) && !problemCode) {
+      const error = new Error('建议或确认绑定必须选择问题编码。');
+      error.status = 400;
+      error.code = 'PROBLEM_CODE_REQUIRED';
+      throw error;
+    }
+    const now = options.now || new Date().toISOString();
+    const before = {
+      problemCode: issue.problemCode || null,
+      indicatorCode: issue.indicatorCode || null,
+      remediationSnapshot: issue.remediationSnapshot || null,
+      bindingStatus: issue.bindingStatus || 'unbound'
+    };
+    const nextRevision = currentRevision + 1;
+    const remediation = status === 'unbound' || status === 'not-applicable'
+      ? null
+      : input?.remediationSnapshot || resolved?.remediation || null;
+    const after = {
+      problemCode,
+      problemName: problemCode ? (resolved?.problemType?.name || issue.problemName || null) : null,
+      indicatorCode: problemCode ? (resolved?.indicator?.code || null) : null,
+      indicatorName: problemCode ? (resolved?.indicator?.name || null) : null,
+      remediationSnapshot: remediation,
+      bindingStatus: status
+    };
+    const action = status === 'unbound'
+      ? 'binding_cleared'
+      : status === 'not-applicable'
+        ? 'binding_not_applicable'
+        : status === 'suggested'
+          ? 'binding_suggested'
+          : 'binding_confirmed';
+    const audit = {
+      revision: nextRevision,
+      action,
+      source: clean(input?.source, 40) || 'manual',
+      actor: updatedBy,
+      at: now,
+      standardLibraryVersion: resolved?.standardLibraryVersion || null,
+      before,
+      after,
+      note: clean(input?.note, 500)
+    };
+    const updated = {
+      ...issue,
+      problemCode: after.problemCode,
+      problemName: after.problemName,
+      indicatorCode: after.indicatorCode,
+      indicatorName: after.indicatorName,
+      indicatorBindingStatus: after.indicatorCode ? status : 'not_integrated',
+      remediationSnapshot: after.remediationSnapshot,
+      bindingStatus: after.bindingStatus,
+      bindingAudit: [
+        ...(Array.isArray(issue.bindingAudit) ? issue.bindingAudit : []),
+        audit
+      ],
+      issueRevision: nextRevision,
+      auditTrail: [
+        ...(Array.isArray(issue.auditTrail) ? issue.auditTrail : []),
+        {
+          revision: nextRevision,
+          action,
+          actor: updatedBy,
+          at: now,
+          standardLibraryVersion: resolved?.standardLibraryVersion || null
+        }
+      ],
+      updatedAt: now
+    };
+    return this.put(updated);
+  }
+
   async createFromCandidates(candidates, analysis, reviewerName, options = {}) {
     const issues = candidates.map((candidate) =>
       officialIssueFromCandidate(candidate, analysis, reviewerName, options)
@@ -259,20 +370,21 @@ export class OfficialIssueRepository {
 }
 
 export class ProviderOfficialIssueRepository extends OfficialIssueRepository {
-  constructor(provider) {
+  constructor(provider, entity = 'officialIssues') {
     super('provider-backed');
     this.provider = provider;
+    this.entity = entity;
   }
 
   async ensure() {}
 
   async put(issue) {
     safeFileId(issue?.id);
-    return this.provider.put('officialIssues', issue);
+    return this.provider.put(this.entity, issue);
   }
 
   async list(projectId = '') {
-    const items = await this.provider.list('officialIssues', projectId
+    const items = await this.provider.list(this.entity, projectId
       ? { projectId: String(projectId) }
       : {});
     return items
@@ -282,7 +394,7 @@ export class ProviderOfficialIssueRepository extends OfficialIssueRepository {
 
   async listInBounds(projectId, bounds) {
     if (typeof this.provider.listInBounds !== 'function') return this.list(projectId);
-    const items = await this.provider.listInBounds('officialIssues', bounds, projectId
+    const items = await this.provider.listInBounds(this.entity, bounds, projectId
       ? { projectId: String(projectId) }
       : {});
     return items
@@ -291,6 +403,6 @@ export class ProviderOfficialIssueRepository extends OfficialIssueRepository {
   }
 
   async get(issueId) {
-    return this.provider.get('officialIssues', safeFileId(issueId));
+    return this.provider.get(this.entity, safeFileId(issueId));
   }
 }

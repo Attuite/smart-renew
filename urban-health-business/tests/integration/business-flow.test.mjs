@@ -122,6 +122,9 @@ test('isolated local BFF completes the real manual workflow across both services
     await waitFor(`${businessBase}/api/ready`);
     const readiness = await jsonRequest(businessBase, '/api/ready');
     assert.equal(readiness.status, 'ready');
+    assert.equal('environmentId' in readiness.provider.capability, false);
+    assert.equal('collections' in readiness.provider.capability, false);
+    assert.equal('probes' in readiness.provider.health, false);
     assert.equal(readiness.optional.ai.ready, false);
     assert.equal(readiness.optional.legacy.projectData.status, 'available');
     assert.equal(readiness.optional.legacy.reportSnapshots.mode, 'read-only');
@@ -144,6 +147,69 @@ test('isolated local BFF completes the real manual workflow across both services
     assert.equal(meta.features.standardLibrary, true);
     assert.equal(meta.providers.selected, 'sqlite');
     assert.equal(meta.providers.cloudbase.productionVerified, false);
+
+    const emptyOutcomeSummary = await jsonRequest(businessBase, '/api/outcomes/summary');
+    assert.equal(emptyOutcomeSummary.projectCount, 0);
+    assert.deepEqual(emptyOutcomeSummary.projects, []);
+    const outcomeProjects = await jsonRequest(businessBase, '/api/outcomes/projects?limit=1');
+    assert.equal(outcomeProjects.total, 0);
+    const settingsMeta = await jsonRequest(businessBase, '/api/settings/meta');
+    assert.equal(settingsMeta.runtime.repositoryMode, 'sqlite');
+    assert.equal(settingsMeta.standardLibrary.recordCount, 412);
+    const providerSettings = await jsonRequest(businessBase, '/api/settings/providers');
+    assert.equal(providerSettings.runtime.repositoryMode, 'sqlite');
+    assert.equal(providerSettings.health.productionVerified, false);
+    const externalSettings = await jsonRequest(businessBase, '/api/settings/external-services');
+    assert.equal('webServiceKey' in externalSettings.gis.browser, false);
+    for (const settingsPath of ['/api/settings/meta', '/api/settings/providers', '/api/settings/external-services']) {
+      const anonymousSettings = await fetch(`${businessBase}${settingsPath}`);
+      assert.equal(anonymousSettings.status, 401);
+    }
+    for (const adminDiagnosticPath of ['/api/meta', '/api/provider/health', '/api/provider/collections']) {
+      const anonymousDiagnostic = await fetch(`${businessBase}${adminDiagnosticPath}`);
+      assert.equal(anonymousDiagnostic.status, 401);
+    }
+    for (const adminDiagnosticPath of ['/api/provider/health', '/api/provider/collections']) {
+      const viewerDiagnostic = await fetch(`${businessBase}${adminDiagnosticPath}`, {
+        headers: {
+          'x-authenticated-user': 'diagnostic-viewer',
+          'x-authenticated-name': 'Diagnostic Viewer',
+          'x-authenticated-roles': 'gis-viewer',
+          'x-authenticated-projects': '*'
+        }
+      });
+      assert.equal(viewerDiagnostic.status, 403);
+    }
+    const viewerMeta = await jsonRequest(businessBase, '/api/meta', {
+      headers: {
+        'x-authenticated-user': 'meta-viewer',
+        'x-authenticated-name': 'Meta Viewer',
+        'x-authenticated-roles': 'gis-viewer',
+        'x-authenticated-projects': '*'
+      }
+    });
+    assert.equal('environmentId' in viewerMeta.providers.cloudbase, false);
+    assert.equal('collections' in viewerMeta.providers.cloudbase, false);
+    const viewerSettings = await jsonRequest(businessBase, '/api/settings/providers', {
+      headers: {
+        'x-authenticated-user': 'settings-viewer',
+        'x-authenticated-name': 'Settings Viewer',
+        'x-authenticated-roles': 'gis-viewer',
+        'x-authenticated-projects': ''
+      }
+    });
+    assert.equal('collections' in viewerSettings.cloudbase, false);
+    assert.equal('environmentId' in viewerSettings.cloudbase, false);
+    assert.equal('probes' in viewerSettings.health, false);
+    const noProjectScopeOutcome = await jsonRequest(businessBase, '/api/outcomes/projects?limit=1', {
+      headers: {
+        'x-authenticated-user': 'unscoped-viewer',
+        'x-authenticated-name': 'Unscoped Viewer',
+        'x-authenticated-roles': 'gis-viewer',
+        'x-authenticated-projects': ''
+      }
+    });
+    assert.equal(noProjectScopeOutcome.total, 0);
 
     const standards = await jsonRequest(businessBase, '/api/standards?limit=1');
     assert.equal(standards.summary.recordCount, 412);
@@ -785,6 +851,56 @@ test('isolated local BFF completes the real manual workflow across both services
       }
     });
     const issue = issueResult.item || issueResult;
+
+    const anonymousBinding = await fetch(`${businessBase}/api/issues/${issue.id}/standard-binding`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ bindingStatus: 'unbound', updatedBy: '伪造人员', expectedRevision: 1 })
+    });
+    assert.equal(anonymousBinding.status, 401);
+    const anonymousBindingAudit = await fetch(`${businessBase}/api/issues/${issue.id}/standard-binding-audit`);
+    assert.equal(anonymousBindingAudit.status, 401);
+    await assert.rejects(
+      () => jsonRequest(businessBase, `/api/issues/${issue.id}/standard-binding`, {
+        method: 'PATCH',
+        headers: {
+          'x-authenticated-user': 'cross-project-editor',
+          'x-authenticated-name': 'Cross Project Editor',
+          'x-authenticated-roles': 'gis-editor',
+          'x-authenticated-projects': 'not-this-project'
+        },
+        body: { bindingStatus: 'unbound', updatedBy: '伪造人员', expectedRevision: 1 }
+      }),
+      (error) => error.status === 403 && error.code === 'GIS_PROJECT_ACCESS_DENIED'
+    );
+    const problemTypes = await jsonRequest(businessBase, '/api/standards/problem-types?limit=1');
+    const problemCode = problemTypes.items[0].code;
+    const boundIssueResult = await jsonRequest(businessBase, `/api/issues/${issue.id}/standard-binding`, {
+      method: 'PATCH',
+      headers: {
+        'x-authenticated-user': 'project-editor',
+        'x-authenticated-name': 'Trusted Editor',
+        'x-authenticated-roles': 'gis-editor',
+        'x-authenticated-projects': projectId
+      },
+      body: {
+        bindingStatus: 'confirmed',
+        problemCode,
+        updatedBy: '前端伪造姓名',
+        expectedRevision: 1
+      }
+    });
+    const boundIssue = boundIssueResult.item || boundIssueResult;
+    assert.equal(boundIssue.bindingAudit.at(-1).actor, 'Trusted Editor');
+    const viewerAudit = await jsonRequest(businessBase, `/api/issues/${issue.id}/standard-binding-audit`, {
+      headers: {
+        'x-authenticated-user': 'project-viewer',
+        'x-authenticated-name': 'Project Viewer',
+        'x-authenticated-roles': 'gis-viewer',
+        'x-authenticated-projects': projectId
+      }
+    });
+    assert.equal(viewerAudit.items.at(-1).actor, 'Trusted Editor');
 
     await jsonRequest(businessBase, `/api/projects/${projectId}/manual-reviews`, {
       method: 'POST',

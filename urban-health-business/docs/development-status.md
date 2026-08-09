@@ -1,6 +1,6 @@
 # Urban Health Business 开发状态与剩余缺口
 
-> 更新日期：2026-07-31
+> 更新日期：2026-08-09
 > 分支：`urban-health-business`  
 > 本文是开发总纲的执行状态附件，不取代各模块开发大纲。
 
@@ -8,6 +8,36 @@
 
 - `docs/testing/gis-completion-evidence-matrix.md`；
 - `docs/development-log/2026-07-31-gis-stop-point.md`。
+- `docs/development-log/2026-08-09-main-parity-np01-np03-handoff.md`；NP-04完成记录见
+  `docs/development-log/2026-08-09-np04-standard-binding.md`；NP-05/06完成记录见
+  `docs/development-log/2026-08-09-np05-np06-completion.md`。
+
+## 2026-08-09 功能对齐阶段检查点
+
+本轮依据 `docs/main-parity-next-development-outline.md` 开发，已完成 NP-01—NP-06。
+
+已完成：
+
+- NP-01 住宅小区识别与台账治理：独立待确认快照、确认幂等、重复识别、边界过期、合并、拆分、恢复和引用安全阻断；
+- NP-02 外业任务闭环：问题类型、户数、位置、照片进度、既有 UploadSession 关联、完成校验和失败重试；
+- NP-03 AI 配置与用户 Key：身份隔离、AES-256-GCM 本地加密、模型偏好、健康检查、脱敏元数据和用户范围模型调用；
+- NP-04 问题编码与整改建议关联：正式问题可选绑定问题类型，指标由标准库关系派生，整改建议按同一标准库版本冻结，绑定/解除/不适用均有修订审计，未绑定问题仍合法；
+- NP-05 CloudBase真实运行接线：正式 `cloudbase` Provider 组装、业务Collection契约、Repository/Storage适配、运行健康检查、迁移计划/执行/回滚和未验收安全护栏；
+- NP-06 成果中心与系统设置：跨项目有界汇总、问题/报告索引、项目权限过滤、Provider/AI/高德/标准库设置状态和 Business 全局入口；
+- Business 页面已增加上述三项的操作入口，未引用 Demo 固定结果；
+- `main` 原版入口和 V9.1 Demo 未修改。
+
+本检查点验证：
+
+- `npm run check` 通过；
+- `npm test` 通过，215/215；
+- `npm run test:integration` 通过，1/1；
+- `npm run test:e2e` 通过，11/11；
+- `npm run verify:demo` 通过，42 个快照文件一致；
+- `npm run verify:boundary` 通过；
+- `git diff --check` 通过。
+
+本轮已完成 NP-05、NP-06，并补齐迁移请求幂等、重复执行/回滚保护、本地 JSON 备份验证和无项目范围权限隔离。CloudBase 生产 `productionVerified` 仍为 false，需在真实隔离环境完成凭据与恢复演练后再变更。
 
 ## 1. 当前可运行结果
 
@@ -642,3 +672,26 @@ AB-07动态报告快照与Renderer、AB-08 CloudBase可选Provider代码与Mock�
 
 V9.1 GIS大纲中本地可实现、可自动化验收的开发内容已全部收口。唯一外部开始点是预生产真实高德验收：
 配置不入库的三类Key，验证JS SDK域名、卫星/道路层、地址和POI质量、配额/错误码与密钥不泄漏，并归档时间和账号归属。
+
+## 13. 2026-08-09 代码审查整改收口（CR-01—CR-08）
+
+本轮依据 `docs/code-review-remediation-development-outline.md` 执行，已完成本地可验证的八项整改：
+
+- CR-01：标准绑定PATCH与审计GET接入可信身份、项目级RBAC、404/401/403边界和真实审计人；编辑者角色增加 `gis.issue.binding.edit`。
+- CR-02：Provider迁移默认不覆盖目标冲突，成功项带迁移标记与哈希；运行与回滚结果分别记录新增、跳过、冲突、失败，重复执行/回滚保持幂等。
+- CR-03：迁移逐条持久化检查点、心跳和中断状态；运行租约过期后才允许明确恢复，并保留回滚冲突结果。
+- CR-04：CloudBase Repository 支持完整读取、offset/limit和条件查询，避免把分页控制字段放入 `where`；新增250条分页单测。
+- CR-05：Business锁定 `@cloudbase/node-sdk@3.18.3` 并更新 lockfile；初始化、Collection和对象存储探针错误分类见 CloudBase 部署文档；生产 `productionVerified` 仍为 `false`。
+- CR-06：成果汇总遍历全部可见项目，详情最大200条并返回总量/截断标记，批量并发上限20。
+- CR-07：成果中心分别统计必需资料未完成项目和建议项警告项目。
+- CR-08：设置接口统一要求认证；普通用户仅获得脱敏能力状态，管理员才可读取环境/Collection/探针诊断，前端保留401/403/disabled状态。
+
+本轮回归证据：
+
+- `npm run check` 通过；
+- `npm test` 通过，215/215；
+- `npm run test:integration` 通过，1/1，覆盖匿名设置401、项目范围403、标准绑定编辑和审计读取；
+- `npm run test:e2e` 通过，11/11，覆盖成果中心与系统设置；
+- CloudBase Mock覆盖250条分页、目标冲突、中断恢复、回滚第三方修改和 `productionVerified=false`。
+
+真实CloudBase环境、数据库规则、对象存储权限和恢复演练仍是外部验收项；在完成前不把本地Mock/SQLite结果写成生产已验收。

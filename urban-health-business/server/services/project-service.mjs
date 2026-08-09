@@ -307,6 +307,49 @@ export function appendCommunity(project, input, options = {}) {
   return { project: updated, community };
 }
 
+export function appendDiscoveredCommunity(project, candidate, options = {}) {
+  const point = Array.isArray(candidate?.coordinates)
+    ? candidate.coordinates.slice(0, 2).map(Number)
+    : [];
+  if (
+    point.length !== 2
+    || !Number.isFinite(point[0])
+    || !Number.isFinite(point[1])
+  ) {
+    throw validationError('住宅候选缺少有效坐标。', { field: 'coordinates' });
+  }
+  const outcome = appendCommunity(project, {
+    name: candidate?.name,
+    address: candidate?.address
+  }, options);
+  const community = {
+    ...outcome.community,
+    source: 'amap-residential-discovery',
+    coordinates: point,
+    crs: cleanText(candidate?.crs, 20) || 'GCJ02',
+    discovery: {
+      runId: cleanText(options.discoveryRunId, 180),
+      provider: 'amap',
+      providerId: cleanText(candidate?.providerId, 160) || null,
+      normalizedId: cleanText(candidate?.normalizedId, 160),
+      originalName: cleanText(candidate?.name, 200),
+      originalAddress: cleanText(candidate?.address, 300),
+      sourceProviderIds: Array.isArray(candidate?.sourceProviderIds)
+        ? candidate.sourceProviderIds.map((item) => cleanText(item, 160)).filter(Boolean)
+        : [],
+      boundaryRevision: Math.max(0, Number(project?.revision) || 0),
+      boundaryUpdatedAt: project?.boundaryUpdatedAt || null,
+      confirmedBy: cleanText(options.confirmedBy, 120),
+      confirmedAt: options.now || new Date().toISOString()
+    }
+  };
+  outcome.project.residentialInventory.items = outcome.project.residentialInventory.items
+    .map((item) => item.id === outcome.community.id ? community : item);
+  outcome.project.residentialInventory.dataSource = '高德住宅识别＋人工确认';
+  outcome.community = community;
+  return outcome;
+}
+
 export async function addCommunity(client, projectId, input, options = {}) {
   const current = await client.getProject(projectId);
   const { project, community } = appendCommunity(current, input, options);
@@ -354,6 +397,9 @@ export function reviseCommunity(project, communityId, input, options = {}) {
   const name = input?.name === undefined ? sourceCommunity.name : cleanText(input.name, 160);
   if (!name) throw validationError('小区名称不能为空。', { field: 'name' });
   const now = options.now || new Date().toISOString();
+  const updatedBy = cleanText(input?.updatedBy, 120);
+  const beforeStatus = sourceCommunity.status === 'deleted' ? 'inactive' : 'active';
+  const afterStatus = requestedStatus || beforeStatus;
   const community = {
     ...sourceCommunity,
     name,
@@ -362,6 +408,29 @@ export function reviseCommunity(project, communityId, input, options = {}) {
       ? requestedStatus === 'inactive' ? 'deleted' : 'active'
       : sourceCommunity.status,
     communityRevision: currentRevision + 1,
+    governanceAudit: updatedBy
+      ? [
+          ...(Array.isArray(sourceCommunity.governanceAudit) ? sourceCommunity.governanceAudit : []),
+          {
+            revision: currentRevision + 1,
+            action: beforeStatus !== afterStatus
+              ? afterStatus === 'active' ? 'restore' : 'deactivate'
+              : 'update',
+            before: {
+              name: sourceCommunity.name,
+              address: sourceCommunity.address,
+              status: beforeStatus
+            },
+            after: {
+              name,
+              address: input?.address === undefined ? sourceCommunity.address : cleanText(input.address, 300),
+              status: afterStatus
+            },
+            updatedBy,
+            at: now
+          }
+        ]
+      : sourceCommunity.governanceAudit,
     updatedAt: now
   };
   return {
@@ -601,4 +670,273 @@ export async function updateBuilding(client, projectId, communityId, buildingId,
   const outcome = reviseBuilding(current, communityId, buildingId, input, options);
   await client.putProject(outcome.project);
   return outcome.building;
+}
+
+function cloneRecord(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function activeCommunityItems(project) {
+  return (Array.isArray(project?.residentialInventory?.items)
+    ? project.residentialInventory.items
+    : []).filter((item) => item?.status !== 'deleted');
+}
+
+function requireReferenceSafety(input, referenceSummary, action) {
+  if (input?.referenceStrategy !== 'block-if-referenced') {
+    const error = validationError(
+      `${action}必须明确使用block-if-referenced引用策略。`,
+      { field: 'referenceStrategy', supported: ['block-if-referenced'] }
+    );
+    error.code = 'COMMUNITY_REFERENCE_STRATEGY_REQUIRED';
+    throw error;
+  }
+  if (Number(referenceSummary?.total) > 0) {
+    const error = new Error(`${action}会影响已有下游引用，当前操作已阻断。`);
+    error.status = 409;
+    error.code = 'COMMUNITY_REFERENCES_EXIST';
+    error.details = referenceSummary;
+    throw error;
+  }
+}
+
+function normalizedCommunitySnapshot(community, now) {
+  const snapshot = cloneRecord(community);
+  delete snapshot.members;
+  delete snapshot.merge;
+  snapshot.status = 'active';
+  snapshot.updatedAt = now;
+  return snapshot;
+}
+
+function mergedCommunityName(communities) {
+  const bases = communities.map((community) => String(community?.name || '')
+    .replace(/[（(]?[A-Da-dＡ-Ｄａ-ｄ]区[）)]?$/, '')
+    .replace(/(东区|西区|南区|北区|一期|二期|三期)$/, '')
+    .trim()).filter(Boolean);
+  if (!bases.length) return '合并住宅小区';
+  return bases.every((name) => name === bases[0]) ? bases[0] : `${bases[0]}（合并）`;
+}
+
+export function mergeCommunityInventory(project, input = {}, options = {}) {
+  if (!project?.id) {
+    const error = new Error('项目不存在。');
+    error.status = 404;
+    error.code = 'PROJECT_NOT_FOUND';
+    throw error;
+  }
+  const currentProjectRevision = Math.max(0, Number(project.revision) || 0);
+  if (
+    input.expectedProjectRevision !== undefined
+    && Number(input.expectedProjectRevision) !== currentProjectRevision
+  ) {
+    const error = new Error('项目已被其他操作修改，请刷新后重试。');
+    error.status = 409;
+    error.code = 'PROJECT_REVISION_CONFLICT';
+    throw error;
+  }
+  const communityIds = [...new Set(
+    (Array.isArray(input.communityIds) ? input.communityIds : []).map(String).filter(Boolean)
+  )];
+  if (communityIds.length < 2 || communityIds.length > 50) {
+    throw validationError('小区合并必须选择2到50个使用中小区。', { field: 'communityIds' });
+  }
+  const inventory = project.residentialInventory || {};
+  const items = Array.isArray(inventory.items) ? inventory.items : [];
+  const selected = communityIds.map((communityId) =>
+    items.find((item) => item?.status !== 'deleted' && String(item.id || item.sourceId) === communityId)
+  );
+  if (selected.some((item) => !item)) {
+    const error = new Error('待合并小区不存在或已停用。');
+    error.status = 404;
+    error.code = 'COMMUNITY_NOT_FOUND';
+    throw error;
+  }
+  const expectedRevisions = input.expectedRevisions || {};
+  for (const community of selected) {
+    const expected = expectedRevisions[String(community.id || community.sourceId)];
+    if (
+      expected !== undefined
+      && Number(expected) !== Math.max(1, Number(community.communityRevision) || 1)
+    ) {
+      const error = new Error('待合并小区已被其他操作修改，请刷新后重试。');
+      error.status = 409;
+      error.code = 'COMMUNITY_REVISION_CONFLICT';
+      throw error;
+    }
+  }
+  requireReferenceSafety(input, options.referenceSummary, '小区合并');
+  const targetId = String(input.targetCommunityId || communityIds[0]);
+  const target = selected.find((item) => String(item.id || item.sourceId) === targetId);
+  if (!target) throw validationError('合并后的主小区必须来自已选小区。', { field: 'targetCommunityId' });
+  const mergedBy = cleanText(input.mergedBy, 120);
+  if (!mergedBy) throw validationError('请填写小区合并人员。', { field: 'mergedBy' });
+  const now = options.now || new Date().toISOString();
+  const zones = input.zones && typeof input.zones === 'object' ? input.zones : {};
+  const members = selected.flatMap((community) => {
+    const originals = Array.isArray(community.members) && community.members.length
+      ? community.members
+      : [community];
+    return originals.map((item) => ({
+      ...normalizedCommunitySnapshot(item, now),
+      zone: cleanText(zones[String(item.id || item.sourceId)], 80) || item.zone || '未指定'
+    }));
+  });
+  const buildings = selected.flatMap((community) =>
+    (Array.isArray(community.buildings) ? community.buildings : [])
+      .map((building) => ({ ...cloneRecord(building), communityId: targetId }))
+  );
+  const buildingIds = buildings.map((building) => String(building.id));
+  if (new Set(buildingIds).size !== buildingIds.length) {
+    const error = new Error('待合并小区存在重复楼栋编号。');
+    error.status = 409;
+    error.code = 'COMMUNITY_MERGE_BUILDING_ID_CONFLICT';
+    throw error;
+  }
+  const activeBuildings = buildings.filter((item) => item.status !== 'deleted');
+  const mergeRevision = {
+    id: `CMERGE-${project.id}-${options.idSuffix || Date.now()}`,
+    projectId: String(project.id),
+    targetCommunityId: targetId,
+    sourceCommunityIds: communityIds,
+    memberSnapshots: members,
+    mergedBy,
+    mergedAt: now,
+    projectRevisionBefore: currentProjectRevision,
+    referenceStrategy: input.referenceStrategy,
+    schemaVersion: '1.0.0'
+  };
+  const merged = {
+    ...target,
+    id: targetId,
+    name: cleanText(input.name, 160) || mergedCommunityName(selected),
+    address: input.address === undefined ? target.address : cleanText(input.address, 300),
+    status: 'active',
+    source: 'community-merge',
+    members,
+    buildings,
+    buildingCount: activeBuildings.length,
+    householdCount: activeBuildings.every((item) => Number.isInteger(item.householdCount))
+      ? activeBuildings.reduce((sum, item) => sum + item.householdCount, 0)
+      : null,
+    communityRevision: Math.max(1, Number(target.communityRevision) || 1) + 1,
+    merge: {
+      revisionId: mergeRevision.id,
+      sourceCommunityIds: communityIds,
+      mergedBy,
+      mergedAt: now
+    },
+    updatedAt: now
+  };
+  const selectedSet = new Set(communityIds);
+  const firstIndex = Math.min(...communityIds.map((communityId) =>
+    items.findIndex((item) => String(item.id || item.sourceId) === communityId)
+  ));
+  const nextItems = [];
+  for (let index = 0; index < items.length; index += 1) {
+    if (index === firstIndex) nextItems.push(merged);
+    const id = String(items[index].id || items[index].sourceId);
+    if (!selectedSet.has(id)) nextItems.push(items[index]);
+  }
+  const updatedProject = {
+    ...project,
+    residentialInventory: {
+      ...inventory,
+      items: nextItems,
+      mergeRevisions: [...(Array.isArray(inventory.mergeRevisions) ? inventory.mergeRevisions : []), mergeRevision],
+      updatedAt: now,
+      dataSource: inventory.dataSource || '人工治理'
+    },
+    revision: currentProjectRevision + 1,
+    updatedAt: now
+  };
+  mergeRevision.projectRevisionAfter = updatedProject.revision;
+  return { project: updatedProject, community: merged, revision: mergeRevision };
+}
+
+export function splitCommunityInventory(project, communityId, input = {}, options = {}) {
+  const inventory = project?.residentialInventory || {};
+  const items = Array.isArray(inventory.items) ? inventory.items : [];
+  const index = items.findIndex((item) => String(item.id || item.sourceId) === String(communityId));
+  const source = items[index];
+  if (!source) {
+    const error = new Error('小区不存在。');
+    error.status = 404;
+    error.code = 'COMMUNITY_NOT_FOUND';
+    throw error;
+  }
+  if (!Array.isArray(source.members) || source.members.length < 2 || !source.merge) {
+    const error = new Error('当前小区不是可拆分的合并小区。');
+    error.status = 409;
+    error.code = 'COMMUNITY_NOT_MERGED';
+    throw error;
+  }
+  const currentRevision = Math.max(1, Number(source.communityRevision) || 1);
+  if (input.expectedRevision !== undefined && Number(input.expectedRevision) !== currentRevision) {
+    const error = new Error('小区已被其他操作修改，请刷新后重试。');
+    error.status = 409;
+    error.code = 'COMMUNITY_REVISION_CONFLICT';
+    throw error;
+  }
+  requireReferenceSafety(input, options.referenceSummary, '小区拆分');
+  const splitBy = cleanText(input.splitBy, 120);
+  if (!splitBy) throw validationError('请填写小区拆分人员。', { field: 'splitBy' });
+  const currentBuildingIds = (source.buildings || []).map((item) => String(item.id)).sort();
+  const snapshotBuildingIds = source.members.flatMap((member) => member.buildings || [])
+    .map((item) => String(item.id)).sort();
+  if (JSON.stringify(currentBuildingIds) !== JSON.stringify(snapshotBuildingIds)) {
+    const error = new Error('合并后楼栋集合已变化，拆分前需要先完成楼栋引用整理。');
+    error.status = 409;
+    error.code = 'COMMUNITY_SPLIT_BUILDINGS_CHANGED';
+    throw error;
+  }
+  const now = options.now || new Date().toISOString();
+  const restored = source.members.map((member) => ({
+    ...cloneRecord(member),
+    status: 'active',
+    communityRevision: Math.max(1, Number(member.communityRevision) || 1) + 1,
+    restoredFromMergeId: source.merge.revisionId,
+    restoredAt: now,
+    restoredBy: splitBy,
+    updatedAt: now
+  }));
+  const splitRevision = {
+    id: `CSPLIT-${project.id}-${options.idSuffix || Date.now()}`,
+    projectId: String(project.id),
+    sourceCommunityId: String(communityId),
+    restoredCommunityIds: restored.map((item) => String(item.id || item.sourceId)),
+    mergeRevisionId: source.merge.revisionId,
+    splitBy,
+    splitAt: now,
+    referenceStrategy: input.referenceStrategy,
+    schemaVersion: '1.0.0'
+  };
+  const nextItems = [...items];
+  nextItems.splice(index, 1, ...restored);
+  const updatedProject = {
+    ...project,
+    residentialInventory: {
+      ...inventory,
+      items: nextItems,
+      mergeRevisions: [...(Array.isArray(inventory.mergeRevisions) ? inventory.mergeRevisions : []), splitRevision],
+      updatedAt: now
+    },
+    revision: Math.max(0, Number(project.revision) || 0) + 1,
+    updatedAt: now
+  };
+  return { project: updatedProject, communities: restored, revision: splitRevision };
+}
+
+export async function mergeCommunities(client, projectId, input = {}, options = {}) {
+  const project = await client.getProject(projectId);
+  const outcome = mergeCommunityInventory(project, input, options);
+  await client.putProject(outcome.project);
+  return outcome;
+}
+
+export async function splitCommunity(client, projectId, communityId, input = {}, options = {}) {
+  const project = await client.getProject(projectId);
+  const outcome = splitCommunityInventory(project, communityId, input, options);
+  await client.putProject(outcome.project);
+  return outcome;
 }

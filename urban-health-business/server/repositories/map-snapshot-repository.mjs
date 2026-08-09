@@ -89,6 +89,7 @@ export class ProviderMapSnapshotRepository {
   constructor(recordProvider, storageProvider, options = {}) {
     this.records = recordProvider;
     this.storage = storageProvider;
+    this.entity = options.entity || 'mapSnapshots';
     this.prefix = String(options.prefix || 'map-snapshots/')
       .replace(/^\/+/, '')
       .replace(/\/?$/, '/');
@@ -96,11 +97,11 @@ export class ProviderMapSnapshotRepository {
 
   async put(snapshot) {
     safeId(snapshot?.id);
-    return this.records.put('mapSnapshots', snapshot);
+    return this.records.put(this.entity, snapshot);
   }
 
   async get(snapshotId) {
-    return this.records.get('mapSnapshots', safeId(snapshotId));
+    return this.records.get(this.entity, safeId(snapshotId));
   }
 
   async list(projectId = '', reportId = '', options = {}) {
@@ -109,7 +110,7 @@ export class ProviderMapSnapshotRepository {
       ...(reportId ? { reportId: String(reportId) } : {}),
       ...(options.status ? { status: String(options.status) } : {})
     };
-    const items = await this.records.list('mapSnapshots', query);
+    const items = await this.records.list(this.entity, query);
     const offset = Math.max(0, Number(options.offset) || 0);
     const limit = Math.max(1, Math.min(500, Number(options.limit) || 100));
     return items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))

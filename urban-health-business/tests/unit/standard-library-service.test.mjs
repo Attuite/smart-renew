@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   assertStandardRecord,
+  findRemediation,
   findStandardRecord,
+  getProblemTypeBinding,
   loadStandardLibrary,
   queryStandardLibrary,
+  standardLibraryVersion,
   summarizeStandardLibrary
 } from '../../server/services/standard-library-service.mjs';
 
@@ -35,4 +38,15 @@ test('standard library supports bounded filters and exact lookups', async () => 
     () => assertStandardRecord(null, 'indicator', 'MISSING'),
     (error) => error.code === 'STANDARD_LIBRARY_RECORD_NOT_FOUND' && error.status === 404
   );
+});
+
+test('problem type binding derives indicator and remediation from one library version', async () => {
+  const library = await loadStandardLibrary();
+  const binding = getProblemTypeBinding(library, 'PRB-01-01');
+  assert.equal(binding.problemType.code, 'PRB-01-01');
+  assert.equal(binding.indicator.code, 'IND-HOUSE-001');
+  assert.ok(binding.remediations.length >= 1);
+  assert.equal(binding.remediations[0].problemCode, 'PRB-01-01');
+  assert.equal(binding.standardLibraryVersion, standardLibraryVersion(library));
+  assert.equal(findRemediation(binding, binding.remediations[0].id).text.length > 0, true);
 });

@@ -79,6 +79,14 @@ export function buildReportDraft(project, issues, analyses, existing, input, opt
         geometryRevision: Number(item.geometryRevision) || 0,
         updatedAt: item.updatedAt || null
       })),
+      issueBindingSnapshots: officialIssues.map((item) => ({
+        id: String(item.id),
+        issueRevision: Number(item.issueRevision) || 0,
+        bindingStatus: item.bindingStatus || 'unbound',
+        problemCode: item.problemCode || null,
+        indicatorCode: item.indicatorCode || null,
+        remediationSnapshot: item.remediationSnapshot || null
+      })),
       analysisIds: analysisRuns.map((item) => item.id),
       reviewConclusionIds: reviewConclusions.map((item) => item.id),
       spatialAnalysisIds: spatialAnalyses.map((item) => item.id),

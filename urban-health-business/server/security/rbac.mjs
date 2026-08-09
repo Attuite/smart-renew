@@ -4,6 +4,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     'gis.view',
     'gis.boundary.edit',
     'gis.issue.geometry.edit',
+    'gis.issue.binding.edit',
     'gis.photo.geometry.edit',
     'gis.analysis.run'
   ],
@@ -11,6 +12,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     'gis.view',
     'gis.boundary.edit',
     'gis.issue.geometry.edit',
+    'gis.issue.binding.edit',
     'gis.photo.geometry.edit',
     'gis.route.manage',
     'gis.poi.review',

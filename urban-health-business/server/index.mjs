@@ -8,7 +8,12 @@ import { SmartRenewClient } from './adapters/smart-renew/client.mjs';
 import { createSmartRenewAdapters } from './adapters/smart-renew/index.mjs';
 import { mergePrimaryReadModel } from './adapters/smart-renew/read-model-policy.mjs';
 import { sourceOfTruthSnapshot } from './adapters/smart-renew/source-of-truth.mjs';
-import { cloudBaseProviderCapability } from './providers/cloudbase-provider.mjs';
+import {
+  cloudBaseProviderCapability,
+  cloudBaseRuntimeCapability,
+  createCloudBaseProviders,
+  loadCloudBaseSdk
+} from './providers/cloudbase-provider.mjs';
 import {
   SqliteRepositoryProvider,
   sqliteProviderCapability
@@ -35,6 +40,12 @@ import { SourceAssetRepository } from './repositories/source-asset-repository.mj
 import { UploadSessionRepository } from './repositories/upload-session-repository.mjs';
 import { FieldTaskReferenceRepository } from './repositories/field-task-reference-repository.mjs';
 import { LegacyMigrationRunRepository } from './repositories/legacy-migration-run-repository.mjs';
+import { ResidentialDiscoveryRepository } from './repositories/residential-discovery-repository.mjs';
+import { AiConfigurationRepository } from './repositories/ai-configuration-repository.mjs';
+import {
+  CloudBaseAiConfigurationRepository,
+  createCloudBaseJsonRepository
+} from './repositories/cloudbase-repository-adapter.mjs';
 import { CoordinateTransformRepository } from './repositories/coordinate-transform-repository.mjs';
 import { PhotoRouteBindingRepository } from './repositories/photo-route-binding-repository.mjs';
 import { SurveyRouteRepository } from './repositories/survey-route-repository.mjs';
@@ -65,6 +76,8 @@ import {
   createProject,
   listBuildingInventory,
   listCommunityInventory,
+  mergeCommunities,
+  splitCommunity,
   updateBuilding,
   updateCommunity,
   updateProjectMetadata,
@@ -81,8 +94,11 @@ import { renderReportHtml } from './services/report-renderer-service.mjs';
 import {
   assertStandardRecord,
   findStandardRecord,
+  findRemediation,
+  getProblemTypeBinding,
   loadStandardLibrary,
   queryStandardLibrary,
+  standardLibraryVersion,
   summarizeStandardLibrary
 } from './services/standard-library-service.mjs';
 import { importBoundaryFromSourceAsset } from './services/geojson-boundary-service.mjs';
@@ -101,10 +117,25 @@ import { MapSnapshotRunner } from './services/map-snapshot-service.mjs';
 import { coordinateTransformCapability } from './services/coordinate-transform-service.mjs';
 import { hydratePoiReviewRun } from './services/poi-review-service.mjs';
 import {
+  confirmResidentialDiscoveryRun,
+  createResidentialDiscoveryRun,
+  findCommunityReferences,
+  listResidentialDiscoveryRuns
+} from './services/residential-discovery-service.mjs';
+import {
   accountableActor,
+  authenticateRequest,
   authorizeRequest,
   rbacCapability
 } from './security/rbac.mjs';
+import {
+  aiUserIdentity,
+  checkAiConfiguration,
+  createUserScopedAiClient,
+  getAiConfiguration,
+  publicAiConfiguration,
+  updateAiPreferences
+} from './services/ai-configuration-service.mjs';
 import {
   createSourceAsset,
   updateSourceAsset,
@@ -121,11 +152,30 @@ import {
   createUploadSession,
   uploadSessionContent
 } from './services/upload-service.mjs';
-import { createFieldTask, listFieldTasks } from './services/field-task-service.mjs';
+import {
+  completeFieldTask,
+  createFieldTask,
+  createFieldTaskUpload,
+  getFieldTask,
+  listFieldTasks,
+  retryFieldTaskUploads
+} from './services/field-task-service.mjs';
 import {
   applyLegacyMigration,
   auditLegacyMigration
 } from './services/legacy-migration-service.mjs';
+import {
+  buildProviderMigrationPlan,
+  checkCloudBaseHealth,
+  executeProviderMigration,
+  rollbackProviderMigration
+} from './services/provider-migration-service.mjs';
+import {
+  buildOutcomeIssues,
+  buildOutcomeReports,
+  buildOutcomeSummary,
+  buildOutcomeProjects
+} from './services/outcome-center-service.mjs';
 import {
   getCapabilities,
   getProjectSummary,
@@ -154,9 +204,9 @@ const repositoryProviderMode = String(process.env.URBAN_HEALTH_PROVIDER || 'loca
 const snapshotProviderMode = String(
   process.env.GIS_MAP_SNAPSHOT_PROVIDER || 'filesystem'
 ).toLowerCase();
-if (!['local', 'sqlite'].includes(repositoryProviderMode)) {
+if (!['local', 'sqlite', 'cloudbase'].includes(repositoryProviderMode)) {
   throw new Error(
-    `URBAN_HEALTH_PROVIDER=${repositoryProviderMode}尚未绑定到运行时；请选择local或sqlite。`
+    `URBAN_HEALTH_PROVIDER=${repositoryProviderMode}无效；请选择local、sqlite或cloudbase。`
   );
 }
 if (!['filesystem', 'svg', 's3'].includes(snapshotProviderMode)) {
@@ -164,65 +214,128 @@ if (!['filesystem', 'svg', 's3'].includes(snapshotProviderMode)) {
     `GIS_MAP_SNAPSHOT_PROVIDER=${snapshotProviderMode}无效；请选择filesystem、svg或s3。`
   );
 }
+const cloudbaseRuntime = repositoryProviderMode === 'cloudbase'
+  ? createCloudBaseProviders(loadCloudBaseSdk(), process.env)
+  : null;
 const formalRecordProvider = repositoryProviderMode === 'sqlite' || snapshotProviderMode === 's3'
   ? new SqliteRepositoryProvider(
       process.env.URBAN_HEALTH_SQLITE_PATH || path.join(businessDataRoot, 'business-records.sqlite')
     )
-  : null;
+  : cloudbaseRuntime?.repositories || null;
 const smartRenewClient = new SmartRenewClient();
 const smartRenewAdapters = createSmartRenewAdapters(smartRenewClient);
 const officialIssueRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderOfficialIssueRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? new ProviderOfficialIssueRepository(formalRecordProvider, 'businessOfficialIssues')
   : new OfficialIssueRepository(path.join(businessDataRoot, 'official-issues'));
-const photoMetadataRepository = new PhotoMetadataRepository(path.join(businessDataRoot, 'photo-metadata'));
-const reportRepository = new ReportRepository(path.join(businessDataRoot, 'reports'));
-const reviewSessionRepository = new ReviewSessionRepository(path.join(businessDataRoot, 'review-sessions'));
+const cloudRepository = (entity, options = {}) => createCloudBaseJsonRepository(
+  formalRecordProvider,
+  entity,
+  { ...options, storage: cloudbaseRuntime?.storage }
+);
+const photoMetadataRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessPhotoMetadata')
+  : new PhotoMetadataRepository(path.join(businessDataRoot, 'photo-metadata'));
+const reportRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessReports')
+  : new ReportRepository(path.join(businessDataRoot, 'reports'));
+const reviewSessionRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessReviewSessions', { sortField: 'archivedAt' })
+  : new ReviewSessionRepository(path.join(businessDataRoot, 'review-sessions'));
 const spatialAnalysisRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderSpatialAnalysisRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessSpatialAnalyses', { sortField: 'completedAt' })
   : new SpatialAnalysisRepository(path.join(businessDataRoot, 'spatial-analyses'));
 const projectWriteCoordinator = new ProjectWriteCoordinator();
-const uploadSessionRepository = new UploadSessionRepository(path.join(businessDataRoot, 'upload-sessions'));
-const analysisJobRepository = new AnalysisJobRepository(path.join(businessDataRoot, 'analysis-jobs'));
-const analysisCandidateRepository = new AnalysisCandidateRepository(
-  path.join(businessDataRoot, 'analysis-candidates')
-);
+const uploadSessionRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessUploadSessions')
+  : new UploadSessionRepository(path.join(businessDataRoot, 'upload-sessions'));
+const analysisJobRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessAnalysisJobs', { sortField: 'createdAt' })
+  : new AnalysisJobRepository(path.join(businessDataRoot, 'analysis-jobs'));
+const analysisCandidateRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessAnalysisCandidates', { sortField: 'createdAt' })
+  : new AnalysisCandidateRepository(path.join(businessDataRoot, 'analysis-candidates'));
 const boundaryRevisionRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderBoundaryRevisionRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessBoundaryRevisions', { sortField: 'createdAt' })
   : new BoundaryRevisionRepository(path.join(businessDataRoot, 'boundary-revisions'));
-const collectionValidationRepository = new CollectionValidationRepository(
-  path.join(businessDataRoot, 'collection-validations')
-);
-const sourceAssetRepository = new SourceAssetRepository(
-  path.join(businessDataRoot, 'source-assets'),
-  path.join(businessDataRoot, 'source-asset-content')
-);
-const sourceAssetImportRepository = new SourceAssetImportRepository(
-  path.join(businessDataRoot, 'source-asset-imports')
-);
-const fieldTaskReferenceRepository = new FieldTaskReferenceRepository(
-  path.join(businessDataRoot, 'field-task-references')
-);
-const legacyMigrationRunRepository = new LegacyMigrationRunRepository(
-  path.join(businessDataRoot, 'legacy-migration-runs')
-);
+const collectionValidationRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessCollectionValidations', { sortField: 'createdAt' })
+  : new CollectionValidationRepository(path.join(businessDataRoot, 'collection-validations'));
+const sourceAssetRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessSourceAssets', { storage: cloudbaseRuntime?.storage, excludeInactive: true })
+  : new SourceAssetRepository(path.join(businessDataRoot, 'source-assets'), path.join(businessDataRoot, 'source-asset-content'));
+const sourceAssetImportRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessSourceAssetImports', { sortField: 'createdAt' })
+  : new SourceAssetImportRepository(path.join(businessDataRoot, 'source-asset-imports'));
+const fieldTaskReferenceRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessFieldTaskReferences', { sortField: 'createdAt' })
+  : new FieldTaskReferenceRepository(path.join(businessDataRoot, 'field-task-references'));
+const legacyMigrationRunRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessMigrationRuns', { sortField: 'createdAt' })
+  : new LegacyMigrationRunRepository(path.join(businessDataRoot, 'legacy-migration-runs'));
+const providerMigrationRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessProviderMigrationRuns', { sortField: 'createdAt' })
+  : new LegacyMigrationRunRepository(path.join(businessDataRoot, 'provider-migrations'));
+const residentialDiscoveryRepository = repositoryProviderMode === 'cloudbase'
+  ? cloudRepository('businessResidentialDiscoveryRuns', { sortField: 'createdAt' })
+  : new ResidentialDiscoveryRepository(path.join(businessDataRoot, 'residential-discovery-runs'));
+const aiConfigurationRepository = repositoryProviderMode === 'cloudbase'
+  ? new CloudBaseAiConfigurationRepository(
+      formalRecordProvider,
+      path.join(businessDataRoot, 'ai-configurations')
+    )
+  : new AiConfigurationRepository(path.join(businessDataRoot, 'ai-configurations'));
 const coordinateTransformRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderCoordinateTransformRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessCoordinateTransforms', { sortField: 'createdAt' })
   : new CoordinateTransformRepository(path.join(businessDataRoot, 'coordinate-transforms'));
 const surveyRouteRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderSurveyRouteRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessSurveyRoutes', {
+        sortField: 'updatedAt',
+        query: (projectId, options = {}) => ({
+          ...(options.status ? { status: String(options.status) } : {})
+        })
+      })
   : new SurveyRouteRepository(path.join(businessDataRoot, 'survey-routes'));
 const surveyStopRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderSurveyStopRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessSurveyStops', {
+        sortField: 'createdAt',
+        query: (projectId, routeId, options = {}) => ({
+          ...(routeId ? { routeId: String(routeId) } : {}),
+          ...(options.status ? { status: String(options.status) } : {})
+        })
+      })
   : new SurveyStopRepository(path.join(businessDataRoot, 'survey-stops'));
 const photoRouteBindingRepository = formalRecordProvider && repositoryProviderMode === 'sqlite'
   ? new ProviderPhotoRouteBindingRepository(formalRecordProvider)
+  : repositoryProviderMode === 'cloudbase'
+    ? cloudRepository('businessPhotoRouteBindings', {
+        sortField: 'updatedAt',
+        query: (projectId, routeId, options = {}) => ({
+          ...(routeId ? { routeId: String(routeId) } : {}),
+          ...(options.status ? { status: String(options.status) } : {})
+        })
+      })
   : new PhotoRouteBindingRepository(path.join(businessDataRoot, 'photo-route-bindings'));
-const mapSnapshotRepository = snapshotProviderMode === 's3'
+const mapSnapshotRepository = snapshotProviderMode === 's3' || repositoryProviderMode === 'cloudbase'
   ? new ProviderMapSnapshotRepository(
-      formalRecordProvider,
-      createS3StorageProvider(),
-      { prefix: process.env.GIS_MAP_SNAPSHOT_STORAGE_PREFIX }
-    )
+        formalRecordProvider,
+        repositoryProviderMode === 'cloudbase' ? cloudbaseRuntime.storage : createS3StorageProvider(),
+        {
+          prefix: process.env.GIS_MAP_SNAPSHOT_STORAGE_PREFIX,
+          entity: repositoryProviderMode === 'cloudbase' ? 'businessMapSnapshots' : 'mapSnapshots'
+        }
+      )
   : formalRecordProvider && repositoryProviderMode === 'sqlite'
     ? new ProviderMapSnapshotRepository(
         formalRecordProvider,
@@ -277,9 +390,50 @@ async function assertAnalysisReviewFresh(analysis) {
 const analysisJobRunner = new AnalysisJobRunner({
   client: smartRenewClient,
   jobRepository: analysisJobRepository,
-  candidateRepository: analysisCandidateRepository
+  candidateRepository: analysisCandidateRepository,
+  resolveClient: async (job, baseClient) => job.requestedBy
+    ? createUserScopedAiClient(baseClient, aiConfigurationRepository, job.requestedBy)
+    : baseClient
 });
 const amapWebServiceProvider = new AmapWebServiceProvider();
+
+async function communityReferenceSummary(projectId, communityIds) {
+  const [
+    upstream,
+    officialIssues,
+    reports,
+    sourceAssets,
+    uploads,
+    analysisJobs,
+    analysisCandidates,
+    reviewSessions,
+    spatialAnalyses,
+    fieldTasks
+  ] = await Promise.all([
+    smartRenewClient.projectCollections(projectId),
+    officialIssueRepository.list(projectId),
+    reportRepository.list(projectId),
+    sourceAssetRepository.list(projectId, true),
+    uploadSessionRepository.list(projectId),
+    analysisJobRepository.list(projectId),
+    analysisCandidateRepository.list({ projectId }),
+    reviewSessionRepository.list(projectId),
+    spatialAnalysisRepository.list(projectId),
+    listFieldTasks(smartRenewAdapters.fieldCollection, fieldTaskReferenceRepository, projectId)
+  ]);
+  return findCommunityReferences(communityIds, {
+    upstream,
+    officialIssues,
+    reports,
+    sourceAssets,
+    uploads,
+    analysisJobs,
+    analysisCandidates,
+    reviewSessions,
+    spatialAnalyses,
+    fieldTasks: fieldTasks.items
+  });
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -461,15 +615,37 @@ async function proxyLegacy(req, res, url, id) {
   }
 }
 
-async function handleMeta(res, id) {
+async function handleMeta(req, res, id) {
+  const identity = authorizeRequest(req, 'gis.view');
   const services = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
+  const providerDatabaseMode = repositoryProviderMode === 'cloudbase'
+    ? 'cloudbase-database'
+    : services.database.mode;
+  const providerStorageMode = repositoryProviderMode === 'cloudbase'
+    ? 'cloudbase-storage'
+    : services.storage.mode;
+  const providerCapability = cloudBaseRuntimeCapability(cloudbaseRuntime);
+  const providerDetails = identity.mode !== 'required' || identity.permissions.has('*')
+    ? providerCapability
+    : {
+        selected: providerCapability.selected,
+        local: providerCapability.local,
+        cloudbase: {
+          ready: providerCapability.cloudbase.ready,
+          configured: providerCapability.cloudbase.configured,
+          reason: providerCapability.cloudbase.reason,
+          repositoryKind: providerCapability.cloudbase.repositoryKind,
+          storageKind: providerCapability.cloudbase.storageKind,
+          productionVerified: false
+        }
+      };
   sendSuccess(res, {
     apiVersion: API_VERSION,
     schemaVersion: SCHEMA_VERSION,
     build: 'urban-health-business-local',
     services: {
-      database: services.database,
-      storage: services.storage,
+      database: { ...services.database, mode: providerDatabaseMode },
+      storage: { ...services.storage, mode: providerStorageMode },
       ai: services.ai,
       gis: services.gis,
       indicator: services.indicator,
@@ -478,7 +654,7 @@ async function handleMeta(res, id) {
     },
     dataSources: sourceOfTruthSnapshot(),
     providers: {
-      ...cloudBaseProviderCapability(),
+      ...providerDetails,
       runtime: {
         repositoryMode: repositoryProviderMode,
         mapSnapshotStorageMode: snapshotProviderMode,
@@ -532,6 +708,13 @@ async function handleMeta(res, id) {
   }, id);
 }
 
+function visibleProjectScope(req) {
+  authorizeRequest(req, 'gis.view');
+  const identity = authenticateRequest(req);
+  if (identity.mode !== 'required' || identity.permissions.has('*') || identity.projectIds.has('*')) return null;
+  return [...identity.projectIds];
+}
+
 async function handleRequest(req, res) {
   const id = requestId(req);
   const url = new URL(req.url, `http://${req.headers.host || `${host}:${port}`}`);
@@ -542,7 +725,155 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && url.pathname === '/demo') return redirect(res, '/demo/');
 
     if (req.method === 'GET' && url.pathname === '/api/meta') {
-      return await handleMeta(res, id);
+      return await handleMeta(req, res, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/outcomes/summary') {
+      const projectIds = visibleProjectScope(req);
+      return sendSuccess(res, await buildOutcomeSummary(smartRenewClient, {
+        issueRepository: officialIssueRepository,
+        reportRepository,
+        analysisJobRepository,
+        uploadSessionRepository,
+        reviewSessionRepository,
+        spatialAnalysisRepository,
+        photoMetadataRepository,
+        sourceAssetRepository
+      }, { projectIds }), id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/outcomes/projects') {
+      const projectIds = visibleProjectScope(req);
+      return sendSuccess(res, await buildOutcomeProjects(smartRenewClient, {
+        issueRepository: officialIssueRepository,
+        reportRepository,
+        analysisJobRepository,
+        uploadSessionRepository,
+        reviewSessionRepository,
+        spatialAnalysisRepository,
+        photoMetadataRepository,
+        sourceAssetRepository
+      }, {
+        projectIds,
+        offset: url.searchParams.get('offset'),
+        limit: url.searchParams.get('limit')
+      }), id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/outcomes/issues') {
+      return sendSuccess(res, await buildOutcomeIssues(smartRenewClient, {
+        issueRepository: officialIssueRepository
+      }, {
+        projectIds: visibleProjectScope(req),
+        offset: url.searchParams.get('offset'),
+        limit: url.searchParams.get('limit')
+      }), id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/outcomes/reports') {
+      return sendSuccess(res, await buildOutcomeReports(smartRenewClient, {
+        reportRepository
+      }, {
+        projectIds: visibleProjectScope(req),
+        offset: url.searchParams.get('offset'),
+        limit: url.searchParams.get('limit')
+      }), id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/settings/meta') {
+      const identity = authorizeRequest(req, 'gis.view');
+      const library = await loadStandardLibrary();
+      const capabilities = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
+      return sendSuccess(res, {
+        runtime: {
+          repositoryMode: repositoryProviderMode,
+          mapSnapshotStorageMode: snapshotProviderMode,
+          productionVerified: false
+        },
+        standardLibrary: {
+          ...summarizeStandardLibrary(library),
+          loadedAt: new Date().toISOString()
+        },
+        capabilities: identity.permissions.has('*')
+          ? capabilities
+          : {
+              upstream: capabilities.upstream,
+              ai: capabilities.ai,
+              gis: capabilities.gis,
+              indicator: capabilities.indicator,
+              report: capabilities.report
+            },
+        security: rbacCapability()
+      }, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/settings/providers') {
+      const identity = authorizeRequest(req, 'gis.view');
+      const cloudbase = cloudBaseRuntimeCapability(cloudbaseRuntime).cloudbase;
+      const health = await checkCloudBaseHealth(cloudbaseRuntime);
+      return sendSuccess(res, {
+        runtime: {
+          repositoryMode: repositoryProviderMode,
+          mapSnapshotStorageMode: snapshotProviderMode,
+          productionVerified: false
+        },
+        cloudbase: identity.permissions.has('*')
+          ? cloudbase
+          : {
+              ready: cloudbase.ready,
+              reason: cloudbase.reason,
+              repositoryKind: cloudbase.repositoryKind,
+              storageKind: cloudbase.storageKind,
+              productionVerified: false
+            },
+        health: identity.permissions.has('*')
+          ? health
+          : {
+              ready: health.ready,
+              reason: health.reason,
+              schemaVersion: health.schemaVersion,
+              productionVerified: false
+            }
+      }, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/settings/external-services') {
+      authorizeRequest(req, 'gis.view');
+      const capabilities = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
+      return sendSuccess(res, {
+        ai: capabilities.ai,
+        gis: {
+          ...capabilities.gis,
+          browser: publicAmapConfig()
+        },
+        upstream: capabilities.upstream,
+        productionVerified: false
+      }, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/ai/config/meta') {
+      const user = aiUserIdentity(authenticateRequest(req));
+      return sendSuccess(res, await getAiConfiguration(aiConfigurationRepository, user), id);
+    }
+    if (req.method === 'PUT' && url.pathname === '/api/ai/config/key') {
+      const user = aiUserIdentity(authenticateRequest(req));
+      const input = await readJsonBody(req);
+      const record = await aiConfigurationRepository.setKey(
+        user.userId,
+        user.displayName,
+        input.apiKey,
+        { expectedRevision: input.expectedRevision }
+      );
+      return sendSuccess(res, publicAiConfiguration(record), id);
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/ai/config/preferences') {
+      const user = aiUserIdentity(authenticateRequest(req));
+      return sendSuccess(
+        res,
+        await updateAiPreferences(aiConfigurationRepository, user, await readJsonBody(req)),
+        id
+      );
+    }
+    if (req.method === 'POST' && url.pathname === '/api/ai/config/health-check') {
+      const user = aiUserIdentity(authenticateRequest(req));
+      return sendSuccess(res, await checkAiConfiguration(aiConfigurationRepository, user), id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/ai/users') {
+      authorizeRequest(req, '*');
+      const items = await aiConfigurationRepository.list();
+      return sendSuccess(res, { items: items.map(publicAiConfiguration) }, id);
     }
     if (req.method === 'GET' && url.pathname === '/api/gis/config') {
       return sendSuccess(res, {
@@ -787,10 +1118,40 @@ async function handleRequest(req, res) {
     }
     if (req.method === 'GET' && url.pathname === '/api/ready') {
       const capabilities = await getCapabilities(smartRenewClient, smartRenewAdapters.capabilities);
-      const ready = capabilities.upstream.ready;
+      const providerHealth = repositoryProviderMode === 'cloudbase'
+        ? await checkCloudBaseHealth(cloudbaseRuntime)
+        : { ready: true, productionVerified: false };
+      const cloudbaseCapability = cloudBaseRuntimeCapability(cloudbaseRuntime).cloudbase;
+      const publicProviderHealth = repositoryProviderMode === 'cloudbase'
+        ? {
+            ready: providerHealth.ready,
+            database: { ready: providerHealth.database?.ready === true },
+            storage: {
+              ready: providerHealth.storage?.ready === true,
+              reason: providerHealth.storage?.reason || null
+            },
+            schemaVersion: providerHealth.schemaVersion,
+            productionVerified: false
+          }
+        : providerHealth;
+      const providerReady = providerHealth.ready === true;
+      const ready = capabilities.upstream.ready && providerReady;
       return sendSuccess(res, {
         status: ready ? 'ready' : 'not_ready',
         upstream: capabilities.upstream,
+        provider: {
+          mode: repositoryProviderMode,
+          ready: providerReady,
+          capability: {
+            ready: cloudbaseCapability.ready,
+            configured: cloudbaseCapability.configured,
+            reason: cloudbaseCapability.reason,
+            repositoryKind: cloudbaseCapability.repositoryKind,
+            storageKind: cloudbaseCapability.storageKind,
+            productionVerified: false
+          },
+          health: publicProviderHealth
+        },
         required: {
           database: capabilities.database,
           storage: capabilities.storage
@@ -809,6 +1170,100 @@ async function handleRequest(req, res) {
           }
         }
       }, id, ready ? 200 : 503);
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/provider/health') {
+      authorizeRequest(req, '*');
+      return sendSuccess(res, {
+        mode: repositoryProviderMode,
+        ...await checkCloudBaseHealth(cloudbaseRuntime)
+      }, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/provider/collections') {
+      authorizeRequest(req, '*');
+      return sendSuccess(res, cloudBaseRuntimeCapability(cloudbaseRuntime).cloudbase, id);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/provider-migrations') {
+      authorizeRequest(req, '*');
+      return sendSuccess(res, {
+        items: await providerMigrationRepository.list(),
+        productionVerified: false
+      }, id);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/provider-migrations') {
+      authorizeRequest(req, '*');
+      const input = await readJsonBody(req);
+      const existing = input.clientRequestId
+        ? await providerMigrationRepository.findByClientRequest('', input.clientRequestId)
+        : null;
+      if (existing) return sendSuccess(res, { run: existing, productionVerified: false, idempotent: true }, id);
+      const plan = await buildProviderMigrationPlan(
+        input.sourceRoot || businessDataRoot,
+        input,
+        { dryRun: true }
+      );
+      await providerMigrationRepository.put(plan);
+      return sendSuccess(res, { run: plan, productionVerified: false }, id, 201);
+    }
+    const providerMigrationMatch = url.pathname.match(/^\/api\/provider-migrations\/([^/]+)$/);
+    if (req.method === 'GET' && providerMigrationMatch) {
+      authorizeRequest(req, '*');
+      const run = await providerMigrationRepository.get(decodeURIComponent(providerMigrationMatch[1]));
+      if (!run) {
+        const error = new Error('Provider迁移运行不存在。');
+        error.status = 404;
+        error.code = 'PROVIDER_MIGRATION_NOT_FOUND';
+        throw error;
+      }
+      return sendSuccess(res, { run, productionVerified: false }, id);
+    }
+    const providerMigrationExecuteMatch = url.pathname.match(/^\/api\/provider-migrations\/([^/]+)\/execute$/);
+    if (req.method === 'POST' && providerMigrationExecuteMatch) {
+      authorizeRequest(req, '*');
+      if (repositoryProviderMode !== 'cloudbase') {
+        const error = new Error('执行迁移前必须把运行时切换到CloudBase目标Provider。');
+        error.status = 409;
+        error.code = 'CLOUDBASE_PROVIDER_REQUIRED';
+        throw error;
+      }
+      const run = await providerMigrationRepository.get(decodeURIComponent(providerMigrationExecuteMatch[1]));
+      if (!run) {
+        const error = new Error('Provider迁移运行不存在。');
+        error.status = 404;
+        error.code = 'PROVIDER_MIGRATION_NOT_FOUND';
+        throw error;
+      }
+      const outcome = await executeProviderMigration(
+        run,
+        formalRecordProvider,
+        providerMigrationRepository,
+        await readJsonBody(req)
+      );
+      return sendSuccess(res, { run: outcome, productionVerified: false }, id);
+    }
+    const providerMigrationRollbackMatch = url.pathname.match(/^\/api\/provider-migrations\/([^/]+)\/rollback$/);
+    if (req.method === 'POST' && providerMigrationRollbackMatch) {
+      authorizeRequest(req, '*');
+      if (repositoryProviderMode !== 'cloudbase') {
+        const error = new Error('回滚迁移前必须把运行时切换到CloudBase目标Provider。');
+        error.status = 409;
+        error.code = 'CLOUDBASE_PROVIDER_REQUIRED';
+        throw error;
+      }
+      const run = await providerMigrationRepository.get(decodeURIComponent(providerMigrationRollbackMatch[1]));
+      if (!run) {
+        const error = new Error('Provider迁移运行不存在。');
+        error.status = 404;
+        error.code = 'PROVIDER_MIGRATION_NOT_FOUND';
+        throw error;
+      }
+      const outcome = await rollbackProviderMigration(
+        run,
+        formalRecordProvider,
+        providerMigrationRepository,
+        await readJsonBody(req)
+      );
+      return sendSuccess(res, { run: outcome, productionVerified: false }, id);
     }
 
     if (req.method === 'GET' && url.pathname === '/api/uploads') {
@@ -1139,6 +1594,18 @@ async function handleRequest(req, res) {
       }, id);
     }
 
+    const fieldProblemTypesMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/problem-types$/
+    );
+    if (req.method === 'GET' && fieldProblemTypesMatch) {
+      const projectId = decodeURIComponent(fieldProblemTypesMatch[1]);
+      await smartRenewClient.getProject(projectId);
+      return sendSuccess(res, {
+        items: await smartRenewAdapters.field.listProblemTypes(),
+        source: 'smart-renew'
+      }, id);
+    }
+
     const fieldTasksMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/field\/tasks$/);
     if (req.method === 'GET' && fieldTasksMatch) {
       return sendSuccess(
@@ -1146,7 +1613,8 @@ async function handleRequest(req, res) {
         await listFieldTasks(
           smartRenewAdapters.field,
           fieldTaskReferenceRepository,
-          decodeURIComponent(fieldTasksMatch[1])
+          decodeURIComponent(fieldTasksMatch[1]),
+          { uploadSessionRepository }
         ),
         id
       );
@@ -1171,16 +1639,76 @@ async function handleRequest(req, res) {
     );
     if (req.method === 'GET' && fieldTaskDetailMatch) {
       const projectId = decodeURIComponent(fieldTaskDetailMatch[1]);
-      const task = await smartRenewAdapters.field.getTask(
+      const task = await getFieldTask(
+        smartRenewAdapters.field,
+        fieldTaskReferenceRepository,
+        uploadSessionRepository,
+        projectId,
         decodeURIComponent(fieldTaskDetailMatch[2])
       );
-      if (String(task?.projectId) !== String(projectId)) {
-        const error = new Error('外业任务不属于当前项目。');
-        error.status = 404;
-        error.code = 'FIELD_TASK_NOT_FOUND';
-        throw error;
-      }
       return sendSuccess(res, { item: task, source: 'smart-renew' }, id);
+    }
+
+    const fieldTaskUploadsMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/tasks\/([^/]+)\/uploads$/
+    );
+    if (req.method === 'POST' && fieldTaskUploadsMatch) {
+      const projectId = decodeURIComponent(fieldTaskUploadsMatch[1]);
+      const taskId = decodeURIComponent(fieldTaskUploadsMatch[2]);
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(projectId, () =>
+        createFieldTaskUpload(
+          smartRenewClient,
+          smartRenewAdapters.field,
+          fieldTaskReferenceRepository,
+          uploadSessionRepository,
+          projectId,
+          taskId,
+          input,
+          { assertAnalysisFresh: assertAnalysisReviewFresh }
+        )
+      );
+      return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
+    }
+
+    const fieldTaskCompleteMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/tasks\/([^/]+)\/complete$/
+    );
+    if (req.method === 'POST' && fieldTaskCompleteMatch) {
+      const projectId = decodeURIComponent(fieldTaskCompleteMatch[1]);
+      const taskId = decodeURIComponent(fieldTaskCompleteMatch[2]);
+      const input = await readJsonBody(req);
+      const task = await projectWriteCoordinator.run(projectId, () =>
+        completeFieldTask(
+          smartRenewAdapters.field,
+          fieldTaskReferenceRepository,
+          uploadSessionRepository,
+          projectId,
+          taskId,
+          input
+        )
+      );
+      return sendSuccess(res, { item: task }, id);
+    }
+
+    const fieldTaskRetryMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/field\/tasks\/([^/]+)\/retry$/
+    );
+    if (req.method === 'POST' && fieldTaskRetryMatch) {
+      const projectId = decodeURIComponent(fieldTaskRetryMatch[1]);
+      const taskId = decodeURIComponent(fieldTaskRetryMatch[2]);
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(projectId, () =>
+        retryFieldTaskUploads(
+          smartRenewAdapters.field,
+          fieldTaskReferenceRepository,
+          uploadSessionRepository,
+          projectId,
+          taskId,
+          input
+        )
+      );
+      return sendSuccess(res, outcome, id);
     }
 
     const legacyMigrationMatch = url.pathname.match(
@@ -1218,6 +1746,122 @@ async function handleRequest(req, res) {
         )
       );
       return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
+    }
+
+    const residentialDiscoveryMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/residential-discovery-runs$/
+    );
+    if (req.method === 'GET' && residentialDiscoveryMatch) {
+      const projectId = decodeURIComponent(residentialDiscoveryMatch[1]);
+      authorizeRequest(req, 'gis.view', { projectId });
+      return sendSuccess(res, {
+        items: await listResidentialDiscoveryRuns(
+          smartRenewClient,
+          residentialDiscoveryRepository,
+          projectId
+        )
+      }, id);
+    }
+    if (req.method === 'POST' && residentialDiscoveryMatch) {
+      const projectId = decodeURIComponent(residentialDiscoveryMatch[1]);
+      const identity = authorizeRequest(req, 'gis.analysis.run', { projectId });
+      const input = await readJsonBody(req);
+      const run = await createResidentialDiscoveryRun(
+        smartRenewClient,
+        residentialDiscoveryRepository,
+        amapWebServiceProvider,
+        projectId,
+        {
+          ...input,
+          createdBy: accountableActor(identity, input.createdBy)
+        }
+      );
+      return sendSuccess(res, { item: run }, id, 201);
+    }
+
+    const residentialConfirmMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/residential-discovery-runs\/([^/]+)\/confirm$/
+    );
+    if (req.method === 'POST' && residentialConfirmMatch) {
+      const projectId = decodeURIComponent(residentialConfirmMatch[1]);
+      const runId = decodeURIComponent(residentialConfirmMatch[2]);
+      const identity = authorizeRequest(req, 'gis.poi.review', { projectId });
+      const input = await readJsonBody(req);
+      const outcome = await projectWriteCoordinator.run(projectId, () =>
+        confirmResidentialDiscoveryRun(
+          smartRenewClient,
+          residentialDiscoveryRepository,
+          runId,
+          {
+            ...input,
+            projectId,
+            confirmedBy: accountableActor(identity, input.confirmedBy)
+          }
+        )
+      );
+      return sendSuccess(res, outcome, id, outcome.duplicated ? 200 : 201);
+    }
+
+    const communityMergeMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/communities\/merge$/);
+    if (req.method === 'POST' && communityMergeMatch) {
+      const projectId = decodeURIComponent(communityMergeMatch[1]);
+      const identity = authorizeRequest(req, 'gis.poi.review', { projectId });
+      const input = await readJsonBody(req);
+      const referenceSummary = await communityReferenceSummary(projectId, input.communityIds);
+      const outcome = await projectWriteCoordinator.run(projectId, () =>
+        mergeCommunities(
+          smartRenewClient,
+          projectId,
+          {
+            ...input,
+            mergedBy: accountableActor(identity, input.mergedBy)
+          },
+          { referenceSummary }
+        )
+      );
+      return sendSuccess(res, outcome, id, 201);
+    }
+
+    const communitySplitMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/communities\/([^/]+)\/split$/
+    );
+    if (req.method === 'POST' && communitySplitMatch) {
+      const projectId = decodeURIComponent(communitySplitMatch[1]);
+      const communityId = decodeURIComponent(communitySplitMatch[2]);
+      const identity = authorizeRequest(req, 'gis.poi.review', { projectId });
+      const input = await readJsonBody(req);
+      const referenceSummary = await communityReferenceSummary(projectId, [communityId]);
+      const outcome = await projectWriteCoordinator.run(projectId, () =>
+        splitCommunity(
+          smartRenewClient,
+          projectId,
+          communityId,
+          {
+            ...input,
+            splitBy: accountableActor(identity, input.splitBy)
+          },
+          { referenceSummary }
+        )
+      );
+      return sendSuccess(res, outcome, id, 201);
+    }
+
+    const communityRestoreMatch = url.pathname.match(
+      /^\/api\/projects\/([^/]+)\/communities\/([^/]+)\/restore$/
+    );
+    if (req.method === 'POST' && communityRestoreMatch) {
+      const projectId = decodeURIComponent(communityRestoreMatch[1]);
+      const communityId = decodeURIComponent(communityRestoreMatch[2]);
+      const identity = authorizeRequest(req, 'gis.poi.review', { projectId });
+      const input = await readJsonBody(req);
+      const community = await projectWriteCoordinator.run(projectId, () =>
+        updateCommunity(smartRenewClient, projectId, communityId, {
+          ...input,
+          status: 'active',
+          updatedBy: accountableActor(identity, input.restoredBy || input.updatedBy)
+        })
+      );
+      return sendSuccess(res, { item: community }, id);
     }
 
     const communityCreateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/communities$/);
@@ -1395,8 +2039,13 @@ async function handleRequest(req, res) {
 
     const analysisCreateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/analyses$/);
     if (req.method === 'POST' && analysisCreateMatch) {
+      const user = aiUserIdentity(authenticateRequest(req));
       const analysis = await runAnalysis(
-        smartRenewClient,
+        createUserScopedAiClient(
+          smartRenewClient,
+          aiConfigurationRepository,
+          user.userId
+        ),
         decodeURIComponent(analysisCreateMatch[1]),
         await readJsonBody(req)
       );
@@ -1420,11 +2069,17 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'POST' && analysisJobsMatch) {
+      const user = aiUserIdentity(authenticateRequest(req));
+      const input = await readJsonBody(req);
       const outcome = await createAnalysisJob(
-        smartRenewClient,
+        createUserScopedAiClient(
+          smartRenewClient,
+          aiConfigurationRepository,
+          user.userId
+        ),
         analysisJobRepository,
         decodeURIComponent(analysisJobsMatch[1]),
-        await readJsonBody(req),
+        { ...input, requestedBy: user.userId },
         { photoMetadataRepository }
       );
       if (!outcome.duplicated) analysisJobRunner.enqueue(outcome.job.id);
@@ -1728,11 +2383,87 @@ async function handleRequest(req, res) {
 
     const standardItemMatch = url.pathname.match(/^\/api\/standards\/(indicators|problem-types)\/([^/]+)$/);
     if (req.method === 'GET' && standardItemMatch) {
-      const sourceTable = standardItemMatch[1] === 'indicators' ? 'indicator' : 'problem_type';
       const code = decodeURIComponent(standardItemMatch[2]);
       const library = await loadStandardLibrary();
+      if (standardItemMatch[1] === 'problem-types') {
+        return sendSuccess(res, {
+          item: getProblemTypeBinding(library, code)
+        }, id);
+      }
+      const sourceTable = 'indicator';
       return sendSuccess(res, {
         item: assertStandardRecord(findStandardRecord(library, sourceTable, code), sourceTable, code)
+      }, id);
+    }
+
+    const standardRemediationsMatch = url.pathname.match(/^\/api\/standards\/problem-types\/([^/]+)\/remediations$/);
+    if (req.method === 'GET' && standardRemediationsMatch) {
+      const library = await loadStandardLibrary();
+      const binding = getProblemTypeBinding(
+        library,
+        decodeURIComponent(standardRemediationsMatch[1])
+      );
+      return sendSuccess(res, {
+        standardLibraryVersion: standardLibraryVersion(library),
+        items: binding.remediations
+      }, id);
+    }
+
+    const issueBindingMatch = url.pathname.match(/^\/api\/issues\/([^/]+)\/standard-binding$/);
+    if (req.method === 'PATCH' && issueBindingMatch) {
+      const identity = authenticateRequest(req);
+      const issueId = decodeURIComponent(issueBindingMatch[1]);
+      const existingIssue = await officialIssueRepository.get(issueId);
+      if (!existingIssue) {
+        const error = new Error('正式问题不存在或不是Business正式问题。');
+        error.status = 404;
+        error.code = 'OFFICIAL_ISSUE_NOT_FOUND';
+        throw error;
+      }
+      authorizeRequest(req, 'gis.issue.binding.edit', { projectId: existingIssue.projectId });
+      const input = await readJsonBody(req);
+      const library = await loadStandardLibrary();
+      const bindingStatus = String(input?.bindingStatus || 'unbound').trim().toLowerCase();
+      let resolvedBinding = null;
+      if (['suggested', 'confirmed'].includes(bindingStatus)) {
+        resolvedBinding = getProblemTypeBinding(library, input?.problemCode);
+        const remediation = findRemediation(resolvedBinding, input?.remediationId);
+        if (input?.remediationId && !remediation) {
+          const error = new Error('所选整改建议不属于当前问题类型或已停用。');
+          error.status = 400;
+          error.code = 'STANDARD_REMEDIATION_NOT_FOUND';
+          throw error;
+        }
+        resolvedBinding = {
+          ...resolvedBinding,
+          remediation
+        };
+      }
+      const issue = await officialIssueRepository.updateStandardBinding(issueId, {
+        ...input,
+        updatedBy: accountableActor(identity, input.updatedBy),
+        bindingStatus,
+        resolvedBinding,
+        remediationSnapshot: resolvedBinding?.remediation || null
+      });
+      return sendSuccess(res, { item: issue }, id);
+    }
+
+    const issueBindingAuditMatch = url.pathname.match(/^\/api\/issues\/([^/]+)\/standard-binding-audit$/);
+    if (req.method === 'GET' && issueBindingAuditMatch) {
+      const identity = authenticateRequest(req);
+      const issue = await officialIssueRepository.get(decodeURIComponent(issueBindingAuditMatch[1]));
+      if (!issue) {
+        const error = new Error('正式问题不存在或不是Business正式问题。');
+        error.status = 404;
+        error.code = 'OFFICIAL_ISSUE_NOT_FOUND';
+        throw error;
+      }
+      authorizeRequest(req, 'gis.view', { projectId: issue.projectId });
+      return sendSuccess(res, {
+        items: Array.isArray(issue.bindingAudit) ? issue.bindingAudit : [],
+        bindingStatus: issue.bindingStatus || 'unbound',
+        issueRevision: Number(issue.issueRevision) || 1
       }, id);
     }
 

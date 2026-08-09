@@ -34,6 +34,11 @@ export function buildReportContentSnapshot(project, issues, analyses, options = 
     description: clean(issue.description || issue.desc, 2000),
     evidence: clean(issue.evidence, 2000),
     suggestion: clean(issue.suggestion, 2000),
+    problemCode: clean(issue.problemCode, 50) || null,
+    problemName: clean(issue.problemName, 160) || null,
+    indicatorCode: clean(issue.indicatorCode, 80) || null,
+    bindingStatus: clean(issue.bindingStatus, 40) || 'unbound',
+    remediationSnapshot: issue.remediationSnapshot || null,
     communityId: clean(issue.communityId, 120),
     buildingId: clean(issue.buildingId, 120),
     originalPhotoId: clean(issue.originalPhotoId, 120) || null,
@@ -124,8 +129,8 @@ export function buildReportSections(report) {
 
 function issueTable(issues) {
   if (!issues.length) return '<p class="empty">本次人工复核结论为未发现正式问题。</p>';
-  return `<table><thead><tr><th>等级</th><th>问题</th><th>分类</th><th>证据</th><th>建议</th></tr></thead><tbody>${
-    issues.map((issue) => `<tr><td><span class="risk risk-${escapeHtml(issue.severity)}">${escapeHtml(severityLabels[issue.severity] || issue.severity)}</span></td><td><strong>${escapeHtml(issue.title)}</strong><small>${escapeHtml(issue.id)}</small></td><td>${escapeHtml(issue.categoryName)}</td><td>${escapeHtml(issue.evidence || issue.description || '未记录')}</td><td>${escapeHtml(issue.suggestion || '待制定')}</td></tr>`).join('')
+  return `<table><thead><tr><th>等级</th><th>问题</th><th>标准绑定</th><th>分类</th><th>证据</th><th>建议</th></tr></thead><tbody>${
+    issues.map((issue) => `<tr><td><span class="risk risk-${escapeHtml(issue.severity)}">${escapeHtml(severityLabels[issue.severity] || issue.severity)}</span></td><td><strong>${escapeHtml(issue.title)}</strong><small>${escapeHtml(issue.id)}</small></td><td>${escapeHtml(issue.problemCode ? `${issue.problemCode} · ${issue.problemName || ''}` : '未绑定问题类型')}<small>${escapeHtml(issue.indicatorCode || '无指标绑定')} · ${escapeHtml(issue.bindingStatus || 'unbound')}</small></td><td>${escapeHtml(issue.categoryName)}</td><td>${escapeHtml(issue.evidence || issue.description || '未记录')}</td><td>${escapeHtml(issue.remediationSnapshot?.text || issue.suggestion || '待制定')}</td></tr>`).join('')
   }</tbody></table>`;
 }
 

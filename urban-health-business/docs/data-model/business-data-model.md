@@ -351,6 +351,11 @@ reopened
   "analysisId": "ANL-001",
   "candidateId": "CAND-001",
   "problemCode": "PRB-04-01",
+  "problemName": null,
+  "indicatorCode": null,
+  "bindingStatus": "unbound",
+  "remediationSnapshot": null,
+  "bindingAudit": [],
   "title": "",
   "description": "",
   "severity": 8,
@@ -369,6 +374,8 @@ reopened
 ```
 
 正式问题修改必须增加 `revision` 并保留变更记录。
+
+`problemCode` 为可选人工绑定。`bindingStatus` 为 `unbound|suggested|confirmed|not-applicable`；绑定后由标准库问题类型关系派生 `indicatorCode`，并把整改建议原文、建议类型、责任单位和 `standardLibraryVersion` 冻结到 `remediationSnapshot`。未绑定问题、人工补录问题和零问题结论均为合法状态；绑定操作不生成指标运行结果。
 
 旧问题迁入时使用新的确定性Business ID，并增加`migration.sourceId`、`migration.sourceFingerprint`、`migratedBy`和`migratedAt`。旧`problemCode`和`indicatorCode`只保存为`legacyProblemCode`、`legacyIndicatorCode`来源字段；当前`indicatorCode`仍为`null`。
 
@@ -761,3 +768,27 @@ Demo对象不迁移为业务数据库种子数据。
 8. 项目对象不承载全部子对象；
 9. 更新支持revision冲突；
 10. smart-renew旧数据存在明确映射边界。
+
+## 28. NP-05/NP-06 增量模型
+
+### 28.1 ProviderMigrationRun
+
+`ProviderMigrationRun` 使用 `MIGRUN-*` 稳定 ID，保存 `sourceProvider`、`targetProvider`、`sourceRoot`、集合级 `sourceCount/targetCount`、Schema 版本、执行状态、失败项、迁移记录、创建/执行/回滚时间和 `productionVerified`。执行前为计划，必须显式确认；失败不自动删除目标记录，回滚只删除本次运行成功写入且已审计的记录。SourceAsset、地图快照和照片二进制在未完成专项对象存储迁移前保持 reference-only。
+
+### 28.2 OutcomeSummaryReadModel
+
+成果中心是有界、可重新计算的读模型，不是新的业务事实源。它按项目汇总阶段状态、正式问题风险、定位、未绑定编码、分析、空间分析、报告和 stale 状态，并保留 `projectId`、最新报告摘要和来源标记。跨项目查询先应用 RBAC 项目范围，再从 Business 主记录与 legacy 只读记录合并，不能把汇总结果反写为项目事实。
+
+成果汇总同时保存 `projectsTotal`、`projectsLimit`、`projectsTruncated`；总计字段遍历全部可见项目，`projects` 仅保存有界详情。资料口径分别记录 `incompleteCollectionProjectCount`（必需项未完成）和 `collectionWarningProjectCount`（建议项存在警告）。
+
+### 28.3 CloudBase业务Collection契约
+
+Business Collection 使用 `business*` 命名、Schema `1.0.0` 和 `id` 唯一键；索引字段由 `server/providers/cloudbase-provider.mjs` 的集中契约导出。CloudBase SDK 只存在于 Provider/Storage 层，业务服务只能通过 Repository Adapter 访问。AI 配置记录仍保存密文和用户范围元数据，不在迁移或设置接口中返回明文 Key；本地加密主密钥需纳入独立备份恢复清单。
+
+### 28.4 ProviderMigrationRun检查点与回滚标记
+
+迁移运行保存 `lastHeartbeatAt`、`checkpoint`、`interruption`、`migrated` 和 `failures`。`checkpoint` 至少包含当前 Collection、记录索引、已处理数量、成功数量和失败数量；运行状态为 `running` 时视为持有持久租约，只有明确恢复且租约过期才能继续。每条新增目标记录附带 `migrationRunId` 与 `migrationSourceHash`，迁移清单保存 `writtenRecordHash`，回滚只删除标记和哈希均匹配的记录。
+
+### 28.5 StandardBindingAudit
+
+标准绑定审计属于正式问题的项目级子记录。写入使用可信身份的 `actor`、问题修订前后快照、标准库版本和动作；`updatedBy` 等客户端字段只作为请求输入，不覆盖认证身份。读取需要项目查看权限，写入需要 `gis.issue.binding.edit`。

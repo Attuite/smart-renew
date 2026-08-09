@@ -115,6 +115,7 @@ export async function createUploadSession(client, repository, input, options = {
     id: options.id || `UPL-${randomUUID()}`,
     clientRequestId,
     projectId,
+    fieldTaskId: clean(input?.fieldTaskId, 180) || null,
     communityId,
     communityName: clean(community.name, 160),
     buildingId: buildingId || '',

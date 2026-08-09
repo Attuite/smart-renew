@@ -13,6 +13,10 @@ export class FieldAdapter {
     return itemsFrom(await this.client.request('/api/field/projects'));
   }
 
+  async listProblemTypes() {
+    return itemsFrom(await this.client.request('/api/field/problem-types'));
+  }
+
   async listCommunities(projectId) {
     return itemsFrom(await this.client.request(
       `/api/field/projects/${encodeURIComponent(projectId)}/communities`
@@ -41,6 +45,17 @@ export class FieldAdapter {
   async getTask(taskId) {
     return itemFrom(await this.client.request(
       `/api/field/collection-tasks/${encodeURIComponent(taskId)}`
+    ));
+  }
+
+  async completeTask(taskId, input) {
+    return itemFrom(await this.client.request(
+      `/api/field/collection-tasks/${encodeURIComponent(taskId)}/complete`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input)
+      }
     ));
   }
 }

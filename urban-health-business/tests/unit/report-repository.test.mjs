@@ -48,6 +48,37 @@ test('report draft snapshots manual review and spatial analysis references', () 
   }]);
 });
 
+test('report snapshot freezes optional standard binding and remediation text', () => {
+  const report = buildReportDraft(
+    { id: '170000000000001', name: '真实项目' },
+    [{
+      id: 'ISS-BIND-001',
+      title: '结构裂缝',
+      severity: 'high',
+      issueRevision: 4,
+      problemCode: 'PRB-01-01',
+      problemName: '混凝土结构构件裂缝',
+      indicatorCode: 'IND-HOUSE-001',
+      bindingStatus: 'confirmed',
+      remediationSnapshot: {
+        id: 'REM-PRB-01-01-1',
+        text: '专业鉴定并加固',
+        type: 'urgent',
+        responsibleUnit: '小区物业/房屋管理',
+        standardLibraryVersion: 'library@1'
+      }
+    }],
+    [],
+    [],
+    { generatedBy: '报告人员' },
+    { now: '2026-08-09T01:00:00.000Z' }
+  );
+  assert.equal(report.contentSnapshot.issues[0].problemCode, 'PRB-01-01');
+  assert.equal(report.contentSnapshot.issues[0].indicatorCode, 'IND-HOUSE-001');
+  assert.equal(report.contentSnapshot.issues[0].remediationSnapshot.text, '专业鉴定并加固');
+  assert.equal(report.dataSnapshot.issueBindingSnapshots[0].bindingStatus, 'confirmed');
+});
+
 test('report edit uses optimistic revision and appends audit history', async () => {
   const repository = new ReportRepository('unused');
   repository.get = async () => ({

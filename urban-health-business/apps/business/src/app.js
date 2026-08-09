@@ -72,6 +72,8 @@ const elements = {
   errorMessage: document.querySelector('#errorMessage'),
   dismissErrorButton: document.querySelector('#dismissErrorButton'),
   refreshButton: document.querySelector('#refreshButton'),
+  outcomeCenterButton: document.querySelector('#outcomeCenterButton'),
+  settingsButton: document.querySelector('#settingsButton'),
   createProjectButton: document.querySelector('#createProjectButton'),
   projectDialog: document.querySelector('#projectDialog'),
   projectForm: document.querySelector('#projectForm'),
@@ -91,6 +93,16 @@ const elements = {
   stageActionButton: document.querySelector('#stageActionButton'),
   stageActionHint: document.querySelector('#stageActionHint'),
   overviewView: document.querySelector('#overviewView'),
+  outcomeWorkspace: document.querySelector('#outcomeWorkspace'),
+  backFromOutcomeButton: document.querySelector('#backFromOutcomeButton'),
+  outcomeStatStrip: document.querySelector('#outcomeStatStrip'),
+  outcomeProjectList: document.querySelector('#outcomeProjectList'),
+  outcomeRecordList: document.querySelector('#outcomeRecordList'),
+  settingsWorkspace: document.querySelector('#settingsWorkspace'),
+  backFromSettingsButton: document.querySelector('#backFromSettingsButton'),
+  settingsProviderPanel: document.querySelector('#settingsProviderPanel'),
+  settingsExternalPanel: document.querySelector('#settingsExternalPanel'),
+  settingsMetaPanel: document.querySelector('#settingsMetaPanel'),
   collectionWorkspace: document.querySelector('#collectionWorkspace'),
   backToOverviewButton: document.querySelector('#backToOverviewButton'),
   projectExportLink: document.querySelector('#projectExportLink'),
@@ -124,7 +136,15 @@ const elements = {
   boundaryMapStatus: document.querySelector('#boundaryMapStatus'),
   boundaryMapCanvas: document.querySelector('#boundaryMapCanvas'),
   boundaryMapError: document.querySelector('#boundaryMapError'),
+  residentialDiscoveryForm: document.querySelector('#residentialDiscoveryForm'),
+  runResidentialDiscoveryButton: document.querySelector('#runResidentialDiscoveryButton'),
+  residentialDiscoveryRuns: document.querySelector('#residentialDiscoveryRuns'),
+  residentialConfirmForm: document.querySelector('#residentialConfirmForm'),
+  confirmResidentialCandidatesButton: document.querySelector('#confirmResidentialCandidatesButton'),
+  residentialDiscoveryFormError: document.querySelector('#residentialDiscoveryFormError'),
   communityList: document.querySelector('#communityList'),
+  communityGovernanceBy: document.querySelector('#communityGovernanceBy'),
+  mergeCommunitiesButton: document.querySelector('#mergeCommunitiesButton'),
   communityForm: document.querySelector('#communityForm'),
   saveCommunityButton: document.querySelector('#saveCommunityButton'),
   cancelCommunityEditButton: document.querySelector('#cancelCommunityEditButton'),
@@ -164,6 +184,8 @@ const elements = {
   fieldTaskForm: document.querySelector('#fieldTaskForm'),
   fieldTaskCommunitySelect: document.querySelector('#fieldTaskCommunitySelect'),
   fieldTaskBuildingSelect: document.querySelector('#fieldTaskBuildingSelect'),
+  fieldTaskProblemSelect: document.querySelector('#fieldTaskProblemSelect'),
+  fieldTaskOperationBy: document.querySelector('#fieldTaskOperationBy'),
   createFieldTaskButton: document.querySelector('#createFieldTaskButton'),
   fieldTaskFormError: document.querySelector('#fieldTaskFormError'),
   fieldTaskList: document.querySelector('#fieldTaskList'),
@@ -177,6 +199,11 @@ const elements = {
   aiCapabilityBanner: document.querySelector('#aiCapabilityBanner'),
   aiCapabilityTitle: document.querySelector('#aiCapabilityTitle'),
   aiCapabilityMessage: document.querySelector('#aiCapabilityMessage'),
+  aiConfigForm: document.querySelector('#aiConfigForm'),
+  aiConfigStatus: document.querySelector('#aiConfigStatus'),
+  saveAiConfigButton: document.querySelector('#saveAiConfigButton'),
+  checkAiConfigButton: document.querySelector('#checkAiConfigButton'),
+  aiConfigFormError: document.querySelector('#aiConfigFormError'),
   analysisForm: document.querySelector('#analysisForm'),
   analysisPhotoPicker: document.querySelector('#analysisPhotoPicker'),
   startAnalysisButton: document.querySelector('#startAnalysisButton'),
@@ -250,6 +277,9 @@ const elements = {
   photoGeometryFormError: document.querySelector('#photoGeometryFormError'),
   issueEditForm: document.querySelector('#issueEditForm'),
   issueEditSelect: document.querySelector('#issueEditSelect'),
+  issueBindingStatusSelect: document.querySelector('#issueBindingStatusSelect'),
+  issueProblemCodeSelect: document.querySelector('#issueProblemCodeSelect'),
+  issueRemediationSelect: document.querySelector('#issueRemediationSelect'),
   updateIssueButton: document.querySelector('#updateIssueButton'),
   issueEditFormError: document.querySelector('#issueEditFormError'),
   spatialPreview: document.querySelector('#spatialPreview'),
@@ -859,12 +889,41 @@ function renderCollection(state) {
     : '<p class="workspace-empty">尚无Business边界修订快照；首次保存后开始记录。</p>';
   void syncBoundaryMap(state);
 
+  const discoveryRuns = state.residentialDiscoveryRuns || [];
+  const latestDiscoveryRun = discoveryRuns[0] || null;
+  if (latestDiscoveryRun) {
+    elements.residentialConfirmForm.dataset.runId = latestDiscoveryRun.id;
+    elements.residentialConfirmForm.dataset.runRevision = String(Number(latestDiscoveryRun.revision) || 1);
+  } else {
+    elements.residentialConfirmForm.dataset.runId = '';
+    elements.residentialConfirmForm.dataset.runRevision = '';
+  }
+  elements.residentialDiscoveryRuns.innerHTML = latestDiscoveryRun
+    ? `<article class="residential-discovery-run status-${escapeHtml(latestDiscoveryRun.status || 'completed')}">
+        <header><div><strong>${latestDiscoveryRun.status === 'stale' ? '识别快照已过期' : '最新住宅识别快照'}</strong><span>${escapeHtml(latestDiscoveryRun.id)}</span></div><small>${latestDiscoveryRun.createdAt ? new Date(latestDiscoveryRun.createdAt).toLocaleString() : '时间未记录'} · ${escapeHtml(latestDiscoveryRun.createdBy || '人员未记录')}</small></header>
+        <div class="residential-candidate-list">${latestDiscoveryRun.candidates?.length
+          ? latestDiscoveryRun.candidates.map((candidate) => `<label class="residential-candidate status-${escapeHtml(candidate.decisionStatus || 'pending')}">
+              <input type="checkbox" data-residential-candidate="${escapeHtml(candidate.normalizedId)}" ${candidate.decisionStatus === 'confirmed' || latestDiscoveryRun.status === 'stale' ? 'disabled' : ''}>
+              <span><strong>${escapeHtml(candidate.name || '未命名住宅')}</strong><small>${escapeHtml(candidate.address || '地址未返回')} · ${Number(candidate.distanceMeters) || 0}m</small></span>
+              <i>${candidate.decisionStatus === 'confirmed' ? `已入台账 ${escapeHtml(candidate.linkedCommunityId || '')}` : '待确认'}</i>
+            </label>`).join('')
+          : '<p class="workspace-empty">本次边界检索没有符合清洗规则的住宅候选。</p>'}</div>
+      </article>
+      ${discoveryRuns.length > 1 ? `<p class="residential-run-history">历史快照 ${discoveryRuns.length - 1} 次；边界变化后的旧快照只读保留。</p>` : ''}`
+    : '<p class="workspace-empty">尚未执行住宅识别。请先保存 GCJ-02 项目边界并配置高德 Web Service Key。</p>';
+  elements.confirmResidentialCandidatesButton.disabled = !latestDiscoveryRun
+    || latestDiscoveryRun.status === 'stale'
+    || !latestDiscoveryRun.candidates?.some((item) => item.decisionStatus !== 'confirmed');
+  elements.runResidentialDiscoveryButton.disabled = state.collectionLoading;
+
   elements.communityList.innerHTML = state.communities.length
     ? state.communities.map((community) => `<article>
+        <input class="community-governance-select" type="checkbox" data-community-governance-select="${escapeHtml(community.id)}" ${community.status === 'inactive' ? 'disabled' : ''} aria-label="选择 ${escapeHtml(community.name)}">
         <div><strong>${escapeHtml(community.name)}</strong><span>${escapeHtml(community.address || '未填写地址')}</span></div>
-        <small>${Number(community.buildingDetailCount) || 0} 栋 · ${community.status === 'inactive' ? '已停用' : '使用中'}</small>
+        <small>${Number(community.buildingDetailCount) || 0} 栋 · ${community.status === 'inactive' ? '已停用' : community.members?.length ? `已合并 ${community.members.length} 项` : community.source === 'amap-residential-discovery' ? '住宅识别确认' : '使用中'}</small>
         <span class="community-row-actions">
           <button type="button" data-edit-community="${escapeHtml(community.id)}">编辑</button>
+          ${community.members?.length > 1 ? `<button type="button" data-split-community="${escapeHtml(community.id)}">拆分</button>` : ''}
           <button type="button" data-toggle-community="${escapeHtml(community.id)}" data-next-status="${community.status === 'inactive' ? 'active' : 'inactive'}">${community.status === 'inactive' ? '恢复' : '停用'}</button>
         </span>
       </article>`).join('')
@@ -939,11 +998,23 @@ function renderCollection(state) {
     elements.fieldTaskCommunitySelect.value = previousFieldCommunityId;
   }
   renderFieldTaskBuildingOptions(state);
+  const previousProblemCode = elements.fieldTaskProblemSelect.value;
+  elements.fieldTaskProblemSelect.innerHTML = '<option value="">一般采集任务</option>'
+    + state.fieldProblemTypes.map((problem) => `<option value="${escapeHtml(problem.code)}">${escapeHtml(problem.code)} · ${escapeHtml(problem.name)}</option>`).join('');
+  if (state.fieldProblemTypes.some((problem) => problem.code === previousProblemCode)) {
+    elements.fieldTaskProblemSelect.value = previousProblemCode;
+  }
   elements.createFieldTaskButton.disabled = state.collectionLoading || !activeFieldCommunities.length;
   elements.fieldTaskList.innerHTML = state.fieldTasks.length
     ? state.fieldTasks.map((task) => `<article class="field-task-row">
-        <div><strong>${escapeHtml(task.clientTaskId || task.id)}</strong><span>${escapeHtml(task.description || '未填写任务说明')}</span></div>
-        <small>${escapeHtml(task.communityName || task.communityId || '未关联小区')}${task.buildingName || task.buildingId ? ` · ${escapeHtml(task.buildingName || task.buildingId)}` : ''} · ${escapeHtml(task.collectorId || task.collector || '采集人员未记录')}</small>
+        <div class="field-task-summary"><strong>${escapeHtml(task.clientTaskId || task.id)}</strong><span>${escapeHtml(task.problemCode ? `${task.problemCode} · ${task.problemName}` : task.description || '一般采集任务')}</span><small>${escapeHtml(task.communityName || task.communityId || '未关联小区')}${task.buildingName || task.buildingId ? ` · ${escapeHtml(task.buildingName || task.buildingId)}` : ''} · ${escapeHtml(task.collectorId || task.collector || '采集人员未记录')}</small></div>
+        <div class="field-task-progress"><strong>${Number(task.uploadedPhotoCount) || 0} / ${Number(task.expectedPhotoCount ?? task.photoCount) || 0}</strong><span>照片完成进度</span>${task.failedUploads?.length ? `<small>${task.failedUploads.length} 项失败可重试</small>` : ''}</div>
+        <div class="field-task-actions">
+          <label><input type="file" accept="image/jpeg,image/png,image/webp" multiple data-field-task-files="${escapeHtml(task.id)}"><span>选择照片</span></label>
+          <button type="button" data-upload-field-task="${escapeHtml(task.id)}" ${task.status === 'completed' ? 'disabled' : ''}>上传</button>
+          <button type="button" data-complete-field-task="${escapeHtml(task.id)}" ${task.status === 'completed' ? 'disabled' : ''}>完成</button>
+          ${task.failedUploads?.length ? `<button type="button" data-retry-field-task="${escapeHtml(task.id)}">重试失败项</button>` : ''}
+        </div>
         <i class="run-status status-${escapeHtml(task.status || 'created')}">${escapeHtml(task.status || 'created')}</i>
       </article>`).join('')
     : '<p class="workspace-empty">尚无外业采集任务。</p>';
@@ -1156,7 +1227,7 @@ function renderAnalysis(state) {
   if (!visible) return;
 
   const ai = state.meta?.services?.ai || {};
-  const ready = ai.ready === true;
+  const ready = state.aiConfig?.ready === true || ai.ready === true;
   const latestLegacyAnalysis = [...state.analyses].sort((a, b) =>
     String(b.completedAt || b.createdAt || b.timestamp || '').localeCompare(String(a.completedAt || a.createdAt || a.timestamp || ''))
   )[0];
@@ -1177,8 +1248,22 @@ function renderAnalysis(state) {
   elements.aiCapabilityBanner.className = `capability-banner ${ready ? 'is-ready' : 'is-unavailable'}`;
   elements.aiCapabilityTitle.textContent = ready ? '视觉AI可用' : '视觉AI尚未配置';
   elements.aiCapabilityMessage.textContent = ready
-    ? `当前模型：${ai.model || '由后端配置'}`
+    ? `当前模型：${state.aiConfig?.preferences?.model || ai.model || '由后端配置'}`
     : `原因：${ai.reason || 'ai_unavailable'}。不会显示或生成Demo候选结果。`;
+  const configRevision = String(Number(state.aiConfig?.revision) || 0);
+  elements.aiConfigStatus.textContent = state.aiConfig?.ready
+    ? `已配置 ${state.aiConfig.keyHint || ''}`
+    : '当前用户尚未配置Key';
+  if (
+    elements.aiConfigForm.dataset.revision !== configRevision
+    && !elements.aiConfigForm.contains(document.activeElement)
+  ) {
+    elements.aiConfigForm.dataset.revision = configRevision;
+    elements.aiConfigForm.elements.apiKey.value = '';
+    elements.aiConfigForm.elements.model.value = state.aiConfig?.preferences?.model || 'qwen3-vl-plus';
+    elements.aiConfigForm.elements.timeoutMs.value = state.aiConfig?.preferences?.timeoutMs || 120000;
+    elements.aiConfigForm.elements.maxImagesPerBatch.value = state.aiConfig?.preferences?.maxImagesPerBatch || 20;
+  }
 
   elements.analysisPhotoPicker.innerHTML = state.photos.length
     ? state.photos.map((photo) => `<label class="analysis-photo-option">
@@ -1538,6 +1623,8 @@ function populateIssueEditForm(issue) {
     for (const field of ['title', 'categoryName', 'description', 'evidence', 'suggestion', 'updatedBy']) {
       form.elements[field].value = '';
     }
+    elements.issueBindingStatusSelect.value = 'unbound';
+    renderIssueProblemOptions('');
     return;
   }
   form.dataset.issueRevision = String(Number(issue.issueRevision) || 1);
@@ -1548,6 +1635,41 @@ function populateIssueEditForm(issue) {
   form.elements.evidence.value = issue.evidence || '';
   form.elements.suggestion.value = issue.suggestion || '';
   form.elements.updatedBy.value = '';
+  elements.issueBindingStatusSelect.value = issue.bindingStatus || 'unbound';
+  renderIssueProblemOptions(issue.problemCode || '');
+  loadIssueRemediationOptions(issue.problemCode || '', issue.remediationSnapshot?.id || '');
+}
+
+function renderIssueProblemOptions(selectedCode = '') {
+  const records = store.get().standardProblemTypes || [];
+  elements.issueProblemCodeSelect.innerHTML = '<option value="">未绑定问题类型</option>' + records
+    .filter((record) => record.status !== 'inactive')
+    .map((record) => {
+      const code = record.code || record.sourceId;
+      const name = record.title || record.payload?.['名称'] || code;
+      const dimension = record.payload?.['维度'] || '';
+      const category = record.payload?.['问题大类'] || '';
+      return `<option value="${escapeHtml(code)}" ${String(code) === String(selectedCode) ? 'selected' : ''}>${escapeHtml(code)} · ${escapeHtml(name)}${dimension ? ` · ${escapeHtml(dimension)}` : ''}${category ? ` · ${escapeHtml(category)}` : ''}</option>`;
+    }).join('');
+  const disabled = ['unbound', 'not-applicable'].includes(elements.issueBindingStatusSelect.value);
+  elements.issueProblemCodeSelect.disabled = disabled;
+}
+
+async function loadIssueRemediationOptions(problemCode, selectedId = '') {
+  elements.issueRemediationSelect.innerHTML = '<option value="">按问题类型选择</option>';
+  elements.issueRemediationSelect.disabled = !problemCode
+    || ['unbound', 'not-applicable'].includes(elements.issueBindingStatusSelect.value);
+  if (!problemCode) return;
+  try {
+    const items = await api.standardProblemRemediations(problemCode);
+    if (String(elements.issueProblemCodeSelect.value) !== String(problemCode)) return;
+    elements.issueRemediationSelect.innerHTML = '<option value="">不引用整改建议</option>' + items
+      .map((item) => `<option value="${escapeHtml(item.id)}" ${String(item.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(item.text || item.id)} · ${escapeHtml(item.responsibleUnit || '责任单位未记录')}</option>`)
+      .join('');
+  } catch (error) {
+    elements.issueEditFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.issueEditFormError.hidden = false;
+  }
 }
 
 function renderGeometryAudit(issue) {
@@ -2216,7 +2338,8 @@ function renderError(state) {
 }
 
 function render(state) {
-  elements.overviewView.hidden = isCollectionWorkspace(state)
+  const globalView = isOutcomeWorkspace() || isSettingsWorkspace();
+  elements.overviewView.hidden = globalView || isCollectionWorkspace(state)
     || isAnalysisWorkspace(state)
     || isReviewWorkspace(state)
     || isGisWorkspace(state)
@@ -2236,6 +2359,8 @@ function render(state) {
   renderGis(state);
   renderIndicator(state);
   renderReports(state);
+  renderOutcomeCenter(state);
+  renderSettings(state);
   renderError(state);
   elements.loadingLayer.hidden = !state.loading;
 }
@@ -2262,6 +2387,7 @@ async function loadProject(projectId) {
       analysisJobs: [],
       analysisJobCandidates: [],
       issues: [],
+      standardProblemTypes: [],
       spatialAnalyses: [],
       reviewSessions: [],
       reports: []
@@ -2298,6 +2424,67 @@ async function loadProject(projectId) {
   } finally {
     store.set({ loading: false });
   }
+}
+
+function isOutcomeWorkspace() {
+  return new URLSearchParams(location.search).get('view') === 'outcomes';
+}
+
+function isSettingsWorkspace() {
+  return new URLSearchParams(location.search).get('view') === 'settings';
+}
+
+function renderOutcomeCenter(state) {
+  const visible = isOutcomeWorkspace();
+  elements.outcomeWorkspace.hidden = !visible;
+  if (!visible) return;
+  const summary = state.outcomeSummary || {};
+  const cards = [
+    [summary.projectCount, '项目', '可见范围'],
+    [summary.issueCount, '正式问题', `高风险 ${summary.highRiskIssueCount || 0}`],
+    [summary.staleReportCount, '过期报告', '需重新生成'],
+    [summary.unboundIssueCount, '未绑定问题', '可选标准关联'],
+    [summary.incompleteCollectionProjectCount, '资料不完整', `建议项 warning ${summary.collectionWarningProjectCount || 0}`]
+  ];
+  elements.outcomeStatStrip.innerHTML = cards.map(([value, title, note]) => `<article><span>${title}</span><strong>${Number(value) || 0}</strong><small>${escapeHtml(note)}</small></article>`).join('');
+  const projects = state.outcomeProjects || [];
+  elements.outcomeProjectList.innerHTML = projects.length
+    ? `<div class="outcome-table">${projects.map((item) => `<button type="button" class="outcome-row" data-outcome-project="${escapeHtml(item.projectId)}"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.area || '区域未记录')} · ${escapeHtml(item.overall?.currentStage || 'collection')}</small></span><span>问题 ${Number(item.counts?.officialIssues) || 0} · 报告 ${Number(item.counts?.reports) || 0}</span><i>${escapeHtml(item.overall?.status || 'unknown')}</i></button>`).join('')}</div>`
+    : '<p class="workspace-empty">当前可见范围没有项目记录。</p>';
+  const issues = state.outcomeIssues || [];
+  const reports = state.outcomeReports || [];
+  elements.outcomeRecordList.innerHTML = `<div class="outcome-record-summary"><strong>问题 ${issues.length}</strong><strong>报告 ${reports.length}</strong></div>${issues.slice(0, 8).map((issue) => `<article class="outcome-record"><span class="risk-${escapeHtml(issue.severity || 'medium')}">${escapeHtml(issue.severity || 'unknown')}</span><strong>${escapeHtml(issue.title || issue.id)}</strong><small>${escapeHtml(issue.projectId || '')} · ${escapeHtml(issue.bindingStatus || 'unbound')}</small></article>`).join('')}${!issues.length && !reports.length ? '<p class="workspace-empty">暂无问题或报告索引。</p>' : ''}`;
+}
+
+function renderSettings(state) {
+  const visible = isSettingsWorkspace();
+  elements.settingsWorkspace.hidden = !visible;
+  if (!visible) return;
+  const providers = state.settingsProviders || {};
+  const cloudbase = providers.cloudbase || {};
+  elements.settingsProviderPanel.innerHTML = `<div class="settings-list"><p><strong>Repository</strong><span>${escapeHtml(providers.runtime?.repositoryMode || 'unknown')}</span></p><p><strong>对象存储</strong><span>${escapeHtml(providers.runtime?.mapSnapshotStorageMode || 'unknown')}</span></p><p><strong>CloudBase</strong><span>${cloudbase.ready ? '可用' : escapeHtml(cloudbase.reason || '未验证')}</span></p><p><strong>生产验证</strong><span>始终为 false，需完成独立验收</span></p></div>`;
+  const external = state.settingsExternalServices || {};
+  elements.settingsExternalPanel.innerHTML = `<div class="settings-list"><p><strong>上游</strong><span>${external.upstream?.ready ? '可用' : escapeHtml(external.upstream?.error?.code || '不可用')}</span></p><p><strong>AI</strong><span>${external.ai?.ready ? '可用' : escapeHtml(external.ai?.reason || '未配置')}</span></p><p><strong>GIS</strong><span>${external.gis?.ready ? '可用' : escapeHtml(external.gis?.reason || '未配置')}</span></p></div>`;
+  const meta = state.settingsMeta || {};
+  elements.settingsMetaPanel.innerHTML = `<div class="settings-list"><p><strong>标准库</strong><span>${escapeHtml(meta.standardLibrary?.name || '未加载')}</span></p><p><strong>版本</strong><span>${escapeHtml(meta.standardLibrary?.schemaVersion || 'unknown')}</span></p><p><strong>记录数</strong><span>${Number(meta.standardLibrary?.recordCount) || 0}</span></p><p><strong>RBAC</strong><span>${meta.security?.enforced ? '已启用' : '本地关闭认证'}</span></p></div>`;
+}
+
+async function loadOutcomeCenter() {
+  try {
+    const [summary, projects, issues, reports] = await Promise.all([
+      api.outcomeSummary(), api.outcomeProjects({ limit: 200 }), api.outcomeIssues({ limit: 100 }), api.outcomeReports({ limit: 100 })
+    ]);
+    store.set({ outcomeSummary: summary, outcomeProjects: projects.items || [], outcomeIssues: issues.items || [], outcomeReports: reports.items || [] });
+  } catch (error) { setError(error); }
+}
+
+async function loadSettings() {
+  try {
+    const [settingsMeta, settingsProviders, settingsExternalServices] = await Promise.all([
+      api.settingsMeta(), api.settingsProviders(), api.settingsExternalServices()
+    ]);
+    store.set({ settingsMeta, settingsProviders, settingsExternalServices });
+  } catch (error) { setError(error); }
 }
 
 async function loadIndicator(projectId = store.get().activeProjectId) {
@@ -2362,7 +2549,8 @@ async function loadGis(projectId = store.get().activeProjectId, options = {}) {
       sourceAssets,
       mapSnapshots,
       reports,
-      photos
+      photos,
+      standardProblemTypes
     ] = await Promise.all([
       api.issues(projectId),
       api.spatialAnalyses(projectId),
@@ -2371,7 +2559,8 @@ async function loadGis(projectId = store.get().activeProjectId, options = {}) {
       api.sourceAssets(projectId, false),
       api.mapSnapshots(projectId),
       api.reports(projectId),
-      api.photos(projectId, true)
+      api.photos(projectId, true),
+      api.standardProblemTypes()
     ]);
     const routeSelection = findSelectedOrFirst(surveyRoutes, gisViewState.selectedRouteId);
     const selectedRoute = routeSelection.selected;
@@ -2393,7 +2582,8 @@ async function loadGis(projectId = store.get().activeProjectId, options = {}) {
       sourceAssets,
       mapSnapshots,
       reports,
-      photos
+      photos,
+      standardProblemTypes
     });
   } catch (error) {
     setError(error);
@@ -2434,17 +2624,18 @@ async function loadAnalysis(projectId = store.get().activeProjectId, options = {
   if (!projectId) return;
   if (!options.quiet) store.set({ analysisLoading: true });
   try {
-    const [photos, analyses, analysisJobs] = await Promise.all([
+    const [photos, analyses, analysisJobs, aiConfig] = await Promise.all([
       api.photos(projectId),
       api.analyses(projectId),
-      api.analysisJobs(projectId)
+      api.analysisJobs(projectId),
+      api.aiConfig()
     ]);
     const latestCompletedJob = latestCompletedAnalysisJob(analysisJobs);
     const analysisJobCandidates = latestCompletedJob
       ? await api.analysisJobCandidates(latestCompletedJob.id)
       : [];
     if (String(store.get().activeProjectId) !== String(projectId)) return;
-    store.set({ photos, analyses, analysisJobs, analysisJobCandidates });
+    store.set({ photos, analyses, analysisJobs, analysisJobCandidates, aiConfig });
   } catch (error) {
     setError(error);
   } finally {
@@ -2459,6 +2650,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
   try {
     const [
       communities,
+      residentialDiscoveryRuns,
+      fieldProblemTypes,
       photos,
       uploadSessions,
       boundaryRevisions,
@@ -2468,6 +2661,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
       fieldTaskResult
     ] = await Promise.all([
       api.communities(projectId),
+      api.residentialDiscoveryRuns(projectId),
+      api.fieldProblemTypes(projectId),
       api.photos(projectId, true),
       api.uploadSessions(projectId),
       api.boundaryRevisions(projectId),
@@ -2484,6 +2679,8 @@ async function loadCollection(projectId = store.get().activeProjectId) {
     ]));
     store.set({
       communities,
+      residentialDiscoveryRuns,
+      fieldProblemTypes,
       photos,
       uploadSessions,
       boundaryRevisions,
@@ -2543,6 +2740,8 @@ async function boot() {
       history.replaceState(null, '', url);
       await loadProject(String(activeProjectId));
     }
+    if (projectQuery.get('view') === 'outcomes') await loadOutcomeCenter();
+    if (projectQuery.get('view') === 'settings') await loadSettings();
   } catch (error) {
     setError(error);
   } finally {
@@ -3003,6 +3202,99 @@ elements.boundaryForm.addEventListener('submit', async (event) => {
   }
 });
 
+elements.residentialDiscoveryForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.residentialDiscoveryForm);
+  const radius = String(form.get('radiusMeters') || '').trim();
+  elements.residentialDiscoveryFormError.hidden = true;
+  store.set({ collectionLoading: true });
+  try {
+    await api.createResidentialDiscoveryRun(store.get().activeProjectId, {
+      createdBy: form.get('createdBy'),
+      ...(radius ? { radiusMeters: Number(radius) } : {})
+    });
+    await loadCollection();
+  } catch (error) {
+    elements.residentialDiscoveryFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.residentialDiscoveryFormError.hidden = false;
+  } finally {
+    store.set({ collectionLoading: false });
+  }
+});
+
+elements.residentialConfirmForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.residentialConfirmForm);
+  const candidateIds = [...document.querySelectorAll('[data-residential-candidate]:checked')]
+    .map((input) => input.dataset.residentialCandidate);
+  elements.residentialDiscoveryFormError.hidden = true;
+  if (!candidateIds.length) {
+    elements.residentialDiscoveryFormError.textContent = '请至少勾选一个待确认住宅候选。';
+    elements.residentialDiscoveryFormError.hidden = false;
+    return;
+  }
+  store.set({ collectionLoading: true });
+  try {
+    await api.confirmResidentialDiscoveryRun(
+      store.get().activeProjectId,
+      elements.residentialConfirmForm.dataset.runId,
+      {
+        candidateIds,
+        confirmedBy: form.get('confirmedBy'),
+        clientRequestId: crypto.randomUUID(),
+        expectedRevision: Number(elements.residentialConfirmForm.dataset.runRevision) || 1
+      }
+    );
+    const project = await api.project(store.get().activeProjectId);
+    store.set({ activeProject: project });
+    await loadCollection();
+  } catch (error) {
+    elements.residentialDiscoveryFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.residentialDiscoveryFormError.hidden = false;
+  } finally {
+    store.set({ collectionLoading: false });
+  }
+});
+
+elements.mergeCommunitiesButton.addEventListener('click', async () => {
+  const state = store.get();
+  const communityIds = [...document.querySelectorAll('[data-community-governance-select]:checked')]
+    .map((input) => input.dataset.communityGovernanceSelect);
+  const mergedBy = elements.communityGovernanceBy.value.trim();
+  if (communityIds.length < 2) {
+    setError(Object.assign(new Error('请至少选择两个使用中小区。'), { code: 'COMMUNITY_SELECTION_REQUIRED' }));
+    return;
+  }
+  if (!mergedBy) {
+    setError(Object.assign(new Error('请填写小区合并人员。'), { code: 'COMMUNITY_ACTOR_REQUIRED' }));
+    return;
+  }
+  elements.mergeCommunitiesButton.disabled = true;
+  store.set({ collectionLoading: true });
+  try {
+    const selected = state.communities.filter((item) => communityIds.includes(String(item.id)));
+    await api.mergeCommunities(state.activeProjectId, {
+      communityIds,
+      targetCommunityId: communityIds[0],
+      expectedProjectRevision: Number(state.activeProject?.revision) || 0,
+      expectedRevisions: Object.fromEntries(selected.map((item) => [
+        item.id,
+        Number(item.communityRevision) || 1
+      ])),
+      referenceStrategy: 'block-if-referenced',
+      mergedBy
+    });
+    const project = await api.project(state.activeProjectId);
+    store.set({ activeProject: project });
+    await loadCollection();
+  } catch (error) {
+    setError(error);
+  } finally {
+    elements.mergeCommunitiesButton.disabled = false;
+    store.set({ collectionLoading: false });
+  }
+});
+
 elements.communityForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(elements.communityForm);
@@ -3179,6 +3471,12 @@ elements.fieldTaskForm.addEventListener('submit', async (event) => {
       clientTaskId: form.get('clientTaskId'),
       communityId: form.get('communityId'),
       buildingId: form.get('buildingId'),
+      problemCode: form.get('problemCode'),
+      photoCount: Number(form.get('photoCount')) || 0,
+      buildingCount: form.get('buildingCount'),
+      householdCount: form.get('householdCount'),
+      capturedAt: form.get('capturedAt'),
+      location: form.get('location'),
       description: form.get('description'),
       collectorId: form.get('collectorId')
     });
@@ -3240,6 +3538,47 @@ elements.photoUploadForm.addEventListener('submit', async (event) => {
     store.set({ collectionLoading: false });
     elements.uploadPhotosButton.disabled = false;
     elements.uploadPhotosButton.textContent = '上传并归档';
+  }
+});
+
+elements.aiConfigForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = new FormData(elements.aiConfigForm);
+  const apiKey = String(form.get('apiKey') || '').trim();
+  elements.aiConfigFormError.hidden = true;
+  elements.saveAiConfigButton.disabled = true;
+  try {
+    let revision = Number(elements.aiConfigForm.dataset.revision) || 0;
+    if (apiKey) {
+      const configured = await api.setAiKey({ apiKey, expectedRevision: revision });
+      revision = configured.revision;
+    }
+    await api.updateAiPreferences({
+      model: form.get('model'),
+      timeoutMs: Number(form.get('timeoutMs')),
+      maxImagesPerBatch: Number(form.get('maxImagesPerBatch')),
+      expectedRevision: revision
+    });
+    await loadAnalysis();
+  } catch (error) {
+    elements.aiConfigFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.aiConfigFormError.hidden = false;
+  } finally {
+    elements.saveAiConfigButton.disabled = false;
+  }
+});
+
+elements.checkAiConfigButton.addEventListener('click', async () => {
+  elements.aiConfigFormError.hidden = true;
+  elements.checkAiConfigButton.disabled = true;
+  try {
+    const result = await api.checkAiConfig();
+    elements.aiConfigStatus.textContent = `健康检查通过 · ${result.model}`;
+  } catch (error) {
+    elements.aiConfigFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+    elements.aiConfigFormError.hidden = false;
+  } finally {
+    elements.checkAiConfigButton.disabled = false;
   }
 });
 
@@ -3895,6 +4234,19 @@ elements.issueEditSelect.addEventListener('change', () => {
   populateIssueEditForm(issue);
 });
 
+elements.issueBindingStatusSelect.addEventListener('change', () => {
+  renderIssueProblemOptions(elements.issueProblemCodeSelect.value);
+  loadIssueRemediationOptions(elements.issueProblemCodeSelect.value, elements.issueRemediationSelect.value);
+});
+
+elements.issueProblemCodeSelect.addEventListener('change', () => {
+  if (elements.issueProblemCodeSelect.value && elements.issueBindingStatusSelect.value === 'unbound') {
+    elements.issueBindingStatusSelect.value = 'suggested';
+  }
+  renderIssueProblemOptions(elements.issueProblemCodeSelect.value);
+  loadIssueRemediationOptions(elements.issueProblemCodeSelect.value);
+});
+
 elements.issueEditForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(elements.issueEditForm);
@@ -3903,7 +4255,8 @@ elements.issueEditForm.addEventListener('submit', async (event) => {
   elements.issueEditFormError.hidden = true;
   elements.updateIssueButton.disabled = true;
   try {
-    await api.updateIssue(issueId, {
+    const currentIssue = store.get().issues.find((item) => String(item.id) === String(issueId));
+    const updatedIssue = await api.updateIssue(issueId, {
       title: form.get('title'),
       severity: form.get('severity'),
       categoryName: form.get('categoryName'),
@@ -3913,6 +4266,22 @@ elements.issueEditForm.addEventListener('submit', async (event) => {
       updatedBy: form.get('updatedBy'),
       expectedRevision: Number(elements.issueEditForm.dataset.issueRevision)
     });
+    const bindingStatus = form.get('bindingStatus') || 'unbound';
+    const problemCode = form.get('problemCode') || '';
+    const remediationId = form.get('remediationId') || '';
+    const bindingChanged = bindingStatus !== (currentIssue?.bindingStatus || 'unbound')
+      || problemCode !== (currentIssue?.problemCode || '')
+      || remediationId !== (currentIssue?.remediationSnapshot?.id || '');
+    if (bindingChanged) {
+      await api.updateIssueStandardBinding(issueId, {
+        bindingStatus,
+        problemCode,
+        remediationId,
+        updatedBy: form.get('updatedBy'),
+        expectedRevision: Number(updatedIssue.issueRevision) || Number(elements.issueEditForm.dataset.issueRevision),
+        source: 'manual'
+      });
+    }
     elements.issueEditForm.dataset.loadedIssueId = '';
     const [summary, workflow] = await Promise.all([
       api.summary(store.get().activeProjectId),
@@ -4390,6 +4759,108 @@ elements.exportProjectDataSqliteButton.addEventListener('click', async () => {
 });
 
 document.addEventListener('click', async (event) => {
+  const uploadFieldTaskButton = event.target.closest('[data-upload-field-task]');
+  if (uploadFieldTaskButton) {
+    const state = store.get();
+    const taskId = uploadFieldTaskButton.dataset.uploadFieldTask;
+    const fileInput = [...document.querySelectorAll('[data-field-task-files]')]
+      .find((input) => input.dataset.fieldTaskFiles === taskId);
+    const files = [...(fileInput?.files || [])];
+    const createdBy = elements.fieldTaskOperationBy.value.trim();
+    if (!createdBy || !files.length) {
+      elements.fieldTaskFormError.textContent = !createdBy
+        ? '上传任务照片前，请填写操作人员。'
+        : '请为当前任务选择至少一张照片。';
+      elements.fieldTaskFormError.hidden = false;
+      return;
+    }
+    const task = state.fieldTasks.find((item) => String(item.id) === taskId);
+    uploadFieldTaskButton.disabled = true;
+    elements.fieldTaskFormError.hidden = true;
+    try {
+      for (const file of files) {
+        const created = await api.createFieldTaskUpload(state.activeProjectId, taskId, {
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          lastModified: file.lastModified ? new Date(file.lastModified).toISOString() : null,
+          clientRequestId: `${taskId}:${file.name}:${file.size}:${file.lastModified}`,
+          problemCode: task?.problemCode || '',
+          createdBy
+        });
+        await api.uploadSessionContent(created.session.id, file);
+      }
+      await loadCollection();
+    } catch (error) {
+      elements.fieldTaskFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+      elements.fieldTaskFormError.hidden = false;
+    } finally {
+      uploadFieldTaskButton.disabled = false;
+    }
+    return;
+  }
+
+  const completeFieldTaskButton = event.target.closest('[data-complete-field-task]');
+  if (completeFieldTaskButton) {
+    const state = store.get();
+    const completedBy = elements.fieldTaskOperationBy.value.trim();
+    if (!completedBy) {
+      elements.fieldTaskFormError.textContent = '完成任务前，请填写操作人员。';
+      elements.fieldTaskFormError.hidden = false;
+      return;
+    }
+    completeFieldTaskButton.disabled = true;
+    elements.fieldTaskFormError.hidden = true;
+    try {
+      await api.completeFieldTask(
+        state.activeProjectId,
+        completeFieldTaskButton.dataset.completeFieldTask,
+        { completedBy }
+      );
+      await loadCollection();
+    } catch (error) {
+      elements.fieldTaskFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+      elements.fieldTaskFormError.hidden = false;
+      completeFieldTaskButton.disabled = false;
+    }
+    return;
+  }
+
+  const retryFieldTaskButton = event.target.closest('[data-retry-field-task]');
+  if (retryFieldTaskButton) {
+    const state = store.get();
+    const taskId = retryFieldTaskButton.dataset.retryFieldTask;
+    const retriedBy = elements.fieldTaskOperationBy.value.trim();
+    const fileInput = [...document.querySelectorAll('[data-field-task-files]')]
+      .find((input) => input.dataset.fieldTaskFiles === taskId);
+    const files = [...(fileInput?.files || [])];
+    if (!retriedBy) {
+      elements.fieldTaskFormError.textContent = '重试任务前，请填写操作人员。';
+      elements.fieldTaskFormError.hidden = false;
+      return;
+    }
+    retryFieldTaskButton.disabled = true;
+    elements.fieldTaskFormError.hidden = true;
+    try {
+      const outcome = await api.retryFieldTask(state.activeProjectId, taskId, { retriedBy });
+      for (const session of outcome.retryableSessions || []) {
+        const file = files.find((item) => item.name === session.file?.name && item.size === session.file?.size);
+        if (!file) {
+          throw Object.assign(new Error(`请重新选择失败文件：${session.file?.name || session.id}`), {
+            code: 'FIELD_TASK_RETRY_FILE_REQUIRED'
+          });
+        }
+        await api.uploadSessionContent(session.id, file);
+      }
+      await loadCollection();
+    } catch (error) {
+      elements.fieldTaskFormError.textContent = `${error.message}${error.code ? `（${error.code}）` : ''}`;
+      elements.fieldTaskFormError.hidden = false;
+      retryFieldTaskButton.disabled = false;
+    }
+    return;
+  }
+
   const previewSourceAssetButton = event.target.closest('[data-preview-source-asset]');
   if (previewSourceAssetButton) {
     previewSourceAssetButton.disabled = true;
@@ -4582,19 +5053,63 @@ document.addEventListener('click', async (event) => {
     const community = state.communities
       .find((item) => String(item.id) === toggleCommunityButton.dataset.toggleCommunity);
     if (!community) return;
+    const updatedBy = elements.communityGovernanceBy.value.trim();
+    if (!updatedBy) {
+      setError(Object.assign(new Error('请填写小区停用或恢复人员。'), { code: 'COMMUNITY_ACTOR_REQUIRED' }));
+      return;
+    }
     toggleCommunityButton.disabled = true;
     store.set({ collectionLoading: true });
     try {
-      await api.updateCommunity(state.activeProjectId, community.id, {
-        status: toggleCommunityButton.dataset.nextStatus,
-        expectedRevision: Number(community.communityRevision) || 1
-      });
+      if (toggleCommunityButton.dataset.nextStatus === 'active') {
+        await api.restoreCommunity(state.activeProjectId, community.id, {
+          restoredBy: updatedBy,
+          expectedRevision: Number(community.communityRevision) || 1
+        });
+      } else {
+        await api.updateCommunity(state.activeProjectId, community.id, {
+          status: 'inactive',
+          updatedBy,
+          expectedRevision: Number(community.communityRevision) || 1
+        });
+      }
       const project = await api.project(state.activeProjectId);
       store.set({ activeProject: project });
       await loadCollection();
     } catch (error) {
       setError(error);
       toggleCommunityButton.disabled = false;
+    } finally {
+      store.set({ collectionLoading: false });
+    }
+    return;
+  }
+
+  const splitCommunityButton = event.target.closest('[data-split-community]');
+  if (splitCommunityButton) {
+    const state = store.get();
+    const community = state.communities
+      .find((item) => String(item.id) === splitCommunityButton.dataset.splitCommunity);
+    if (!community) return;
+    const splitBy = elements.communityGovernanceBy.value.trim();
+    if (!splitBy) {
+      setError(Object.assign(new Error('请填写小区拆分人员。'), { code: 'COMMUNITY_ACTOR_REQUIRED' }));
+      return;
+    }
+    splitCommunityButton.disabled = true;
+    store.set({ collectionLoading: true });
+    try {
+      await api.splitCommunity(state.activeProjectId, community.id, {
+        expectedRevision: Number(community.communityRevision) || 1,
+        referenceStrategy: 'block-if-referenced',
+        splitBy
+      });
+      const project = await api.project(state.activeProjectId);
+      store.set({ activeProject: project });
+      await loadCollection();
+    } catch (error) {
+      setError(error);
+      splitCommunityButton.disabled = false;
     } finally {
       store.set({ collectionLoading: false });
     }
@@ -4708,6 +5223,42 @@ elements.stageActionButton.addEventListener('click', () => {
   if (stage === 'gis-and-issues') loadGis();
   if (stage === 'indicators') loadIndicator();
   if (stage === 'reports') loadReports();
+});
+
+function navigateGlobalView(view) {
+  const url = new URL(location.href);
+  url.searchParams.set('view', view);
+  url.searchParams.delete('stage');
+  history.replaceState(null, '', url);
+  if (view === 'outcomes') loadOutcomeCenter();
+  if (view === 'settings') loadSettings();
+  store.set({ selectedStageId: store.get().selectedStageId });
+}
+
+elements.outcomeCenterButton.addEventListener('click', () => navigateGlobalView('outcomes'));
+elements.settingsButton.addEventListener('click', () => navigateGlobalView('settings'));
+elements.backFromOutcomeButton.addEventListener('click', () => {
+  const url = new URL(location.href);
+  url.searchParams.delete('view');
+  history.replaceState(null, '', url);
+  store.set({ selectedStageId: store.get().selectedStageId });
+});
+elements.backFromSettingsButton.addEventListener('click', () => {
+  const url = new URL(location.href);
+  url.searchParams.delete('view');
+  history.replaceState(null, '', url);
+  store.set({ selectedStageId: store.get().selectedStageId });
+});
+
+elements.outcomeProjectList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-outcome-project]');
+  if (!button) return;
+  const url = new URL(location.href);
+  url.searchParams.delete('view');
+  url.searchParams.set('project', button.dataset.outcomeProject);
+  url.searchParams.set('projectId', button.dataset.outcomeProject);
+  history.replaceState(null, '', url);
+  loadProject(button.dataset.outcomeProject);
 });
 
 store.subscribe(render);

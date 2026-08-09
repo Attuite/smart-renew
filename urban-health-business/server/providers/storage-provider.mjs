@@ -94,10 +94,27 @@ export class SmartRenewStorageProvider {
 }
 
 export class CloudBaseStorageProvider {
-  constructor(app) {
+  constructor(app, options = {}) {
     if (!app) throw providerError('CloudBase应用实例未提供。', 'CLOUDBASE_APP_REQUIRED');
     this.app = app;
     this.kind = 'cloudbase-storage';
+    this.healthObject = String(options.healthObject || '').trim();
+  }
+
+  async probe() {
+    if (!this.healthObject) {
+      return { ready: false, reason: 'cloudbase_storage_health_object_not_configured' };
+    }
+    try {
+      const result = await this.app.getTempFileURL({ fileList: [this.healthObject] });
+      const item = result.fileList?.[0];
+      if (!item?.tempFileURL) {
+        return { ready: false, reason: 'cloudbase_storage_probe_no_url' };
+      }
+      return { ready: true, reason: null };
+    } catch (error) {
+      return { ready: false, reason: error.code || 'cloudbase_storage_probe_failed', message: error.message };
+    }
   }
 
   async upload(input) {
