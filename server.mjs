@@ -23,6 +23,7 @@ import {
   filterOfficialIssues,
   normalizeOfficialIssue
 } from './functions/api/official-issue-core.js';
+import { housingProblemCatalogResponse } from './functions/api/housing-problem-catalog.js';
 import {
   buildReportSnapshot
 } from './functions/api/report-snapshot-core.js';
@@ -380,6 +381,10 @@ async function handleFieldCollectionApi(req, res, url) {
     const projectCommunitiesMatch = url.pathname.match(/^\/api\/field\/projects\/(\d+)\/communities$/);
     const communityBuildingsMatch = url.pathname.match(/^\/api\/field\/projects\/(\d+)\/communities\/([A-Za-z0-9_.-]+)\/buildings$/);
     const taskMatch = url.pathname.match(/^\/api\/field\/collection-tasks\/([A-Za-z0-9_.-]+)$/);
+    const taskCompleteMatch = url.pathname.match(/^\/api\/field\/collection-tasks\/([A-Za-z0-9_.-]+)\/complete$/);
+    if (req.method === 'GET' && url.pathname === '/api/field/problem-types') {
+      return json(res, 200, { items: housingProblemCatalogResponse(), schemaVersion: '1.0.0' });
+    }
     if (req.method === 'GET' && url.pathname === '/api/field/projects') {
       const projects = (await listStoredJson(projectStorage)).map(fieldProjectSummary);
       return json(res, 200, { items: projects, storage: 'server' });
@@ -411,6 +416,26 @@ async function handleFieldCollectionApi(req, res, url) {
       const task = await readStoredJson(path.join(fieldTaskStorage, `${taskMatch[1]}.json`));
       return task ? json(res, 200, { item: task, storage: 'server' }) : json(res, 404, { message: '现场任务不存在' });
     }
+    if (req.method === 'POST' && taskCompleteMatch) {
+      const taskPath = path.join(fieldTaskStorage, `${taskCompleteMatch[1]}.json`);
+      const task = await readStoredJson(taskPath);
+      if (!task) return json(res, 404, { message: '现场任务不存在' });
+      const body = await readJson(req, 64 * 1024);
+      const uploadedPhotoCount = Math.max(0, Number(body.uploadedPhotoCount) || 0);
+      if (uploadedPhotoCount < Number(task.photoCount || 0)) {
+        return json(res, 400, { message: '仍有照片未上传完成' });
+      }
+      const completed = {
+        ...task,
+        status: 'completed',
+        syncStatus: 'completed',
+        uploadedPhotoCount,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await writeStoredJson(taskPath, completed);
+      return json(res, 200, { item: completed, storage: 'server' });
+    }
     return json(res, 404, { message: '现场采集接口不存在' });
   } catch (error) {
     return json(res, 400, { message: error.message || '现场采集数据无效' });
@@ -433,6 +458,20 @@ async function handlePhotoApi(req, res, url) {
       if (!projectId) return json(res, 400, { message: '项目编号无效' });
       const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
       if (!project) return json(res, 404, { message: '项目不存在' });
+      if (body.taskId) {
+        const task = await readStoredJson(path.join(fieldTaskStorage, `${String(body.taskId)}.json`));
+        if (!task) return json(res, 404, { message: '现场采集任务不存在' });
+        if (
+          String(task.projectId) !== String(body.projectId) ||
+          String(task.communityId) !== String(body.communityId) ||
+          String(task.buildingId) !== String(body.buildingId) ||
+          String(task.problemCode) !== String(body.problemCode)
+        ) {
+          return json(res, 400, { message: '照片信息与现场采集任务不一致' });
+        }
+        body.householdCount = task.householdCount;
+        body.collectorId = task.collectorId;
+      }
       const decoded = decodePhotoDataUrl(body.dataUrl);
       const record = normalizePhotoUpload(body, project, decoded);
       const existing = await readStoredJson(path.join(photoRecordStorage, `${record.id}.json`));

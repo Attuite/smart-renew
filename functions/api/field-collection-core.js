@@ -1,3 +1,5 @@
+import { findHousingProblem } from './housing-problem-catalog.js';
+
 const TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{2,79}$/;
 
 function text(value, maxLength = 200) {
@@ -89,6 +91,9 @@ export function normalizeCollectionTask(input, project, existing = null) {
     ? buildings.find((item) => item.id === requestedBuildingId)
     : null;
   if (requestedBuildingId && !building) throw new Error('所选楼栋不属于该小区或已删除');
+  const requestedProblemCode = text(input.problemCode, 20);
+  const problem = requestedProblemCode ? findHousingProblem(requestedProblemCode) : null;
+  if (requestedProblemCode && !problem) throw new Error('请选择有效的住区问题类型');
 
   const now = new Date().toISOString();
   const id = makeCollectionTaskId(project.id, clientTaskId);
@@ -104,6 +109,11 @@ export function normalizeCollectionTask(input, project, existing = null) {
     syncStatus: existing?.syncStatus || 'accepted',
     buildingCount: nonNegativeInteger(input.buildingCount),
     householdCount: nonNegativeInteger(input.householdCount),
+    problemCode: problem?.code || '',
+    problemName: problem?.name || '',
+    problemGroupCode: problem?.groupCode || '',
+    problemGroupName: problem?.groupName || '',
+    indicatorCode: problem?.indicatorCode || '',
     location: text(input.location, 300),
     description: text(input.description, 1000),
     photoCount: nonNegativeInteger(input.photoCount) || 0,

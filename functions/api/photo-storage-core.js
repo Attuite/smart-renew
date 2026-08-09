@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { findCommunity, listFieldBuildings } from './field-collection-core.js';
+import { findHousingProblem } from './housing-problem-catalog.js';
 
 const MIME_EXTENSIONS = {
   'image/jpeg': 'jpg',
@@ -28,6 +29,9 @@ export function normalizePhotoUpload(input, project, decoded) {
   const buildings = listFieldBuildings(project, community.id) || [];
   const building = buildingId ? buildings.find((item) => item.id === buildingId) : null;
   if (buildingId && !building) throw new Error('所选楼栋不属于该小区或已删除');
+  const requestedProblemCode = clean(input?.problemCode, 20);
+  const problem = requestedProblemCode ? findHousingProblem(requestedProblemCode) : null;
+  if (requestedProblemCode && !problem) throw new Error('照片关联的住区问题类型无效');
 
   const requestedId = clean(input?.photoId, 120);
   const seed = requestedId || `${projectId}-${community.id}-${buildingId}-${input?.capturedAt || ''}-${input?.name || ''}-${decoded.buffer.length}`;
@@ -45,6 +49,14 @@ export function normalizePhotoUpload(input, project, decoded) {
     communityName: clean(community.item.name || '未命名小区'),
     buildingId: building?.id || '',
     buildingName: building?.name || '',
+    taskId: clean(input?.taskId, 180),
+    householdCount: Math.max(0, Number(input?.householdCount) || 0),
+    problemCode: problem?.code || '',
+    problemName: problem?.name || '',
+    problemGroupCode: problem?.groupCode || '',
+    problemGroupName: problem?.groupName || '',
+    indicatorCode: problem?.indicatorCode || '',
+    collectorId: clean(input?.collectorId, 120),
     analysisId: clean(input?.analysisId, 120),
     imageIndex: Math.max(1, Number(input?.imageIndex) || 1),
     name: clean(input?.name || `${photoId}.${decoded.extension}`, 240),

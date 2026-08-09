@@ -84,10 +84,10 @@
 
   window.projectDataIndexPanelHtml = function (projectId) {
     return '<div class="project-data-shell" id="projectDataIndexRoot" data-project-id="' + escape(projectId) + '">'
-      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>项目指标库</strong><p>项目档案、住宅台账、问题、照片、指标和报告统一进入指标库并生成独立编号。其他页面或外部接口可从指标库按编号直接读取。</p></div>'
+      + '<div class="project-data-toolbar"><div class="project-data-toolbar-copy"><strong>数据与索引</strong><p>项目档案、住宅台账、问题、照片、指标和报告统一生成独立编号，并与下方住房安全指标使用同一个指标库。</p></div>'
       + '<div class="project-data-actions">'
       + '<label class="btn btn-primary btn-sm" for="projectDataImportFile">导入数据库</label><input id="projectDataImportFile" type="file" accept=".db,.sqlite,.sqlite3,.json,application/json" onchange="importProjectDataFile(event,\'' + escape(projectId) + '\')">'
-      + '<button class="btn btn-outline btn-sm" onclick="importCityHealthStandardLibrary(\'' + escape(projectId) + '\')">载入城市体检标准库</button>'
+      + '<button class="btn btn-outline btn-sm" onclick="importCityHealthStandardLibrary(\'' + escape(projectId) + '\')">载入标准指标</button>'
       + '<button class="btn btn-outline btn-sm" onclick="exportProjectDataJson(\'' + escape(projectId) + '\')">导出 JSON</button>'
       + '<button class="btn btn-outline btn-sm" onclick="exportProjectDataSqlite(\'' + escape(projectId) + '\')">导出 SQLite</button>'
       + '<button class="btn btn-outline btn-sm" onclick="rebuildProjectDataIndex(\'' + escape(projectId) + '\')">同步现有数据</button>'
@@ -535,5 +535,105 @@
       });
     });
   }
+
+  var activePhotoPreviewTrigger = null;
+
+  function ensurePhotoPreview() {
+    var overlay = document.getElementById('photoPreviewOverlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'photoPreviewOverlay';
+    overlay.className = 'photo-preview-overlay';
+    overlay.hidden = true;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', '照片原图预览');
+    overlay.innerHTML =
+      '<div class="photo-preview-dialog">' +
+        '<button class="photo-preview-close" type="button" aria-label="关闭照片预览">×</button>' +
+        '<img class="photo-preview-image" alt="">' +
+        '<div class="photo-preview-footer">' +
+          '<div class="photo-preview-caption"><strong></strong><span></span></div>' +
+          '<a class="photo-preview-original" target="_blank" rel="noopener noreferrer">在新窗口打开原图</a>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay || event.target.closest('.photo-preview-close')) closePhotoPreview();
+    });
+    return overlay;
+  }
+
+  function closePhotoPreview() {
+    var overlay = document.getElementById('photoPreviewOverlay');
+    if (!overlay || overlay.hidden) return;
+    overlay.hidden = true;
+    document.body.classList.remove('photo-preview-open');
+    if (activePhotoPreviewTrigger) activePhotoPreviewTrigger.focus();
+    activePhotoPreviewTrigger = null;
+  }
+
+  function openPhotoPreview(image) {
+    var source = image.currentSrc || image.src;
+    if (!source) return;
+    var overlay = ensurePhotoPreview();
+    var card = image.closest('.photo-archive-card');
+    var heading = card && card.querySelector('.photo-archive-meta strong');
+    var meta = card && card.querySelector('.photo-archive-meta');
+    var previewImage = overlay.querySelector('.photo-preview-image');
+    var title = (heading && heading.textContent.trim()) || image.alt || '现场照片';
+    previewImage.src = source;
+    previewImage.alt = image.alt || title;
+    overlay.querySelector('.photo-preview-caption strong').textContent = title;
+    overlay.querySelector('.photo-preview-caption span').textContent = (meta && meta.textContent.trim()) || '';
+    overlay.querySelector('.photo-preview-original').href = source;
+    activePhotoPreviewTrigger = image;
+    overlay.hidden = false;
+    document.body.classList.add('photo-preview-open');
+    overlay.querySelector('.photo-preview-close').focus();
+  }
+
+  function enhancePhotoArchiveImages(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    Array.prototype.forEach.call(scope.querySelectorAll('.photo-archive-card img'), function (image) {
+      if (image.dataset.previewReady === '1') return;
+      image.dataset.previewReady = '1';
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.setAttribute('aria-label', '查看原图：' + (image.alt || '现场照片'));
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var image = event.target.closest && event.target.closest('.photo-archive-card img');
+    if (!image) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPhotoPreview(image);
+  }, true);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closePhotoPreview();
+      return;
+    }
+    var image = event.target.closest && event.target.closest('.photo-archive-card img');
+    if (!image || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    openPhotoPreview(image);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { enhancePhotoArchiveImages(document); });
+  } else {
+    enhancePhotoArchiveImages(document);
+  }
+  new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
+      Array.prototype.forEach.call(mutation.addedNodes, function (node) {
+        if (node.nodeType === 1) enhancePhotoArchiveImages(node);
+      });
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
 
 })();

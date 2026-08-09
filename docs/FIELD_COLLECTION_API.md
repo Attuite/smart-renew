@@ -92,3 +92,43 @@ GET /api/field/collection-tasks/{taskId}
 - 上传完成回调。
 - 提交照片元数据。
 - 查询单张照片的归档、分析和复核状态。
+
+## 微信小程序采集端补充
+
+### 获取住区问题分类
+
+```http
+GET /api/field/problem-types
+```
+
+返回网页住区维度使用的 6 个大类、35 个问题小类。小程序应使用返回的
+`code` 和 `name`，不要另行维护一套硬编码名称。
+
+### 创建任务新增字段
+
+```json
+{
+  "problemCode": "PRB-04-01",
+  "householdCount": 96,
+  "photoCount": 3
+}
+```
+
+服务端会补充 `problemName`、`problemGroupName` 和 `indicatorCode`。
+
+### 完成任务
+
+全部照片上传成功后调用：
+
+```http
+POST /api/field/collection-tasks/{taskId}/complete
+Content-Type: application/json
+
+{
+  "uploadedPhotoCount": 3
+}
+```
+
+小程序照片上传仍使用 `POST /api/photos/upload`，并额外传入 `taskId`、
+`problemCode`、`householdCount` 和 `collectorId`。服务端会核对照片与采集任务
+的小区、楼栋和问题类型，避免照片挂接错误。
