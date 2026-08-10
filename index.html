@@ -1012,6 +1012,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <h2 class="section-title" style="font-size:1.4rem;margin-bottom:8px;">上传现场照片，新增一次建筑隐患 AI 分析</h2>
 </div>
 <div class="form-grid">
+<div class="form-group"><label><span class="required">视觉模型服务</span></label><select class="form-select" id="analysisProviderSelect" onchange="selectVisionProvider(this.value,true)"><option value="dashscope">千问百炼</option><option value="group">集团视觉模型</option></select></div>
 <div class="form-group"><label><span class="required">项目名称</span></label><input class="form-input" id="analysisProjectName" placeholder="如：朝阳小区 6 号楼外立面巡检"></div>
 <div class="form-group"><label><span class="required">所属小区</span></label><select class="form-select" id="analysisCommunity"><option value="">请先选择小区</option></select></div>
 <div class="form-group"><label>所属楼栋</label><select class="form-select" id="analysisBuilding"><option value="">小区公共区域／暂不指定楼栋</option></select></div>
@@ -1145,9 +1146,11 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div class="section-header" style="text-align:left;margin-bottom:24px;">
 <div class="section-tag">模型选择</div>
 <h2 class="section-title" style="font-size:1.4rem;margin-bottom:8px;">识别模型</h2>
-<p class="section-desc" style="max-width:none;">选择用于建筑隐患识别的千问视觉语言模型</p>
+<p class="section-desc" style="max-width:none;">选择用于建筑隐患识别的模型服务；切换服务不会删除千问用户和密钥设置</p>
 </div>
+<div class="form-group" style="margin-bottom:16px;"><label>模型服务</label><select class="form-select" id="cfgProviderSelect" onchange="selectVisionProvider(this.value,false)"><option value="dashscope">千问百炼（用户独立密钥）</option><option value="group">集团视觉模型（单位统一接口）</option></select></div>
 <div class="form-group" style="margin-bottom:16px;"><label>当前模型</label><select class="form-select" id="cfgModelSelect"><option value="qwen3-vl-plus">qwen3-vl-plus（推荐）</option><option value="qwen3-vl-flash">qwen3-vl-flash（快速）</option><option value="qwen-vl-plus">qwen-vl-plus（兼容）</option><option value="qwen-vl-max">qwen-vl-max（高精度）</option><option value="qwen2.5-vl-72b-instruct">qwen2.5-vl-72b-instruct（72B）</option></select></div>
+<div id="cfgModelHelp" class="api-key-status" style="margin-top:-8px;margin-bottom:16px;"></div>
 <button class="btn btn-primary" id="cfgSaveModelBtn">保存模型设置</button>
 </div>
 
@@ -1720,7 +1723,7 @@ else{status.innerHTML='<span class="status-missing">⚠️ 请选择用户并输
 }
 
 function initAiAnalysisPage(){
-updateApiKeyUI();loadApiKeyUsers();renderActiveProjectPanel();initAnalysisTabs();initUploadZone();initAnalysisButtons();renderHistoryList();updateUploadGuidance();checkAiService();setAnalysisWorkflowStep(1);
+updateApiKeyUI();loadApiKeyUsers();renderActiveProjectPanel();initAnalysisTabs();initUploadZone();initAnalysisButtons();renderHistoryList();updateUploadGuidance();syncVisionProviderControls();checkAiService();setAnalysisWorkflowStep(1);
 activateAnalysisTab(currentRoute&&currentRoute.projectView==='photos'?'photo-archive':'new-analysis');
 }
 
@@ -1729,9 +1732,16 @@ function updateUploadGuidance(){var hint=document.getElementById('analysisUpload
 function setAnalysisWorkflowStep(step){var nodes=document.querySelectorAll('#analysisWorkflow .ai-workflow-step');for(var i=0;i<nodes.length;i++){var n=parseInt(nodes[i].getAttribute('data-step'),10);nodes[i].classList.toggle('active',n===step);nodes[i].classList.toggle('done',n<step);}}
 
 async function checkAiService(showMessage){
-var el=document.getElementById('aiConnectionStatus');if(!el)return false;
+var el=document.getElementById('aiConnectionStatus'),provider=getConfigProvider();if(!el)return false;
 var healthUrl=getProxyApiUrl('/api/config/session/health');
-try{var resp=await fetch(healthUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keySessionToken:getKeySessionToken()})});var data=await resp.json();proxyKeyConfigured=!!data.ready;if(!data.ready&&getApiKey()){var migrated=await configureProxyKey(getApiKey(),true,'main');if(migrated){data.ready=true;data.model=getConfigModel();data.username=getSelectedKeyUser();}}if(data.ready){proxyKeyConfigured=true;if(data.username)setKeySession(data.username,getKeySessionToken(),localStorage.getItem('smart_renew_key_session_expires')||'');aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent='视觉模型安全代理已连接';el.querySelector('.ai-connection-meta').textContent=(data.username?'当前用户：'+data.username+' · ':'')+'密钥已加密保存到服务端 · '+(data.model||getConfigModel());if(showMessage)showToast('模型服务连接正常','success');return true;}if(location.protocol!=='file:'||!getApiKey()){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='尚未启用用户密钥';el.querySelector('.ai-connection-meta').textContent='请选择用户名并输入密码；首次使用需同时保存 API Key';if(showMessage)showToast('请先启用用户密钥','error');return false;}}catch(e){}
+try{
+var resp=await fetch(healthUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,keySessionToken:getKeySessionToken()})});var data=await resp.json();proxyKeyConfigured=!!data.ready;
+if(provider==='dashscope'&&!data.ready&&getApiKey()){var migrated=await configureProxyKey(getApiKey(),true,'main');if(migrated){data.ready=true;data.model=getConfigModel();data.username=getSelectedKeyUser();}}
+if(data.ready){proxyKeyConfigured=true;if(provider==='dashscope'&&data.username)setKeySession(data.username,getKeySessionToken(),localStorage.getItem('smart_renew_key_session_expires')||'');aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent=provider==='group'?'集团视觉模型已连接':'千问视觉模型已连接';el.querySelector('.ai-connection-meta').textContent=provider==='group'?'单位统一接口由服务端安全托管 · '+(data.model||'qwen3-vl-plus'):(data.username?'当前用户：'+data.username+' · ':'')+'密钥已加密保存到服务端 · '+(data.model||getConfigModel());if(showMessage)showToast('模型服务连接正常','success');return true;}
+if(provider==='group'){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='集团视觉模型尚未配置';el.querySelector('.ai-connection-meta').textContent='请联系管理员检查服务端集团接口密钥';if(showMessage)showToast('集团视觉模型服务不可用','error');return false;}
+if(location.protocol!=='file:'||!getApiKey()){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='尚未启用用户密钥';el.querySelector('.ai-connection-meta').textContent='请选择用户名并输入密码；首次使用需同时保存 API Key';if(showMessage)showToast('请先启用用户密钥','error');return false;}
+}catch(e){}
+if(provider==='group'){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='集团视觉模型服务不可用';el.querySelector('.ai-connection-meta').textContent='请确认云函数和单位接口网络正常';if(showMessage)showToast('无法连接集团视觉模型','error');return false;}
 if(location.protocol==='file:'){aiServiceMode='direct';var hasKey=!!getApiKey();el.className='ai-connection '+(hasKey?'ready':'error');el.querySelector('.ai-connection-title').textContent=hasKey?'兼容模式：浏览器直连千问':'视觉模型服务不可用';el.querySelector('.ai-connection-meta').textContent=hasKey?'本地代理未配置，暂时使用浏览器密钥':'请启动安全代理并配置服务端密钥';if(showMessage)showToast(hasKey?'当前为浏览器兼容模式':'尚未配置模型服务',hasKey?'info':'error');return hasKey;}
 aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='视觉模型服务不可用';el.querySelector('.ai-connection-meta').textContent='请确认本地服务已正常启动';if(showMessage)showToast('无法连接视觉模型服务','error');return false;
 }
@@ -1741,7 +1751,7 @@ var key=getApiKey();var inp=document.getElementById('cfgApiKeyInput');if(inp)inp
 syncApiKeyUserInputs(getSelectedKeyUser());loadApiKeyUsers();
 updateCfgApiKeyStatus();
 checkAiService().then(updateCfgApiKeyStatus);
-var model=getConfigModel();var sel=document.getElementById('cfgModelSelect');if(sel)sel.value=model;
+var model=getConfigModel();var sel=document.getElementById('cfgModelSelect');if(sel)sel.value=model;syncVisionProviderControls();
 var temp=document.getElementById('cfgTemperature');if(temp)temp.value=getConfigTemperature();
 var mt=document.getElementById('cfgMaxTokens');if(mt)mt.value=getConfigMaxTokens();
 var tp=document.getElementById('cfgTopP');if(tp)tp.value=getConfigTopP();
@@ -1750,7 +1760,7 @@ var mi=document.getElementById('cfgMaxImages');if(mi)mi.value=getConfigMaxImages
 
 function updateCfgApiKeyStatus(){
 var key=getApiKey(),status=document.getElementById('cfgApiKeyStatus'),user=getSelectedKeyUser();
-if(status){status.innerHTML=proxyKeyConfigured&&user?'<span class="status-ok">✅ 已启用用户：'+escapeHtml(user)+'，该用户 Key 独立加密保存</span>':(proxyKeyConfigured?'<span class="status-ok">✅ 密钥已加密保存到服务端</span>':(key?'<span class="status-ok">✅ 浏览器密钥待迁移</span>':'<span class="status-missing">⚠️ 请选择用户并输入密码；首次使用需同时填写 API Key</span>'));}
+if(status){if(getConfigProvider()==='group')status.innerHTML='<span class="status-ok">✅ 千问用户和密钥设置已保留，切换回千问百炼后继续使用</span>';else status.innerHTML=proxyKeyConfigured&&user?'<span class="status-ok">✅ 已启用用户：'+escapeHtml(user)+'，该用户 Key 独立加密保存</span>':(proxyKeyConfigured?'<span class="status-ok">✅ 密钥已加密保存到服务端</span>':(key?'<span class="status-ok">✅ 浏览器密钥待迁移</span>':'<span class="status-missing">⚠️ 请选择用户并输入密码；首次使用需同时填写 API Key</span>'));}
 }
 
 var cfgSaveApiKeyBtn=document.getElementById('cfgSaveApiKeyBtn');
@@ -1758,7 +1768,7 @@ if(cfgSaveApiKeyBtn){cfgSaveApiKeyBtn.addEventListener('click',async function(){
 var cfgToggleApiKeyBtn=document.getElementById('cfgToggleApiKeyBtn');
 if(cfgToggleApiKeyBtn){cfgToggleApiKeyBtn.addEventListener('click',function(){var inp=document.getElementById('cfgApiKeyInput');if(inp.type==='password'){inp.type='text';this.textContent='隐藏';}else{inp.type='password';this.textContent='显示';}});}
 var cfgSaveModelBtn=document.getElementById('cfgSaveModelBtn');
-if(cfgSaveModelBtn){cfgSaveModelBtn.addEventListener('click',function(){var cfg=getConfig();cfg.model=document.getElementById('cfgModelSelect').value;setConfig(cfg);showToast('模型已切换为 '+cfg.model,'success');});}
+if(cfgSaveModelBtn){cfgSaveModelBtn.addEventListener('click',function(){var cfg=getConfig();cfg.provider=getConfigProvider();cfg.model=document.getElementById('cfgModelSelect').value;setConfig(cfg);syncVisionProviderControls();showToast(cfg.provider==='group'?'已切换为集团视觉模型':'模型已切换为 '+cfg.model,'success');checkAiService();});}
 var cfgSaveParamsBtn=document.getElementById('cfgSaveParamsBtn');
 if(cfgSaveParamsBtn){cfgSaveParamsBtn.addEventListener('click',function(){var cfg=getConfig();cfg.temperature=parseFloat(document.getElementById('cfgTemperature').value);cfg.maxTokens=parseInt(document.getElementById('cfgMaxTokens').value);cfg.topP=parseFloat(document.getElementById('cfgTopP').value);var maxImages=parseInt(document.getElementById('cfgMaxImages').value,10);cfg.maxImages=Math.max(1,Math.min(50,isNaN(maxImages)?10:maxImages));document.getElementById('cfgMaxImages').value=cfg.maxImages;setConfig(cfg);updateUploadGuidance();showToast('参数已保存，单次最多 '+cfg.maxImages+' 张','success');});}
 
@@ -1879,6 +1889,9 @@ function hideLoading(){document.getElementById('loadingOverlay').classList.remov
 
 function getConfig(){try{var raw=localStorage.getItem('smart_renew_config')||'{}';return JSON.parse(raw);}catch(e){return{};}}
 function setConfig(cfg){localStorage.setItem('smart_renew_config',JSON.stringify(cfg));}
+function getConfigProvider(){var provider=getConfig().provider||'dashscope';return provider==='group'?'group':'dashscope';}
+function syncVisionProviderControls(){var provider=getConfigProvider(),ids=['analysisProviderSelect','cfgProviderSelect'];for(var i=0;i<ids.length;i++){var providerSelect=document.getElementById(ids[i]);if(providerSelect)providerSelect.value=provider;}var modelSelect=document.getElementById('cfgModelSelect'),help=document.getElementById('cfgModelHelp');if(modelSelect)modelSelect.disabled=provider==='group';if(help)help.innerHTML=provider==='group'?'<span class="status-ok">集团接口固定使用 qwen3-vl-plus；千问模型选择已保留</span>':'<span>千问百炼可按需要选择不同视觉模型</span>';updateCfgApiKeyStatus();}
+function selectVisionProvider(provider,showMessage){var cfg=getConfig();cfg.provider=provider==='group'?'group':'dashscope';setConfig(cfg);syncVisionProviderControls();checkAiService(!!showMessage);}
 function getConfigModel(){var model=getConfig().model||'qwen3-vl-plus';return['qwen3-vl-plus','qwen3-vl-flash','qwen-vl-plus','qwen-vl-max','qwen2.5-vl-72b-instruct'].indexOf(model)>=0?model:'qwen3-vl-plus';}
 function getConfigTemperature(){var v=parseFloat(getConfig().temperature);return isNaN(v)?0.3:v;}
 function getConfigMaxTokens(){var v=parseInt(getConfig().maxTokens);return isNaN(v)?3000:v;}
@@ -1948,10 +1961,10 @@ function normalizeIssueTitle(v){return String(v||'').replace(/[的了与及、�
 function deduplicateAnalysisIssues(issues){var merged=[];for(var i=0;i<issues.length;i++){var cur=issues[i],hit=null;for(var j=0;j<merged.length;j++){var prev=merged[j];if(prev.imageIndex===cur.imageIndex&&prev.categoryCode===cur.categoryCode&&(boxIou(prev.bbox,cur.bbox)>.42||normalizeIssueTitle(prev.title)===normalizeIssueTitle(cur.title))){hit=prev;break;}}if(hit){hit.confidence=Math.max(hit.confidence,cur.confidence);hit.mergedCount=(hit.mergedCount||1)+1;if(cur.desc.length>hit.desc.length)hit.desc=cur.desc;if(cur.evidence.length>hit.evidence.length)hit.evidence=cur.evidence;}else merged.push(cur);}return merged;}
 function normalizeAnalysisResult(result,imageCount){var raw=result&&Array.isArray(result.issues)?result.issues:[],normalized=raw.map(function(issue,i){return normalizeAnalysisIssue(issue,i,imageCount);});return{summary:String(result&&result.summary||''),issues:deduplicateAnalysisIssues(normalized),rawIssueCount:raw.length};}
 
-async function callQwenAPI(imagesBase64,prompt){
-var model=getConfigModel(),temperature=getConfigTemperature(),maxTokens=getConfigMaxTokens(),topP=getConfigTopP();
+async function callVisionAPI(imagesBase64,prompt){
+var provider=getConfigProvider(),model=getConfigModel(),temperature=getConfigTemperature(),maxTokens=getConfigMaxTokens(),topP=getConfigTopP();
 if(aiServiceMode==='proxy'){
-var proxyUrl=getProxyApiUrl('/api/vision/analyze');var proxyResp=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imagesBase64,prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP,keySessionToken:getKeySessionToken()})});
+var proxyUrl=getProxyApiUrl('/api/vision/analyze');var proxyResp=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,images:imagesBase64,prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP,keySessionToken:getKeySessionToken()})});
 if(!proxyResp.ok){var proxyError=await proxyResp.json().catch(function(){return{};});throw new Error(proxyError.message||('模型代理请求失败: HTTP '+proxyResp.status));}
 return await proxyResp.json();
 }
@@ -1965,7 +1978,7 @@ return{content:content,requestId:data.request_id||data.id||'',model:data.model||
 }
 
 async function runAiAnalysis(){
-var serviceReady=await checkAiService();if(!serviceReady){showToast(aiServiceMode==='proxy'?'请先配置服务端 DASHSCOPE_API_KEY':'请先配置千问 API Key','error');return;}
+var serviceReady=await checkAiService();if(!serviceReady){showToast(getConfigProvider()==='group'?'集团视觉模型当前不可用':(aiServiceMode==='proxy'?'请先启用千问用户密钥':'请先配置千问 API Key'),'error');return;}
 var activeProjectId=getActiveProjectId(),activeProject=activeProjectId?await getProjectById(activeProjectId):null;
 if(!activeProject){showToast('请先新建或选择体检项目','error');navigateTo('#projects');return;}
 var projectName=activeProject.name,areaInput=document.getElementById('analysisArea'),area=areaInput?areaInput.value.trim():'';
@@ -1988,7 +2001,7 @@ var batchSize=20,batchTotal=Math.ceil(imagesBase64.length/batchSize),allIssues=[
 for(var batchIndex=0;batchIndex<batchTotal;batchIndex++){
 var batchStart=batchIndex*batchSize,batchImages=imagesBase64.slice(batchStart,batchStart+batchSize),prompt=buildAnalysisPrompt(projectName,area,analysisType,analysisDesc,batchImages.length);
 showLoading('AI 正在识别分析...','第 '+(batchIndex+1)+' / '+batchTotal+' 批 · '+batchImages.length+' 张照片');
-var currentResponse=await callQwenAPI(batchImages,prompt),responseText=currentResponse.content||'',parsed=parseAiResponse(responseText);if(parsed.parseError)throw new Error('第 '+(batchIndex+1)+' 批模型结果无法解析，请重新分析');
+var currentResponse=await callVisionAPI(batchImages,prompt),responseText=currentResponse.content||'',parsed=parseAiResponse(responseText);if(parsed.parseError)throw new Error('第 '+(batchIndex+1)+' 批模型结果无法解析，请重新分析');
 var batchResult=normalizeAnalysisResult(parsed,batchImages.length);for(var bi=0;bi<batchResult.issues.length;bi++){batchResult.issues[bi].imageIndex+=batchStart;allIssues.push(batchResult.issues[bi]);}if(batchResult.summary)summaries.push(batchResult.summary);if(currentResponse.requestId)requestIds.push(currentResponse.requestId);apiResponse=currentResponse;
 }
 var result={summary:summaries.join(' '),issues:deduplicateAnalysisIssues(allIssues),rawIssueCount:allIssues.length};apiResponse=apiResponse||{};apiResponse.requestId=requestIds.join(', ');
@@ -2011,6 +2024,7 @@ reviewIssues:result.issues,
 result:{summary:result.summary,issues:[]},
 status:'reviewing',
 model:apiResponse.model||getConfigModel(),
+provider:apiResponse.provider||getConfigProvider(),
 requestId:apiResponse.requestId||'',
 usage:apiResponse.usage||null,
 promptVersion:'residential-v2-bbox'

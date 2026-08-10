@@ -49,6 +49,9 @@ const appPassword = process.env.APP_PASSWORD || '';
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
+const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
+const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
+const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const allowedModels = new Set([
   'qwen3-vl-plus',
   'qwen3-vl-flash',
@@ -56,6 +59,18 @@ const allowedModels = new Set([
   'qwen-vl-max',
   'qwen2.5-vl-72b-instruct'
 ]);
+
+function normalizeVisionProvider(value) {
+  return String(value || 'dashscope').toLowerCase() === 'group' ? 'group' : 'dashscope';
+}
+
+function unwrapVisionResponse(payload) {
+  if (payload && !payload.choices && payload.data) {
+    if (payload.code && payload.code !== '00000') throw new Error(payload.message || `集团视觉模型接口错误: ${payload.code}`);
+    return payload.data;
+  }
+  return payload || {};
+}
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -113,44 +128,50 @@ async function readJson(req, maxBytes = 120 * 1024 * 1024) {
 }
 
 async function analyze(req, res) {
-  if (!apiKey) return json(res, 503, { message: '服务端尚未配置 DASHSCOPE_API_KEY' });
   try {
     const body = await readJson(req);
+    const provider = normalizeVisionProvider(body.provider);
+    const activeApiKey = provider === 'group' ? groupVisionApiKey : apiKey;
+    const upstreamBaseUrl = provider === 'group' ? groupVisionBaseUrl : baseUrl;
+    if (!activeApiKey || !upstreamBaseUrl) return json(res, 503, { message: provider === 'group' ? '服务端尚未配置集团视觉模型' : '服务端尚未配置 DASHSCOPE_API_KEY' });
     const images = Array.isArray(body.images) ? body.images : [];
     if (!images.length || images.length > 20) return json(res, 400, { message: '单批图片数量必须为 1-20 张' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return json(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
-    const model = allowedModels.has(requestedModel) ? requestedModel : defaultModel;
+    const model = provider === 'group' ? groupVisionModel : (allowedModels.has(requestedModel) ? requestedModel : defaultModel);
     const content = [{ type: 'text', text: String(body.prompt || '') }];
     for (const image of images) content.push({ type: 'image_url', image_url: { url: image } });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 120000);
     let upstream;
     try {
-      upstream = await fetch(`${baseUrl}/chat/completions`, {
+      const requestPayload = {
+        model,
+        stream: false,
+        messages: [
+          { role: 'system', content: [{ type: 'text', text: '你是一位专业的住区安全体检专家。只输出符合要求的 JSON。' }] },
+          { role: 'user', content }
+        ],
+        max_tokens: Math.max(500, Math.min(8000, Number(body.maxTokens) || 3000)),
+        temperature: Math.max(0, Math.min(1, Number(body.temperature) || 0.2)),
+        top_p: Math.max(0.1, Math.min(1, Number(body.topP) || 0.9))
+      };
+      if (provider === 'dashscope') requestPayload.response_format = { type: 'json_object' };
+      upstream = await fetch(`${upstreamBaseUrl}/chat/completions`, {
         method: 'POST',
         signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: '你是一位专业的住区安全体检专家。只输出符合要求的 JSON。' },
-            { role: 'user', content }
-          ],
-          max_tokens: Math.max(500, Math.min(8000, Number(body.maxTokens) || 3000)),
-          temperature: Math.max(0, Math.min(1, Number(body.temperature) || 0.2)),
-          top_p: Math.max(0.1, Math.min(1, Number(body.topP) || 0.9)),
-          response_format: { type: 'json_object' }
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
+        body: JSON.stringify(requestPayload)
       });
     } finally {
       clearTimeout(timer);
     }
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) return json(res, upstream.status, { message: data.message || data.code || `模型请求失败: HTTP ${upstream.status}` });
+    const rawData = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) return json(res, upstream.status, { message: rawData.message || rawData.code || `模型请求失败: HTTP ${upstream.status}` });
+    const data = unwrapVisionResponse(rawData);
     const answer = data.choices?.[0]?.message?.content;
     if (!answer) return json(res, 502, { message: '模型没有返回可解析内容' });
-    return json(res, 200, { content: answer, requestId: data.request_id || data.id || '', model: data.model || model, usage: data.usage || null });
+    return json(res, 200, { content: answer, requestId: data.request_id || data.id || '', model: data.model || model, provider, usage: data.usage || null });
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '本次图片数据过大，请减少图片数量' });
     if (error.name === 'AbortError') return json(res, 504, { message: '模型响应超时，请稍后重试' });
@@ -681,7 +702,12 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
   if (!authorize(req, res, url)) return;
-  if (req.method === 'GET' && req.url.startsWith('/api/health')) return json(res, 200, { ready: Boolean(apiKey), model: defaultModel });
+  if (req.method === 'GET' && req.url.startsWith('/api/health')) return json(res, 200, { ready: Boolean(apiKey), model: defaultModel, providers: { dashscope: Boolean(apiKey), group: Boolean(groupVisionApiKey && groupVisionBaseUrl) } });
+  if (req.method === 'POST' && req.url.startsWith('/api/config/session/health')) {
+    const body = await readJson(req).catch(() => ({}));
+    const provider = normalizeVisionProvider(body.provider);
+    return json(res, 200, { ready: provider === 'group' ? Boolean(groupVisionApiKey && groupVisionBaseUrl) : Boolean(apiKey), provider, model: provider === 'group' ? groupVisionModel : defaultModel, storage: 'server-environment' });
+  }
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);

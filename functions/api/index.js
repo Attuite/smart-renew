@@ -49,6 +49,9 @@ const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 let apiKeyLoaded = Boolean(apiKey);
+const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
+const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
+const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
 const keyEncryptionSecret = process.env.KEY_ENCRYPTION_SECRET || `${envId}:smart-renew-default-key`;
 const sessionTtlMs = 12 * 60 * 60 * 1000;
 const allowedModels = new Set([
@@ -58,6 +61,22 @@ const allowedModels = new Set([
   'qwen-vl-max',
   'qwen2.5-vl-72b-instruct'
 ]);
+const allowedVisionProviders = new Set(['dashscope', 'group']);
+
+function normalizeVisionProvider(value) {
+  const provider = String(value || 'dashscope').trim().toLowerCase();
+  return allowedVisionProviders.has(provider) ? provider : 'dashscope';
+}
+
+function unwrapVisionResponse(payload) {
+  if (payload && !payload.choices && payload.data) {
+    if (payload.code && payload.code !== '00000') {
+      throw new Error(payload.message || `集团视觉模型接口错误: ${payload.code}`);
+    }
+    return payload.data;
+  }
+  return payload || {};
+}
 function writeJson(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -811,9 +830,19 @@ async function configureKey(req, res) {
 async function sessionHealth(req, res) {
   try {
     const body = await readJson(req);
+    const provider = normalizeVisionProvider(body.provider);
+    if (provider === 'group') {
+      return writeJson(res, 200, {
+        ready: Boolean(groupVisionApiKey && groupVisionBaseUrl),
+        provider,
+        model: groupVisionModel,
+        storage: 'cloudbase-environment'
+      });
+    }
     const active = await getApiKeyFromRequest(req, body.keySessionToken);
     return writeJson(res, 200, {
       ready: Boolean(active.key),
+      provider,
       username: active.session?.username || '',
       model: defaultModel,
       storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase')
@@ -826,44 +855,50 @@ async function sessionHealth(req, res) {
 async function analyze(req, res) {
   try {
     const body = await readJson(req);
-    const active = await getApiKeyFromRequest(req, body.keySessionToken);
+    const provider = normalizeVisionProvider(body.provider);
+    const active = provider === 'group' ? { key: groupVisionApiKey, session: null } : await getApiKeyFromRequest(req, body.keySessionToken);
     const activeApiKey = active.key;
-    if (!activeApiKey) return writeJson(res, 503, { message: '请先选择用户并输入密码启用 API Key' });
+    if (!activeApiKey) return writeJson(res, 503, { message: provider === 'group' ? '集团视觉模型尚未配置服务端密钥' : '请先选择用户并输入密码启用 API Key' });
+    if (provider === 'group' && !groupVisionBaseUrl) return writeJson(res, 503, { message: '集团视觉模型尚未配置接口地址' });
     const images = Array.isArray(body.images) ? body.images : [];
     if (!images.length || images.length > 20) return writeJson(res, 400, { message: '单批图片数量必须为 1-20 张' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return writeJson(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
-    const model = allowedModels.has(requestedModel) ? requestedModel : defaultModel;
+    const model = provider === 'group' ? groupVisionModel : (allowedModels.has(requestedModel) ? requestedModel : defaultModel);
+    const upstreamBaseUrl = provider === 'group' ? groupVisionBaseUrl : baseUrl;
     const content = [{ type: 'text', text: String(body.prompt || '') }];
     for (const image of images) content.push({ type: 'image_url', image_url: { url: image } });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 120000);
     let upstream;
     try {
-      upstream = await fetch(`${baseUrl}/chat/completions`, {
+      const requestPayload = {
+        model,
+        stream: false,
+        messages: [
+          { role: 'system', content: [{ type: 'text', text: '你是一位专业的住区安全体检专家。只输出符合要求的 JSON。' }] },
+          { role: 'user', content }
+        ],
+        max_tokens: Math.max(500, Math.min(8000, Number(body.maxTokens) || 3000)),
+        temperature: Math.max(0, Math.min(1, Number(body.temperature) || 0.2)),
+        top_p: Math.max(0.1, Math.min(1, Number(body.topP) || 0.9))
+      };
+      if (provider === 'dashscope') requestPayload.response_format = { type: 'json_object' };
+      upstream = await fetch(`${upstreamBaseUrl}/chat/completions`, {
         method: 'POST',
         signal: controller.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: '你是一位专业的住区安全体检专家。只输出符合要求的 JSON。' },
-            { role: 'user', content }
-          ],
-          max_tokens: Math.max(500, Math.min(8000, Number(body.maxTokens) || 3000)),
-          temperature: Math.max(0, Math.min(1, Number(body.temperature) || 0.2)),
-          top_p: Math.max(0.1, Math.min(1, Number(body.topP) || 0.9)),
-          response_format: { type: 'json_object' }
-        })
+        body: JSON.stringify(requestPayload)
       });
     } finally {
       clearTimeout(timer);
     }
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) return writeJson(res, upstream.status, { message: data.message || data.code || `模型请求失败: HTTP ${upstream.status}` });
+    const rawData = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) return writeJson(res, upstream.status, { message: rawData.message || rawData.code || `模型请求失败: HTTP ${upstream.status}` });
+    const data = unwrapVisionResponse(rawData);
     const answer = data.choices?.[0]?.message?.content;
     if (!answer) return writeJson(res, 502, { message: '模型没有返回可解析内容' });
-    return writeJson(res, 200, { content: answer, requestId: data.request_id || data.id || '', model: data.model || model, usage: data.usage || null });
+    return writeJson(res, 200, { content: answer, requestId: data.request_id || data.id || '', model: data.model || model, provider, usage: data.usage || null });
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '本次图片数据过大，请减少图片数量' });
     if (error.name === 'AbortError') return writeJson(res, 504, { message: '模型响应超时，请稍后重试' });
@@ -881,7 +916,7 @@ const server = http.createServer(async (req, res) => {
   if (!authorize(req, res, url)) return;
   if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health')) {
     const active = await getApiKeyFromRequest(req).catch(() => ({ key: '' }));
-    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
+    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, provider: 'dashscope', providers: { dashscope: Boolean(active.key), group: Boolean(groupVisionApiKey && groupVisionBaseUrl) }, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
   }
   if (req.method === 'GET' && pathname === '/config/users') return listApiKeyUsers(req, res);
   if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);
