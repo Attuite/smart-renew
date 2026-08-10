@@ -128,9 +128,10 @@ async function readJson(req, maxBytes = 120 * 1024 * 1024) {
 }
 
 async function analyze(req, res) {
+  let provider = 'dashscope';
   try {
     const body = await readJson(req);
-    const provider = normalizeVisionProvider(body.provider);
+    provider = normalizeVisionProvider(body.provider);
     const activeApiKey = provider === 'group' ? groupVisionApiKey : apiKey;
     const upstreamBaseUrl = provider === 'group' ? groupVisionBaseUrl : baseUrl;
     if (!activeApiKey || !upstreamBaseUrl) return json(res, 503, { message: provider === 'group' ? '服务端尚未配置集团视觉模型' : '服务端尚未配置 DASHSCOPE_API_KEY' });
@@ -175,6 +176,7 @@ async function analyze(req, res) {
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '本次图片数据过大，请减少图片数量' });
     if (error.name === 'AbortError') return json(res, 504, { message: '模型响应超时，请稍后重试' });
+    if (provider === 'group' && /fetch failed|connect|network|socket/i.test(String(error.message || error))) return json(res, 502, { message: '集团视觉模型网络连接失败：当前服务无法访问集团内网接口，请配置公网网关或专线/VPN' });
     return json(res, 500, { message: error.message || '服务端分析失败' });
   }
 }

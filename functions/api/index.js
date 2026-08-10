@@ -853,9 +853,10 @@ async function sessionHealth(req, res) {
 }
 
 async function analyze(req, res) {
+  let provider = 'dashscope';
   try {
     const body = await readJson(req);
-    const provider = normalizeVisionProvider(body.provider);
+    provider = normalizeVisionProvider(body.provider);
     const active = provider === 'group' ? { key: groupVisionApiKey, session: null } : await getApiKeyFromRequest(req, body.keySessionToken);
     const activeApiKey = active.key;
     if (!activeApiKey) return writeJson(res, 503, { message: provider === 'group' ? '集团视觉模型尚未配置服务端密钥' : '请先选择用户并输入密码启用 API Key' });
@@ -902,6 +903,7 @@ async function analyze(req, res) {
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '本次图片数据过大，请减少图片数量' });
     if (error.name === 'AbortError') return writeJson(res, 504, { message: '模型响应超时，请稍后重试' });
+    if (provider === 'group' && /fetch failed|connect|network|socket/i.test(String(error.message || error))) return writeJson(res, 502, { message: '集团视觉模型网络连接失败：当前云函数无法访问集团内网接口，请配置公网网关或专线/VPN' });
     return writeJson(res, 500, { message: error.message || '服务端分析失败' });
   }
 }
