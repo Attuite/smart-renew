@@ -342,6 +342,15 @@ async function ensureApiKeyUsersCollection() {
   }
 }
 
+async function ensureOfficialIssueCollection() {
+  try {
+    await officialIssueCollection.limit(1).get();
+  } catch (error) {
+    if (!isCollectionMissingError(error)) throw error;
+    await db.createCollection('officialIssues');
+  }
+}
+
 function normalizeUsername(value) {
   const username = String(value || '').trim();
   if (username.length < 2 || username.length > 40) throw new Error('用户名需为 2-40 个字符');
@@ -672,6 +681,7 @@ async function handlePhotoApi(req, res, url, pathname) {
 
 async function handleOfficialIssueApi(req, res, url, pathname) {
   try {
+    await ensureOfficialIssueCollection();
     if (req.method === 'GET' && pathname === '/issues') {
       return writeJson(res, 200, { items: filterOfficialIssues(await listCollection(officialIssueCollection), url.searchParams), storage: 'cloudbase' });
     }

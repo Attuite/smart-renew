@@ -52,6 +52,8 @@ const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
 const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
+const cloudbaseApiOrigin = (process.env.CLOUDBASE_API_ORIGIN || 'https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com').replace(/\/$/, '');
+const proxyCloudbaseApis = /^(1|true|yes)$/i.test(process.env.SMART_RENEW_USE_CLOUDBASE_API || '');
 const allowedModels = new Set([
   'qwen3-vl-plus',
   'qwen3-vl-flash',
@@ -127,11 +129,51 @@ async function readJson(req, maxBytes = 120 * 1024 * 1024) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+async function proxyCloudBaseApi(req, res, bodyOverride) {
+  try {
+    let body;
+    if (bodyOverride !== undefined) {
+      body = Buffer.from(JSON.stringify(bodyOverride));
+    } else if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of req) {
+        size += chunk.length;
+        if (size > 120 * 1024 * 1024) throw new Error('REQUEST_TOO_LARGE');
+        chunks.push(chunk);
+      }
+      body = Buffer.concat(chunks);
+    }
+    const headers = {};
+    for (const name of ['content-type', 'authorization', 'x-smart-renew-key-session']) {
+      if (req.headers[name]) headers[name] = req.headers[name];
+    }
+    const upstream = await fetch(`${cloudbaseApiOrigin}${req.url}`, {
+      method: req.method,
+      headers,
+      body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(130000)
+    });
+    const responseHeaders = { 'Cache-Control': upstream.headers.get('cache-control') || 'no-store' };
+    for (const name of ['content-type', 'content-disposition', 'location']) {
+      const value = upstream.headers.get(name);
+      if (value) responseHeaders[name] = value;
+    }
+    res.writeHead(upstream.status, responseHeaders);
+    res.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '转发数据过大，请减少单次上传数量' });
+    return json(res, 502, { message: `腾讯云 API 转发失败：${error.message || '网络异常'}` });
+  }
+}
+
 async function analyze(req, res) {
   let provider = 'dashscope';
   try {
     const body = await readJson(req);
     provider = normalizeVisionProvider(body.provider);
+    if (provider === 'dashscope' && proxyCloudbaseApis) return proxyCloudBaseApi(req, res, body);
     const activeApiKey = provider === 'group' ? groupVisionApiKey : apiKey;
     const upstreamBaseUrl = provider === 'group' ? groupVisionBaseUrl : baseUrl;
     if (!activeApiKey || !upstreamBaseUrl) return json(res, 503, { message: provider === 'group' ? '服务端尚未配置集团视觉模型' : '服务端尚未配置 DASHSCOPE_API_KEY' });
@@ -704,14 +746,16 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
   if (!authorize(req, res, url)) return;
-  if (req.method === 'GET' && req.url.startsWith('/api/health')) return json(res, 200, { ready: Boolean(apiKey), model: defaultModel, providers: { dashscope: Boolean(apiKey), group: Boolean(groupVisionApiKey && groupVisionBaseUrl) } });
+  if (req.method === 'GET' && req.url.startsWith('/api/health')) return json(res, 200, { ready: Boolean(apiKey) || proxyCloudbaseApis, model: defaultModel, providers: { dashscope: Boolean(apiKey) || proxyCloudbaseApis, group: Boolean(groupVisionApiKey && groupVisionBaseUrl) }, apiStorage: proxyCloudbaseApis ? 'cloudbase-proxy' : 'local' });
   if (req.method === 'POST' && req.url.startsWith('/api/config/session/health')) {
     const body = await readJson(req).catch(() => ({}));
     const provider = normalizeVisionProvider(body.provider);
+    if (provider === 'dashscope' && proxyCloudbaseApis) return proxyCloudBaseApi(req, res, body);
     return json(res, 200, { ready: provider === 'group' ? Boolean(groupVisionApiKey && groupVisionBaseUrl) : Boolean(apiKey), provider, model: provider === 'group' ? groupVisionModel : defaultModel, storage: 'server-environment' });
   }
-  if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
+  if (proxyCloudbaseApis && url.pathname.startsWith('/api/')) return proxyCloudBaseApi(req, res);
+  if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
   if (url.pathname.startsWith('/api/field/')) return handleFieldCollectionApi(req, res, url);
   if (url.pathname.startsWith('/api/photos')) return handlePhotoApi(req, res, url);
