@@ -205,6 +205,7 @@ async function replaceNativeProjectIndex(projectId) {
 
 async function handleProjectDataApi(req, res, url, pathname) {
   try {
+    await ensureCollection('projectDataRecords', projectDataCollection);
     const recordMatch = pathname.match(/^\/project-data\/([A-Za-z0-9][A-Za-z0-9_.-]{2,159})$/);
     const rebuildMatch = pathname.match(/^\/projects\/(\d+)\/data-index\/rebuild$/);
     const statsMatch = pathname.match(/^\/projects\/(\d+)\/data-index\/stats$/);
@@ -348,6 +349,19 @@ async function ensureOfficialIssueCollection() {
   } catch (error) {
     if (!isCollectionMissingError(error)) throw error;
     await db.createCollection('officialIssues');
+  }
+}
+
+async function ensureCollection(collectionName, collection) {
+  try {
+    await collection.limit(1).get();
+  } catch (error) {
+    if (!isCollectionMissingError(error)) throw error;
+    try {
+      await db.createCollection(collectionName);
+    } catch (createError) {
+      if (!/already exist|已存在|RESOURCE_EXIST/i.test(String(createError?.message || createError))) throw createError;
+    }
   }
 }
 
@@ -705,6 +719,7 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
 
 async function handleReportSnapshotApi(req, res, url, pathname) {
   try {
+    await ensureCollection('reportSnapshots', reportSnapshotCollection);
     const reportMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
     if (req.method === 'GET' && pathname === '/reports') {
       const projectId = safeId(url.searchParams.get('projectId'));
