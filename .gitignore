@@ -1,0 +1,11 @@
+.smart-renew-data/
+.env
+.agents/
+.uploads/
+tmp/
+index.backup.html
+node_modules/
+functions/*/node_modules/
+output/
+miniprogram/project.private.config.json
+miniprogram/assets/*-original.png

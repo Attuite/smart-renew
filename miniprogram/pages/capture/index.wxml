@@ -1,0 +1,121 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero__eyebrow">SMART RENEW</view>
+    <view class="hero__title">现场照片采集</view>
+    <view class="hero__desc">设置现场位置，每拍一张即可单独分类并上传</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state-card">正在读取智更平台数据…</view>
+  <view wx:elif="{{loadError}}" class="state-card state-card--error">
+    <view>{{loadError}}</view>
+    <button class="small-button" bindtap="loadInitialData">重新加载</button>
+  </view>
+
+  <view wx:else class="form-card">
+    <view class="field">
+      <view class="field__label">项目 <text>*</text></view>
+      <picker mode="selector" range="{{projects}}" range-key="name" value="{{projectIndex}}" bindchange="onProjectChange">
+        <view class="picker {{projectIndex < 0 ? 'picker--placeholder' : ''}}">
+          {{projectIndex < 0 ? '请选择项目' : projects[projectIndex].name}}
+          <text class="picker__arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field__label">小区 <text>*</text></view>
+      <picker mode="selector" range="{{communities}}" range-key="displayName" value="{{communityIndex}}" bindchange="onCommunityChange" disabled="{{projectIndex < 0}}">
+        <view class="picker {{communityIndex < 0 ? 'picker--placeholder' : ''}}">
+          {{communityIndex < 0 ? (projectIndex < 0 ? '请先选择项目' : '请选择小区') : communities[communityIndex].displayName}}
+          <text class="picker__arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field__label">楼栋号 <text class="field__optional">选填</text></view>
+      <picker mode="selector" range="{{buildings}}" range-key="name" value="{{buildingIndex}}" bindchange="onBuildingChange" disabled="{{communityIndex < 0}}">
+        <view class="picker {{buildingIndex < 0 ? 'picker--placeholder' : ''}}">
+          {{buildingIndex < 0 ? (communityIndex < 0 ? '请先选择小区' : '请选择楼栋号（可跳过）') : buildings[buildingIndex].name}}
+          <text class="picker__arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field__label">楼栋户数 <text class="field__optional">选填</text></view>
+      <input class="input" type="number" value="{{householdCount}}" placeholder="请输入该楼栋户数（可跳过）" bindinput="onHouseholdInput" disabled="{{communityIndex < 0}}" />
+    </view>
+
+    <view class="photo-header">
+      <view>
+        <view class="field__label">现场拍照</view>
+        <view class="photo-hint">每次拍摄并上传一张，中途退出也会保留</view>
+      </view>
+      <view class="photo-count">已上传 {{uploadedCount}} 张</view>
+    </view>
+
+    <view class="photo-grid">
+      <view wx:for="{{photos}}" wx:key="path" class="photo-item">
+        <image src="{{item.path}}" mode="aspectFill" bindtap="previewPhoto" data-index="{{index}}" />
+        <view class="photo-remove" catchtap="removePhoto" data-index="{{index}}">×</view>
+        <view wx:if="{{item.status === 'uploaded'}}" class="photo-status">已上传</view>
+        <view wx:else class="photo-status photo-status--pending">待分类上传</view>
+      </view>
+      <view wx:if="{{!photos.length}}" class="photo-add photo-add--single" bindtap="choosePhotos">
+        <view class="photo-add__icon">＋</view>
+        <view>拍摄一张</view>
+      </view>
+    </view>
+
+    <view wx:if="{{photos.length}}" class="problem-section">
+      <view class="problem-section__title">本张照片的风险分类 <text>选填</text></view>
+      <view class="problem-section__hint">可选择风险分类，也可以直接上传本张照片</view>
+
+      <view class="field">
+        <view class="field__label">问题大类</view>
+        <picker mode="selector" range="{{problemGroups}}" range-key="name" value="{{problemGroupIndex}}" bindchange="onProblemGroupChange" disabled="{{uploading}}">
+          <view class="picker {{problemGroupIndex < 0 ? 'picker--placeholder' : ''}}">
+            {{problemGroupIndex < 0 ? '请选择问题大类（可跳过）' : problemGroups[problemGroupIndex].name}}
+            <text class="picker__arrow">›</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="field">
+        <view class="field__label">具体问题</view>
+        <picker mode="selector" range="{{problemItems}}" range-key="name" value="{{problemIndex}}" bindchange="onProblemChange" disabled="{{problemGroupIndex < 0 || uploading}}">
+          <view class="picker {{problemIndex < 0 ? 'picker--placeholder' : ''}}">
+            {{problemIndex < 0 ? (problemGroupIndex < 0 ? '请先选择问题大类' : '请选择具体问题（可跳过）') : problemItems[problemIndex].name}}
+            <text class="picker__arrow">›</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <view wx:if="{{uploading}}" class="progress">
+      <view class="progress__bar"><view style="width: {{uploadProgress}}%"></view></view>
+      <view class="progress__text">{{uploadMessage}}</view>
+    </view>
+
+    <button wx:if="{{photos.length}}" class="submit-button" loading="{{uploading}}" disabled="{{uploading}}" bindtap="uploadCurrentPhoto">
+      {{uploading ? '正在上传本张…' : '上传本张照片'}}
+    </button>
+    <view wx:if="{{lastError}}" class="submit-error">{{lastError}}</view>
+
+    <view wx:if="{{uploadedPhotos.length}}" class="uploaded-section">
+      <view class="uploaded-section__title">已上传照片</view>
+      <view class="uploaded-photo-grid">
+        <image
+          wx:for="{{uploadedPhotos}}"
+          wx:key="id"
+          src="{{item.previewUrl}}"
+          mode="aspectFill"
+          lazy-load="true"
+          bindtap="previewUploadedPhoto"
+          data-index="{{index}}"
+        />
+      </view>
+    </view>
+  </view>
+</view>

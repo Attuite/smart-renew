@@ -1,0 +1,14 @@
+{
+  "name": "smart-renew",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "城市更新体检与完整社区分析平台",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs"
+  }
+}
