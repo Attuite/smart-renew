@@ -28,6 +28,14 @@ import {
   buildReportSnapshot
 } from './functions/api/report-snapshot-core.js';
 import {
+  REPORT_TEMPLATE,
+  assembleReportDraftDocument,
+  buildReportNarrativePrompt,
+  buildStoredReportDraft,
+  parseNarrativeModelContent,
+  validateReportNarrativeDraft
+} from './functions/api/report-narrative-core.js';
+import {
   auditLegacyData,
   inferLegacyProblemCode
 } from './functions/api/legacy-migration-core.js';
@@ -49,6 +57,7 @@ const appPassword = process.env.APP_PASSWORD || '';
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
+const reportNarrativeModel = process.env.DASHSCOPE_REPORT_MODEL || defaultModel;
 const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
@@ -221,6 +230,56 @@ async function analyze(req, res) {
     if (provider === 'group' && /fetch failed|connect|network|socket/i.test(String(error.message || error))) return json(res, 502, { message: '集团视觉模型网络连接失败：当前服务无法访问集团内网接口，请配置公网网关或专线/VPN' });
     return json(res, 500, { message: error.message || '服务端分析失败' });
   }
+}
+
+async function requestReportNarrative(prompt) {
+  if (!apiKey) {
+    const error = new Error('服务端尚未配置 DASHSCOPE_API_KEY，无法生成报告草稿');
+    error.status = 503;
+    throw error;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000);
+  let upstream;
+  try {
+    upstream = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: reportNarrativeModel,
+        stream: false,
+        messages: [
+          { role: 'system', content: prompt.system },
+          { role: 'user', content: prompt.user }
+        ],
+        max_tokens: 8000,
+        temperature: 0.2,
+        top_p: 0.9,
+        response_format: { type: 'json_object' }
+      })
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  const data = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    const error = new Error(data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
+    error.status = upstream.status;
+    throw error;
+  }
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    const error = new Error('模型没有返回可解析的报告草稿');
+    error.status = 502;
+    throw error;
+  }
+  return {
+    content,
+    requestId: data.request_id || data.id || '',
+    model: data.model || reportNarrativeModel,
+    usage: data.usage || null
+  };
 }
 
 async function configureKey(req, res) {
@@ -599,6 +658,7 @@ async function handleOfficialIssueApi(req, res, url) {
 async function handleReportSnapshotApi(req, res, url) {
   try {
     await ensureStorage();
+    const draftMatch = url.pathname.match(/^\/api\/reports\/(RPT-[A-Za-z0-9_.-]+)\/draft$/);
     const reportMatch = url.pathname.match(/^\/api\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
     if (req.method === 'GET' && url.pathname === '/api/reports') {
       const projectId = safeId(url.searchParams.get('projectId'));
@@ -610,6 +670,44 @@ async function handleReportSnapshotApi(req, res, url) {
     if (req.method === 'GET' && reportMatch) {
       const item = await readStoredJson(path.join(reportSnapshotStorage, `${reportMatch[1]}.json`));
       return item ? json(res, 200, { item, storage: 'server' }) : json(res, 404, { message: '报告版本不存在' });
+    }
+    if (req.method === 'GET' && draftMatch) {
+      const report = await readStoredJson(path.join(reportSnapshotStorage, `${draftMatch[1]}.json`));
+      if (!report) return json(res, 404, { message: '报告版本不存在' });
+      if (!report.draft) return json(res, 404, { message: '该报告版本尚未生成AI草稿' });
+      return json(res, 200, {
+        item: report.draft,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        reportId: report.id,
+        storage: 'server'
+      });
+    }
+    if (req.method === 'POST' && draftMatch) {
+      const body = await readJson(req, 256 * 1024);
+      const reportPath = path.join(reportSnapshotStorage, `${draftMatch[1]}.json`);
+      const report = await readStoredJson(reportPath);
+      if (!report) return json(res, 404, { message: '报告版本不存在' });
+      const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
+      const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds });
+      const generated = await requestReportNarrative(prompt);
+      const parsed = parseNarrativeModelContent(generated.content);
+      const validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
+      report.draft = buildStoredReportDraft({
+        report,
+        validatedDraft: validated,
+        model: generated.model,
+        requestId: generated.requestId,
+        usage: generated.usage,
+        subsectionIds
+      });
+      report.draftUpdatedAt = report.draft.generatedAt;
+      await writeStoredJson(reportPath, report);
+      return json(res, 200, {
+        item: report.draft,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        reportId: report.id,
+        storage: 'server'
+      });
     }
     if (req.method === 'POST' && url.pathname === '/api/reports/generate') {
       const body = await readJson(req, 256 * 1024);
@@ -628,7 +726,8 @@ async function handleReportSnapshotApi(req, res, url) {
     }
     return json(res, 404, { message: '报告版本接口不存在' });
   } catch (error) {
-    return json(res, 400, { message: error.message || '报告版本生成失败' });
+    if (error.name === 'AbortError') return json(res, 504, { message: '报告草稿生成超时，请稍后重试' });
+    return json(res, Number(error.status) || 400, { message: error.message || '报告版本生成失败' });
   }
 }
 

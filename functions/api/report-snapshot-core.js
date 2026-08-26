@@ -1,3 +1,5 @@
+import { computeCommunityHousingMetrics } from './report-metrics-core.js';
+
 function number(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -28,6 +30,7 @@ export function buildReportSnapshot({ project, issues, photos, analyses, existin
     indicatorCounts[issue.indicatorCode] = (indicatorCounts[issue.indicatorCode] || 0) + 1;
   });
   const now = new Date().toISOString();
+  const metricResults = computeCommunityHousingMetrics({ project, issues, analyses, calculatedAt: now });
   const id = `RPT-${projectId}-V${String(version).padStart(4, '0')}`;
   return {
     id,
@@ -74,7 +77,8 @@ export function buildReportSnapshot({ project, issues, photos, analyses, existin
         indicatorCounts,
         items: issues.map((issue) => ({ ...issue }))
       },
-      communityAnalysis: project.communityAnalysis || null
+      communityAnalysis: project.communityAnalysis || null,
+      metricResults
     },
     pdfFileId: '',
     schemaVersion: '1.0.0'

@@ -26,6 +26,14 @@ import {
   buildReportSnapshot
 } from './report-snapshot-core.js';
 import {
+  REPORT_TEMPLATE,
+  assembleReportDraftDocument,
+  buildReportNarrativePrompt,
+  buildStoredReportDraft,
+  parseNarrativeModelContent,
+  validateReportNarrativeDraft
+} from './report-narrative-core.js';
+import {
   auditLegacyData,
   inferLegacyProblemCode
 } from './legacy-migration-core.js';
@@ -46,6 +54,7 @@ const reportSnapshotCollection = db.collection('reportSnapshots');
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
+const reportNarrativeModel = process.env.DASHSCOPE_REPORT_MODEL || defaultModel;
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 let apiKeyLoaded = Boolean(apiKey);
@@ -717,9 +726,60 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
   }
 }
 
+async function requestReportNarrative(activeApiKey, prompt) {
+  if (!activeApiKey) {
+    const error = new Error('请先选择用户并输入密码启用 API Key');
+    error.status = 503;
+    throw error;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000);
+  let upstream;
+  try {
+    upstream = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
+      body: JSON.stringify({
+        model: reportNarrativeModel,
+        stream: false,
+        messages: [
+          { role: 'system', content: prompt.system },
+          { role: 'user', content: prompt.user }
+        ],
+        max_tokens: 8000,
+        temperature: 0.2,
+        top_p: 0.9,
+        response_format: { type: 'json_object' }
+      })
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  const data = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    const error = new Error(data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
+    error.status = upstream.status;
+    throw error;
+  }
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    const error = new Error('模型没有返回可解析的报告草稿');
+    error.status = 502;
+    throw error;
+  }
+  return {
+    content,
+    requestId: data.request_id || data.id || '',
+    model: data.model || reportNarrativeModel,
+    usage: data.usage || null
+  };
+}
+
 async function handleReportSnapshotApi(req, res, url, pathname) {
   try {
     await ensureCollection('reportSnapshots', reportSnapshotCollection);
+    const draftMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)\/draft$/);
     const reportMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
     if (req.method === 'GET' && pathname === '/reports') {
       const projectId = safeId(url.searchParams.get('projectId'));
@@ -731,6 +791,45 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
     if (req.method === 'GET' && reportMatch) {
       const item = await getDocument(reportSnapshotCollection, reportMatch[1]);
       return item ? writeJson(res, 200, { item, storage: 'cloudbase' }) : writeJson(res, 404, { message: '报告版本不存在' });
+    }
+    if (req.method === 'GET' && draftMatch) {
+      const report = await getDocument(reportSnapshotCollection, draftMatch[1]);
+      if (!report) return writeJson(res, 404, { message: '报告版本不存在' });
+      if (!report.draft) return writeJson(res, 404, { message: '该报告版本尚未生成AI草稿' });
+      return writeJson(res, 200, {
+        item: report.draft,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        reportId: report.id,
+        storage: 'cloudbase'
+      });
+    }
+    if (req.method === 'POST' && draftMatch) {
+      const body = await readJson(req, 256 * 1024);
+      const report = await getDocument(reportSnapshotCollection, draftMatch[1]);
+      if (!report) return writeJson(res, 404, { message: '报告版本不存在' });
+      const active = await getApiKeyFromRequest(req, body.keySessionToken);
+      const activeApiKey = active.key || await getStoredApiKey();
+      const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
+      const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds });
+      const generated = await requestReportNarrative(activeApiKey, prompt);
+      const parsed = parseNarrativeModelContent(generated.content);
+      const validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
+      report.draft = buildStoredReportDraft({
+        report,
+        validatedDraft: validated,
+        model: generated.model,
+        requestId: generated.requestId,
+        usage: generated.usage,
+        subsectionIds
+      });
+      report.draftUpdatedAt = report.draft.generatedAt;
+      await putDocument(reportSnapshotCollection, report.id, report);
+      return writeJson(res, 200, {
+        item: report.draft,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        reportId: report.id,
+        storage: 'cloudbase'
+      });
     }
     if (req.method === 'POST' && pathname === '/reports/generate') {
       const body = await readJson(req, 256 * 1024);
@@ -749,7 +848,8 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
     }
     return writeJson(res, 404, { message: '报告版本接口不存在' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '报告版本生成失败' });
+    if (error.name === 'AbortError') return writeJson(res, 504, { message: '报告草稿生成超时，请稍后重试' });
+    return writeJson(res, Number(error.status) || 400, { message: error.message || '报告版本生成失败' });
   }
 }
 
