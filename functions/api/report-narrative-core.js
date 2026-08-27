@@ -221,6 +221,10 @@ function narrativeBlocks(template = REPORT_TEMPLATE) {
       blockId: block.id,
       blockTitle: block.title,
       objective: block.objective,
+      reference: block.reference && typeof block.reference === 'object' ? {
+        section: text(block.reference.section, 240),
+        content: text(block.reference.content, 1600)
+      } : null,
       evidencePaths: list(block.evidencePaths),
       length: block.length || { min: 120, max: 600 }
     }))));
@@ -248,6 +252,7 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
     system: [
       '你是城市更新项目体检报告的专业撰稿人。',
       '本任务不是自由创作，而是在正式范例报告的母版槽位中替换项目事实。必须保持范例的论证深度、层次和篇幅。',
+      '每个区块都包含其对应范例小节的 reference。reference 只用于学习该小节的结构、论证顺序、段落密度和表达方式，不得复制其中的城市名称、数字或结论。',
       '写法遵循“总体判断—分项事实—问题解释—数据边界或治理含义”，避免空泛总结和重复套话。',
       '你只能依据用户提供的“报告事实包”写作，不得使用示例城市的事实，不得虚构、推算或补齐缺失数据。',
       '所有数字必须逐字来自事实包，禁止自行计算。事实不足时明确写“暂无数据”。',
@@ -259,6 +264,7 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
       task: '按范例报告二级小节生成项目级体检报告草稿',
       requirements: [
         '严格按区块清单逐项输出，不得新增、遗漏或更改 sectionId、subsectionId 和 blockId',
+        '逐区块阅读 reference.section 和 reference.content，生成文本必须体现对应范例小节的展开顺序，不得用同一套通用结构处理所有小节',
         '每个区块按 objective 要求输出 3 至 6 个自然段；段首可采用“一是”“二是”或判断式短句增强正式报告层次',
         '不得把事实包逐项机械复述；每段须包含明确主题，并说明该事实对体检判断的含义',
         '数字使用阿拉伯数字，并且必须已经出现在事实包中',
@@ -282,6 +288,62 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
       facts
     })
   };
+}
+
+function metricNames(items, predicate = () => true, limit = 4) {
+  return list(items).filter(predicate).slice(0, limit).map((item) => text(item?.standardName || item?.name, 120)).filter(Boolean);
+}
+
+function buildNarrativeFallback(block, facts) {
+  const project = facts.project || {};
+  const housing = facts.housing || {};
+  const issues = facts.issues?.summary || {};
+  const housingMetrics = facts.metrics?.housing || {};
+  const communityMetrics = facts.metrics?.community || {};
+  const availableCommunity = list(communityMetrics.items).filter((item) => item?.value != null);
+  const availableHousing = list(housingMetrics.items).filter((item) => item?.status === 'ready' || item?.status === 'partial');
+  const unavailableHousing = metricNames(housingMetrics.items, (item) => item?.status === 'unavailable', 5);
+  const communityTotal = number(communityMetrics.scope?.facilitySpaceTotal);
+  const radiusKm = number(communityMetrics.scope?.radiusKm);
+  const surveyedBuildings = number(housingMetrics.scope?.surveyedBuildingCount);
+  const paragraphsByBlock = {
+    'project-overview-narrative': [
+      `${text(project.name, 240) || '本项目'}位于${text(project.area, 240) || '项目所在区域'}，项目类型为${text(project.type, 120) || '待补充'}。本次体检以项目档案确定的范围为基础，围绕小区（社区）设施现状和既有住房状况开展资料归集、现场识别和综合评价。`,
+      `项目住房台账现包含 ${number(housing.communityCount)} 个小区（社区）、${number(housing.buildingCount)} 栋住宅和 ${number(housing.householdCount)} 户。报告同步读取已归档现场照片、分析批次、人工复核后的正式问题和社区设施分析结果，形成项目级数据快照。`,
+      '当前报告仅对已经接入且能够追溯的数据形成结论。居民问卷、历年对比、专项检测以及缺少调查分母的指标不作推算，后续可在补充调查后更新相应小节。'
+    ],
+    'community-overall-narrative': [
+      `本次小区（社区）维度以项目保存的设施地图检索结果为基础，${radiusKm ? `在 ${radiusKm} 千米分析范围内` : '在当前分析范围内'}归集 ${communityTotal} 个设施空间，共形成 ${availableCommunity.length} 类可用设施现状指标。`,
+      `设施完善方面，当前已对养老托育、教育、停车和充电等设施类别进行归集；环境宜居方面，已对公共活动场地、步行空间和垃圾分类设施进行观察；管理健全方面，已对物业管理和智慧设施进行统计。各指标结果详见本节评价结果表和分项指标评价。`,
+      '需要说明的是，当前结果属于地图检索与空间合并形成的设施现状代理观测。由于尚缺居住用地、步行路网、设施建筑面积和服务能力等数据，本版本不据此判断配建达标率、服务覆盖率或设施缺口。'
+    ],
+    'housing-overall-narrative': [
+      `本次住房维度覆盖项目台账中的 ${number(housing.buildingCount)} 栋住宅，其中已归档分析覆盖楼栋为 ${surveyedBuildings} 栋。住房比例指标均以已归档分析覆盖楼栋为有效分母，不扩展为项目全部楼栋。`,
+      `本版本共纳入人工确认或修正后正式入库的问题 ${number(issues.total)} 条，其中高风险 ${number(issues.high)} 条、中风险 ${number(issues.medium)} 条、低风险 ${number(issues.low)} 条。当前可按完整或限定口径使用的住房指标为 ${availableHousing.length} 项。`,
+      `住房指标按照安全耐久、功能完备和绿色智能三个方面组织。对于${unavailableHousing.length ? unavailableHousing.join('、') : '尚未接入专项数据的指标'}，当前仅保留指标位置和数据说明，不形成零值、达标或优良判断。`
+    ],
+    'community-judgement-narrative': [
+      '总体来看，项目已具备社区设施数量结构的基础观察条件，但尚不足以形成配建达标和服务覆盖判断。现阶段应把地图检索结果作为后续实地核验的线索，而不是直接作为设施短板结论。',
+      '一老一幼和教育服务需要结合设施实际开放状态、服务对象和步行可达性进一步核实；公共活动与步行环境需要补充场地规模、道路连续性和无障碍条件；停车、充电、物业和智慧设施则需要结合小区边界与实际运营情况复核。',
+      '下一步应按照设施完善、环境宜居和管理健全三个方面完善调查台账，逐步接入居住规模、设施面积、服务半径和运营能力数据，再形成可用于更新决策的社区问题清单。'
+    ],
+    'housing-judgement-narrative': [
+      `住房维度当前共归集 ${number(issues.total)} 条正式问题，调查和评价结果以已归档分析覆盖楼栋为边界。由于有效调查分母和部分专项数据仍不完整，本版本重点识别问题类型和证据链，不作无依据的总体等级判断。`,
+      '安全耐久方面，应持续关注结构、燃气、楼道和围护系统中已正式入库的问题；功能完备方面，应结合管线管道、住宅成套性和适老化需求补充逐栋调查；绿色智能方面，仍需接入节能和数字化设施调查数据。',
+      '建议建立楼栋级问题复核、风险分类、处置销号和动态复评机制，使现场照片、人工复核、指标计算和整治结果能够持续关联。'
+    ],
+    'remediation-strategy-narrative': [
+      '一是完善社区设施核查。以现有设施地图检索结果为线索，补充设施开放状态、服务对象、步行可达性和实际服务能力调查，形成可复核的社区设施现状台账。',
+      '二是分类处置住房问题。对正式问题按照安全耐久、功能完备和绿色智能分类，结合风险等级、发生位置和照片证据确定复核顺序；涉及专业安全鉴定的事项应转交具备资质的机构进一步确认。',
+      '三是完善住房功能和长效管理。结合管线更新、适老化、节能和数字化需求逐步补齐调查字段，建立问题入库、复核、整改和销号的闭环管理机制。'
+    ],
+    'action-recommendations-narrative': [
+      '近期以数据核验和安全问题复核为重点，完善社区、楼栋、现场照片和正式问题之间的编号关联，清理测试或缺少对象编号的数据，并对现有正式问题逐项确认。',
+      '中期结合核验后的社区设施现状和住房问题清单，形成分类更新任务。社区维度重点补充公共服务与环境设施调查，住房维度重点推进安全隐患处置和使用功能完善。',
+      '持续性工作应建立报告版本、问题整改和指标复评机制。每次新增调查或完成整改后更新数据快照，保留来源编号和审核记录，为后续正式报告和项目实施清单提供依据。'
+    ]
+  };
+  return list(paragraphsByBlock[block.id || block.blockId]);
 }
 
 function metricStatusText(status) {
@@ -475,6 +537,7 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
     .map((block) => [`${block.sectionId}/${block.subsectionId}/${block.blockId}`, block]));
   let narrativeTotal = 0;
   let narrativeReady = 0;
+  let narrativeFallback = 0;
   const sections = list(template.sections)
     .slice()
     .sort((a, b) => number(a.order) - number(b.order))
@@ -529,12 +592,15 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
             narrativeTotal += 1;
             const generated = generatedBlocks.get(`${section.id}/${subsection.id}/${block.id}`);
             if (generated) narrativeReady += 1;
+            const fallbackParagraphs = generated ? [] : buildNarrativeFallback(block, facts);
+            if (!generated && fallbackParagraphs.length) narrativeFallback += 1;
             return {
               ...base,
-              status: generated ? 'ready' : 'missing',
-              paragraphs: list(generated?.paragraphs),
+              sourceMode: generated ? 'ai-assisted-slot' : 'template-fallback',
+              status: generated ? 'ready' : (fallbackParagraphs.length ? 'fallback' : 'missing'),
+              paragraphs: generated ? list(generated?.paragraphs) : fallbackParagraphs,
               evidenceRefs: list(generated?.evidenceRefs),
-              warnings: list(generated?.warnings)
+              warnings: generated ? list(generated?.warnings) : ['当前显示母版兜底正文，重新生成本小节后将由AI依据项目事实和对应范例内容深化。']
             };
           }
           return { ...base, status: 'unsupported' };
@@ -554,6 +620,7 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
     completeness: {
       narrativeReady,
       narrativeTotal,
+      narrativeFallback,
       complete: narrativeTotal > 0 && narrativeReady === narrativeTotal
     },
     sections

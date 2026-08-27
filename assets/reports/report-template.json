@@ -36,7 +36,7 @@
           "id": "project-overview", "number": "1.2", "title": "项目发展与现状概况", "treatment": "adapt",
           "blocks": [
             { "id": "project-overview-table", "type": "variable-table", "title": "项目基本信息", "dataPath": "project", "tableVariant": "project-profile", "emptyText": "当前版本暂无项目档案" },
-            { "id": "project-overview-narrative", "type": "ai-narrative", "title": "项目现状概述", "objective": "以范例报告城市发展概况的写法改写为项目概况。第一段交代名称、位置、类型和范围，第二段交代社区、楼栋、住户及调查归档规模，第三段概括已形成的数据成果与明确的数据边界。不得泛泛介绍城市政策。", "evidencePaths": ["project", "housing", "photos", "analyses", "metrics.housing.scope", "metrics.community.scope"], "length": { "min": 420, "max": 900 } }
+            { "id": "project-overview-narrative", "type": "ai-narrative", "title": "项目现状概述", "reference": { "section": "范例1.2 城市发展概况", "content": "范例先用区位、规模、行政范围等事实建立总体概况，再以判断式段首分述绿色生态、历史文化、生态宜居、科技创新等特征，随后转入人口、产业和经济等发展情况。应参考其先总后分、数据支撑判断、段首提炼观点的结构，但不得沿用绵阳事实。" }, "objective": "以范例报告城市发展概况的写法改写为项目概况。第一段交代名称、位置、类型和范围，第二段交代社区、楼栋、住户及调查归档规模，第三段概括已形成的数据成果与明确的数据边界。不得泛泛介绍城市政策。", "evidencePaths": ["project", "housing", "photos", "analyses", "metrics.housing.scope", "metrics.community.scope"], "length": { "min": 420, "max": 900 } }
           ]
         },
         {
@@ -78,7 +78,7 @@
         {
           "id": "community-results", "number": "3.3", "title": "评价结果", "treatment": "data-driven",
           "blocks": [
-            { "id": "community-overall-narrative", "type": "ai-narrative", "title": "总体情况", "objective": "模仿范例报告“总体情况”的论证层次写3至5段。先说明检索半径、设施空间总量和可用类别；再按设施完善、环境宜居、管理健全逐类概括高低结构；最后明确POI代理观测限制。不得把数量多写成达标、数量少写成缺口。", "evidencePaths": ["metrics.community", "housing", "issues.topLocations"], "length": { "min": 650, "max": 1300 } },
+            { "id": "community-overall-narrative", "type": "ai-narrative", "title": "总体情况", "reference": { "section": "范例4.3.3 小区（社区）维度评价结果—总体情况", "content": "范例先交代社区体检对象及设施完善、环境宜居、管理健全三个方面，再概括总体变化；随后分别列举养老托育、教育、停车充电、公共空间、步行环境、物业与智慧设施等指标事实，最后总结设施布局、资源整合和长效治理方面的主要判断。" }, "objective": "模仿范例报告“总体情况”的论证层次写3至5段。先说明检索半径、设施空间总量和可用类别；再按设施完善、环境宜居、管理健全逐类概括高低结构；最后明确POI代理观测限制。不得把数量多写成达标、数量少写成缺口。", "evidencePaths": ["metrics.community", "housing", "issues.topLocations"], "length": { "min": 650, "max": 1300 } },
             { "id": "community-summary-table", "type": "variable-table", "title": "小区（社区）维度指标评价结果", "dataPath": "metrics.community.items", "tableVariant": "evaluation-result", "emptyText": "当前版本暂无社区维度设施分析" },
             { "id": "community-metric-details", "type": "metric-detail", "title": "分项指标评价", "dimension": "community", "dataPath": "metrics.community.items", "emptyText": "当前版本暂无可展开的社区指标" }
           ]
@@ -103,7 +103,7 @@
         {
           "id": "housing-results", "number": "4.3", "title": "评价结果", "treatment": "data-driven",
           "blocks": [
-            { "id": "housing-overall-narrative", "type": "ai-narrative", "title": "总体情况", "objective": "模仿范例住房维度“总体情况”的层次写3至5段。首段交代项目台账规模、已归档调查楼栋及覆盖口径；第二段概括正式问题总量、受影响楼栋和风险结构；随后按安全耐久、功能完备、绿色智能分别概括可用指标和突出问题；末段说明未接入指标。所有比例必须明确分母为已归档分析覆盖楼栋。", "evidencePaths": ["metrics.housing", "housing", "photos", "issues.summary", "issues.topIndicators", "issues.items"], "length": { "min": 750, "max": 1500 } },
+            { "id": "housing-overall-narrative", "type": "ai-narrative", "title": "总体情况", "reference": { "section": "范例4.4.3 住房维度评价结果—总体情况", "content": "范例先说明调查社区和住宅楼栋总量，再说明核查与数据确认方式；随后给出隐患住宅总量和比例，并按安全耐久、功能完备、绿色智能三个方面列出问题楼栋、主要指标及其占比，形成由总体规模到分项结构的完整评价。" }, "objective": "模仿范例住房维度“总体情况”的层次写3至5段。首段交代项目台账规模、已归档调查楼栋及覆盖口径；第二段概括正式问题总量、受影响楼栋和风险结构；随后按安全耐久、功能完备、绿色智能分别概括可用指标和突出问题；末段说明未接入指标。所有比例必须明确分母为已归档分析覆盖楼栋。", "evidencePaths": ["metrics.housing", "housing", "photos", "issues.summary", "issues.topIndicators", "issues.items"], "length": { "min": 750, "max": 1500 } },
             { "id": "housing-summary-table", "type": "variable-table", "title": "住房维度指标评价结果", "dataPath": "metrics.housing.items", "tableVariant": "evaluation-result", "emptyText": "当前版本暂无住房指标计算结果" },
             { "id": "housing-metric-details", "type": "metric-detail", "title": "分项指标评价", "dimension": "housing", "dataPath": "metrics.housing.items", "emptyText": "当前版本暂无可展开的住房指标" }
           ]
@@ -116,13 +116,13 @@
         {
           "id": "community-judgement", "number": "5.1", "title": "社区维度", "treatment": "data-driven",
           "blocks": [
-            { "id": "community-judgement-narrative", "type": "ai-narrative", "title": "社区维度综合研判", "objective": "按范例综合研判写法形成4至6个有小标题式首句的段落：先总判断，再分别讨论养老托育与教育、公共活动与步行环境、停车充电、物业与智慧设施，最后说明数据限制。只写项目事实，不制造覆盖率和缺口。", "evidencePaths": ["metrics.community", "housing", "issues.topLocations"], "length": { "min": 700, "max": 1400 } }
+            { "id": "community-judgement-narrative", "type": "ai-narrative", "title": "社区维度综合研判", "reference": { "section": "范例5.3 社区维度综合研判", "content": "范例先作社区建设总体判断，再用判断式段首依次讨论一老一幼服务、公共空间与步行体验、停车和充电设施、社区智慧化应用，最后归纳设施均衡布局、功能完善、精细管理和智慧应用等治理方向。" }, "objective": "按范例综合研判写法形成4至6个有小标题式首句的段落：先总判断，再分别讨论养老托育与教育、公共活动与步行环境、停车充电、物业与智慧设施，最后说明数据限制。只写项目事实，不制造覆盖率和缺口。", "evidencePaths": ["metrics.community", "housing", "issues.topLocations"], "length": { "min": 700, "max": 1400 } }
           ]
         },
         {
           "id": "housing-judgement", "number": "5.2", "title": "住房维度", "treatment": "data-driven",
           "blocks": [
-            { "id": "housing-judgement-narrative", "type": "ai-narrative", "title": "住房维度综合研判", "objective": "按范例综合研判写法形成4至6个有小标题式首句的段落：先作总体判断，再分别讨论结构与围护安全、燃气与楼道安全、管线和使用功能、适老节能与数字化，最后提出调查与治理重点。不得编造历年趋势、整改成效或优良等级。", "evidencePaths": ["metrics.housing", "housing", "issues.summary", "issues.items"], "length": { "min": 800, "max": 1500 } }
+            { "id": "housing-judgement-narrative", "type": "ai-narrative", "title": "住房维度综合研判", "reference": { "section": "范例5.4 住房维度综合研判", "content": "范例先从住房安全耐久总体改善切入，依次分析结构、燃气、楼道和围护安全，再以判断式段首转入管线老化、适老化等功能短板以及节能、数字化改造需求，最后提出建立房屋安全长效机制和持续投入的总体判断。" }, "objective": "按范例综合研判写法形成4至6个有小标题式首句的段落：先作总体判断，再分别讨论结构与围护安全、燃气与楼道安全、管线和使用功能、适老节能与数字化，最后提出调查与治理重点。不得编造历年趋势、整改成效或优良等级。", "evidencePaths": ["metrics.housing", "housing", "issues.summary", "issues.items"], "length": { "min": 800, "max": 1500 } }
           ]
         }
       ]
@@ -133,13 +133,13 @@
         {
           "id": "remediation-strategy", "number": "6.1", "title": "整治对策", "treatment": "ai-narrative",
           "blocks": [
-            { "id": "remediation-strategy-narrative", "type": "ai-narrative", "title": "分类整治对策", "objective": "围绕社区设施补充核查、住房安全隐患处置、功能完善、长效管理四类形成正式报告式对策。每类包含判断依据、处置原则和下一步工作，不虚构资金、责任单位、工期和政策依据。", "evidencePaths": ["metrics.community", "metrics.housing", "issues.summary", "issues.items"], "length": { "min": 700, "max": 1400 } }
+            { "id": "remediation-strategy-narrative", "type": "ai-narrative", "title": "分类整治对策", "reference": { "section": "范例6.1 整治对策", "content": "范例以主题化三级标题组织整治对策，每个主题先给出总体目标，再用判断式段首展开具体抓手。与本项目相关的参考顺序为：提升安全韧性、完善人居服务、保障住房安全、推进管线与适老化改造、加强数字化与长效治理。" }, "objective": "围绕社区设施补充核查、住房安全隐患处置、功能完善、长效管理四类形成正式报告式对策。每类包含判断依据、处置原则和下一步工作，不虚构资金、责任单位、工期和政策依据。", "evidencePaths": ["metrics.community", "metrics.housing", "issues.summary", "issues.items"], "length": { "min": 700, "max": 1400 } }
           ]
         },
         {
           "id": "action-recommendations", "number": "6.2", "title": "行动建议", "treatment": "ai-narrative",
           "blocks": [
-            { "id": "action-recommendations-narrative", "type": "ai-narrative", "title": "近期、中期和持续性行动建议", "objective": "按近期核查处置、中期更新提升、持续监测复核三个阶段组织建议，每项建议对应正式问题或社区设施现状证据。不得将建议写成已经完成的事实。", "evidencePaths": ["metrics.community", "metrics.housing", "issues.items", "issues.topIndicators"], "length": { "min": 650, "max": 1300 } }
+            { "id": "action-recommendations-narrative", "type": "ai-narrative", "title": "近期、中期和持续性行动建议", "reference": { "section": "范例6.2 行动建议", "content": "范例先承接体检问题清单和整治建议清单，再将对策转化为行动，明确工作目标、实施计划、重点任务和具体措施，并与项目清单衔接。项目版应沿用从问题到任务、从任务到时序、从时序到复核的闭环结构。" }, "objective": "按近期核查处置、中期更新提升、持续监测复核三个阶段组织建议，每项建议对应正式问题或社区设施现状证据。不得将建议写成已经完成的事实。", "evidencePaths": ["metrics.community", "metrics.housing", "issues.items", "issues.topIndicators"], "length": { "min": 650, "max": 1300 } }
           ]
         }
       ]

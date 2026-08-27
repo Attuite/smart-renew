@@ -33,6 +33,7 @@ import {
   buildReportNarrativePrompt,
   buildStoredReportDraft,
   parseNarrativeModelContent,
+  selectNarrativeBlocks,
   validateReportNarrativeDraft
 } from './functions/api/report-narrative-core.js';
 import {
@@ -679,9 +680,8 @@ async function handleReportSnapshotApi(req, res, url) {
     if (req.method === 'GET' && draftMatch) {
       const report = await readStoredJson(path.join(reportSnapshotStorage, `${draftMatch[1]}.json`));
       if (!report) return json(res, 404, { message: '报告版本不存在' });
-      if (!report.draft) return json(res, 404, { message: '该报告版本尚未生成AI草稿' });
       return json(res, 200, {
-        item: report.draft,
+        item: report.draft || null,
         document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
         reportId: report.id,
         storage: 'server'
@@ -693,38 +693,51 @@ async function handleReportSnapshotApi(req, res, url) {
       const report = await readStoredJson(reportPath);
       if (!report) return json(res, 404, { message: '报告版本不存在' });
       const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
-      const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds });
-      let generated;
-      let validated;
-      let validationError;
-      for (let attempt = 1; attempt <= 2; attempt += 1) {
-        const activePrompt = attempt === 1 ? prompt : {
-          ...prompt,
-          user: `${prompt.user}\n\n上一次输出未通过服务端校验：${validationError.message}。请修正该错误，仍只输出符合 outputSchema 的 JSON。`
-        };
-        generated = await requestReportNarrative(activePrompt);
+      const targetSubsectionIds = [...new Set(selectNarrativeBlocks(REPORT_TEMPLATE, subsectionIds).map((item) => item.subsectionId))];
+      const completed = [];
+      const failed = [];
+      for (const subsectionId of targetSubsectionIds) {
+        const activeIds = [subsectionId];
+        const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
         try {
-          const parsed = parseNarrativeModelContent(generated.content);
-          validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
-          break;
+          let generated;
+          let validated;
+          let validationError;
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
+            const activePrompt = attempt === 1 ? prompt : {
+              ...prompt,
+              user: `${prompt.user}\n\n上一次输出未通过服务端校验：${validationError.message}。请修正该错误，仍只输出符合 outputSchema 的 JSON。`
+            };
+            generated = await requestReportNarrative(activePrompt);
+            try {
+              const parsed = parseNarrativeModelContent(generated.content);
+              validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
+              break;
+            } catch (error) {
+              validationError = error;
+              if (attempt === 2) throw error;
+            }
+          }
+          report.draft = buildStoredReportDraft({
+            report,
+            validatedDraft: validated,
+            model: generated.model,
+            requestId: generated.requestId,
+            usage: generated.usage,
+            subsectionIds: activeIds
+          });
+          report.draftUpdatedAt = report.draft.generatedAt;
+          await writeStoredJson(reportPath, report);
+          completed.push(subsectionId);
         } catch (error) {
-          validationError = error;
-          if (attempt === 2) throw error;
+          failed.push({ subsectionId, message: String(error?.message || '生成失败').slice(0, 500) });
         }
       }
-      report.draft = buildStoredReportDraft({
-        report,
-        validatedDraft: validated,
-        model: generated.model,
-        requestId: generated.requestId,
-        usage: generated.usage,
-        subsectionIds
-      });
-      report.draftUpdatedAt = report.draft.generatedAt;
-      await writeStoredJson(reportPath, report);
+      if (!completed.length && failed.length) throw new Error(failed.map((item) => `${item.subsectionId}：${item.message}`).join('；'));
       return json(res, 200, {
         item: report.draft,
         document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        generation: { completed, failed },
         reportId: report.id,
         storage: 'server'
       });
