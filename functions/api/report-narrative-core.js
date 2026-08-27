@@ -125,6 +125,9 @@ export function buildReportFactBundle(report) {
   const topLocations = countBy(issues, (issue) => issue.location).slice(0, 12)
     .map((item) => ({ location: item.key, count: item.count }));
 
+  const metricResults = snapshot.metricResults || { housing: null, community: null };
+  const housingMetricItems = list(metricResults?.housing?.items);
+  const communityMetricItems = list(metricResults?.community?.items);
   return {
     report: {
       id: text(report.id, 160),
@@ -179,7 +182,17 @@ export function buildReportFactBundle(report) {
       items: issues
     },
     communityAnalysis: snapshot.communityAnalysis || null,
-    metrics: snapshot.metricResults || { housing: null, community: null },
+    metrics: {
+      ...metricResults,
+      overview: {
+        communityMetricCount: communityMetricItems.length,
+        communityAvailableCount: communityMetricItems.filter((item) => item?.status === 'ready' || item?.status === 'partial').length,
+        housingMetricCount: housingMetricItems.length,
+        housingReadyCount: housingMetricItems.filter((item) => item?.status === 'ready').length,
+        housingPartialCount: housingMetricItems.filter((item) => item?.status === 'partial').length,
+        housingUnavailableCount: housingMetricItems.filter((item) => item?.status === 'unavailable').length
+      }
+    },
     sourceIds: report.sourceIds || {}
   };
 }
@@ -213,12 +226,17 @@ export function selectNarrativeBlocks(template = REPORT_TEMPLATE, subsectionIds 
 
 export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE, subsectionIds = [] }) {
   const facts = buildReportFactBundle(report);
-  const blocks = selectNarrativeBlocks(template, subsectionIds);
+  const blocks = selectNarrativeBlocks(template, subsectionIds).map((block) => ({
+    ...block,
+    allowedFactEvidenceRefs: block.evidencePaths.map((path) => `FACT:${path}`)
+  }));
   return {
     facts,
     blocks,
     system: [
       '你是城市更新项目体检报告的专业撰稿人。',
+      '本任务不是自由创作，而是在正式范例报告的母版槽位中替换项目事实。必须保持范例的论证深度、层次和篇幅。',
+      '写法遵循“总体判断—分项事实—问题解释—数据边界或治理含义”，避免空泛总结和重复套话。',
       '你只能依据用户提供的“报告事实包”写作，不得使用示例城市的事实，不得虚构、推算或补齐缺失数据。',
       '所有数字必须逐字来自事实包，禁止自行计算。事实不足时明确写“暂无数据”。',
       '指标状态为partial时必须说明限定口径；unavailable或invalid指标不得写成0、达标、优良或无问题。',
@@ -229,11 +247,13 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
       task: '按范例报告二级小节生成项目级体检报告草稿',
       requirements: [
         '严格按区块清单逐项输出，不得新增、遗漏或更改 sectionId、subsectionId 和 blockId',
-        '每个区块输出 1 至 4 个自然段，保持正式、审慎、可复核的专业语气',
+        '每个区块按 objective 要求输出 3 至 6 个自然段；段首可采用“一是”“二是”或判断式短句增强正式报告层次',
+        '不得把事实包逐项机械复述；每段须包含明确主题，并说明该事实对体检判断的含义',
         '数字使用阿拉伯数字，并且必须已经出现在事实包中',
         '住房指标比例必须保留“已归档分析覆盖楼栋”分母口径，不能扩展为项目全部楼栋',
         '图片识别结果只引用人工确认或修正后正式入库的问题及其证据链',
         '每个区块至少提供 1 个 evidenceRef；来源编号优先使用 sourceIds 中的编号，统计事实使用 FACT:加事实路径',
+        'FACT 证据引用只能原样选用当前区块 allowedFactEvidenceRefs 中列出的值，不得追加、缩写或自行猜测子路径',
         '行动建议不得虚构资金、责任单位、工期和政策依据'
       ],
       outputSchema: {
@@ -252,6 +272,57 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
   };
 }
 
+function metricStatusText(status) {
+  return status === 'ready' ? '可直接用于本版本评价'
+    : (status === 'partial' ? '仅可按限定口径用于本版本评价'
+      : (status === 'invalid' ? '数据校验未通过，本版本不形成数值结论' : '当前来源未接入，本版本不形成数值结论'));
+}
+
+function buildMetricDetailItems(items, dimension) {
+  return list(items).map((item, index) => {
+    const isHousing = dimension === 'housing';
+    const recognitionNames = list(item?.recognitionCatalog?.problemTypes).map((problem) => text(problem?.problemName, 120)).filter(Boolean);
+    const inspectionContent = isHousing
+      ? `本项体检围绕“${text(item?.name, 240)}”开展。现场识别与人工复核重点关注${recognitionNames.length ? recognitionNames.join('、') : '与该指标相关的可见问题及其发生位置'}，并核对问题是否已绑定具体社区、楼栋和原始照片。`
+      : `本项体检对应第07步指标库中的“${text(item?.standardName || item?.name, 240)}”。当前数据条件下，以“${text(item?.name, 240)}”作为设施现状代理观测，重点核对设施类别、空间合并数量及样本名称。`;
+    const criteria = isHousing
+      ? '经人工确认或修正后形成正式问题，且问题具有对应指标编码时纳入统计；楼栋数量按 buildingId 去重。比例仅在存在已归档分析覆盖楼栋分母时计算。'
+      : '地图检索结果经类别归集和邻近空间合并后计为设施空间。由于尚缺配建标准核验所需的居住规模、服务半径、步行网络或建筑面积数据，当前结果不用于判定达标、不达标或设施缺口。';
+    const dataSource = isHousing
+      ? '项目住房台账、现场原始照片、图片智能识别记录、人工复核结果和正式问题台账。'
+      : '项目社区设施地图检索、空间合并结果和第07步社区指标库。';
+    let evaluationResult = `该指标状态为“${metricStatusText(item?.status)}”。`;
+    if (isHousing) {
+      if (item?.value != null) {
+        evaluationResult += `本版本识别受影响住宅 ${number(item.value)} ${text(item.unit, 20) || '栋'}，对应正式问题 ${number(item.issueCount)} 条`;
+        if (item?.rate != null) evaluationResult += `，占已归档分析覆盖楼栋的 ${number(item.rate)}%`;
+        evaluationResult += '。';
+      } else if (number(item?.issueCount) > 0) {
+        evaluationResult += `已形成正式问题 ${number(item.issueCount)} 条，但当前对象编号或统计分母不足，不能折算为${text(item.unit, 20) || '栋'}数或比例。`;
+      }
+    } else if (item?.value != null) {
+      evaluationResult += `在当前地图检索与空间合并范围内，共记录 ${number(item.value)} 个相关设施空间。`;
+      const samples = list(item?.sampleFacilities).map((sample) => text(sample?.name || sample, 80)).filter(Boolean).slice(0, 5);
+      if (samples.length) evaluationResult += `检索样本包括${samples.join('、')}等。`;
+    }
+    if (text(item?.reason, 500)) evaluationResult += `口径说明：${text(item.reason, 500)}。`;
+    return {
+      number: index + 1,
+      id: text(item?.id, 160),
+      code: text(item?.indicatorCode || item?.referenceIndicatorCode, 120),
+      group: text(item?.group, 120),
+      title: text(item?.standardName || item?.name, 240),
+      observedName: text(item?.name, 240),
+      status: text(item?.status, 40),
+      inspectionContent,
+      criteria,
+      dataSource,
+      evaluationResult,
+      evidenceRefs: list(item?.sourceIds)
+    };
+  });
+}
+
 export function parseNarrativeModelContent(content) {
   if (content && typeof content === 'object') return content;
   let raw = String(content || '').trim();
@@ -259,6 +330,15 @@ export function parseNarrativeModelContent(content) {
   try {
     return JSON.parse(raw);
   } catch {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(raw.slice(start, end + 1));
+      } catch {
+        // Continue to the validated error below.
+      }
+    }
     throw new Error('模型未返回合法的报告草稿 JSON');
   }
 }
@@ -271,8 +351,12 @@ function collectAllowedEvidenceRefs(facts) {
   return refs;
 }
 
+function factPathParts(path) {
+  return String(path || '').replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+}
+
 function pathExists(root, path) {
-  const parts = String(path || '').split('.').filter(Boolean);
+  const parts = factPathParts(path);
   let value = root;
   for (const part of parts) {
     if (value == null || !Object.prototype.hasOwnProperty.call(Object(value), part)) return false;
@@ -282,7 +366,7 @@ function pathExists(root, path) {
 }
 
 function valueAtPath(root, path) {
-  const parts = String(path || '').split('.').filter(Boolean);
+  const parts = factPathParts(path);
   let value = root;
   for (const part of parts) {
     if (value == null || !Object.prototype.hasOwnProperty.call(Object(value), part)) return null;
@@ -314,11 +398,13 @@ export function validateReportNarrativeDraft({ draft, report, template = REPORT_
     if (!definition || seen.has(key)) throw new Error(`报告草稿包含未知或重复区块：${key}`);
     seen.add(key);
     const paragraphs = list(section.paragraphs).map((item) => text(item, 2000)).filter(Boolean);
-    if (!paragraphs.length || paragraphs.length > 4) throw new Error(`${blockId} 必须包含 1 至 4 个段落`);
+    if (!paragraphs.length || paragraphs.length > 6) throw new Error(`${blockId} 必须包含 1 至 6 个段落`);
     const contentLength = paragraphs.join('').length;
-    const minLength = Math.max(40, number(definition.length?.min));
-    const maxLength = Math.max(minLength, number(definition.length?.max) || 1200);
-    if (contentLength < minLength || contentLength > maxLength) throw new Error(`${blockId} 长度应为 ${minLength}-${maxLength} 字`);
+    const suggestedMinLength = Math.max(40, number(definition.length?.min));
+    const suggestedMaxLength = Math.max(suggestedMinLength, number(definition.length?.max) || 1200);
+    const hardMaxLength = Math.max(2400, suggestedMaxLength * 2);
+    if (contentLength < 40) throw new Error(`${blockId} 内容过短，至少需要 40 字`);
+    if (contentLength > hardMaxLength) throw new Error(`${blockId} 内容异常冗长，不得超过 ${hardMaxLength} 字`);
     const unexpectedNumbers = numericTokens(paragraphs.join('\n')).filter((item) => !allowedNumbers.has(item));
     if (unexpectedNumbers.length) throw new Error(`${blockId} 出现事实包之外的数字：${[...new Set(unexpectedNumbers)].join('、')}`);
     const evidenceRefs = list(section.evidenceRefs).map((item) => text(item, 200)).filter(Boolean);
@@ -330,13 +416,16 @@ export function validateReportNarrativeDraft({ draft, report, template = REPORT_
         throw new Error(`${blockId} 引用了不存在的来源编号：${ref}`);
       }
     }
+    const warnings = list(section.warnings).map((item) => text(item, 500)).filter(Boolean).slice(0, 8);
+    if (contentLength < suggestedMinLength) warnings.push(`当前事实较少，正文 ${contentLength} 字，低于模板建议的 ${suggestedMinLength} 字；未要求模型虚构或重复内容补足篇幅`);
+    if (contentLength > suggestedMaxLength) warnings.push(`正文 ${contentLength} 字，超过模板建议的 ${suggestedMaxLength} 字，正式定稿时建议精简`);
     return {
       sectionId,
       subsectionId,
       blockId,
       paragraphs,
       evidenceRefs: [...new Set(evidenceRefs)],
-      warnings: list(section.warnings).map((item) => text(item, 500)).filter(Boolean).slice(0, 8)
+      warnings: [...new Set(warnings)].slice(0, 8)
     };
   });
   if (seen.size !== expectedByKey.size) throw new Error('报告草稿缺少指定区块');
@@ -369,7 +458,8 @@ export function buildStoredReportDraft({ report, validatedDraft, model, requestI
 
 export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE }) {
   const facts = buildReportFactBundle(report);
-  const generatedBlocks = new Map(list(report?.draft?.sections)
+  const compatibleDraftSections = report?.draft?.templateVersion === template.version ? report?.draft?.sections : [];
+  const generatedBlocks = new Map(list(compatibleDraftSections)
     .map((block) => [`${block.sectionId}/${block.subsectionId}/${block.blockId}`, block]));
   let narrativeTotal = 0;
   let narrativeReady = 0;
@@ -392,8 +482,8 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
             title: text(block.title, 240),
             sourceMode: block.type === 'fixed'
               ? (subsection.treatment === 'retain' ? 'sample-fixed' : 'template-fixed')
-              : (block.type === 'variable-table' ? 'snapshot-data' : 'ai-generated'),
-            allowedAction: block.type === 'ai-narrative' ? 'regenerate' : (block.type === 'variable-table' ? 'auto-fill' : 'none')
+              : (block.type === 'variable-table' ? 'snapshot-data' : (block.type === 'metric-detail' ? 'computed-metrics' : 'ai-assisted-slot')),
+            allowedAction: block.type === 'ai-narrative' ? 'regenerate' : ((block.type === 'variable-table' || block.type === 'metric-detail') ? 'auto-fill' : 'none')
           };
           if (block.type === 'fixed') {
             return { ...base, status: 'ready', content: text(block.content, 6000) };
@@ -406,6 +496,19 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
               status: data == null || (Array.isArray(data) && !data.length) ? 'empty' : 'ready',
               dataPath,
               data,
+              emptyText: text(block.emptyText, 300) || '暂无数据'
+            };
+          }
+          if (block.type === 'metric-detail') {
+            const dataPath = text(block.dataPath, 200);
+            const data = valueAtPath(facts, dataPath);
+            const items = buildMetricDetailItems(data, text(block.dimension, 40));
+            return {
+              ...base,
+              status: items.length ? 'ready' : 'empty',
+              dataPath,
+              dimension: text(block.dimension, 40),
+              items,
               emptyText: text(block.emptyText, 300) || '暂无数据'
             };
           }

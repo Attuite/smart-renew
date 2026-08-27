@@ -732,48 +732,53 @@ async function requestReportNarrative(activeApiKey, prompt) {
     error.status = 503;
     throw error;
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120000);
-  let upstream;
-  try {
-    upstream = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
-      body: JSON.stringify({
-        model: reportNarrativeModel,
-        stream: false,
-        messages: [
-          { role: 'system', content: prompt.system },
-          { role: 'user', content: prompt.user }
-        ],
-        max_tokens: 8000,
-        temperature: 0.2,
-        top_p: 0.9,
-        response_format: { type: 'json_object' }
-      })
-    });
-  } finally {
-    clearTimeout(timer);
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120000);
+    let upstream;
+    try {
+      upstream = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
+        body: JSON.stringify({
+          model: reportNarrativeModel,
+          stream: false,
+          messages: [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: attempt === 1 ? prompt.user : `${prompt.user}\n\n上一次响应内容为空。请严格按 outputSchema 返回一个非空 JSON 对象。` }
+          ],
+          max_tokens: 8000,
+          temperature: 0.2,
+          top_p: 0.9,
+          response_format: { type: 'json_object' }
+        })
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      const error = new Error(data.error?.message || data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
+      error.status = upstream.status;
+      throw error;
+    }
+    const content = data.choices?.[0]?.message?.content;
+    if (content) {
+      return {
+        content,
+        requestId: data.request_id || data.id || '',
+        model: data.model || reportNarrativeModel,
+        usage: data.usage || null
+      };
+    }
+    if (attempt === 2) {
+      const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+      const error = new Error(`模型连续两次返回空报告内容（model=${data.model || reportNarrativeModel}, finish_reason=${finishReason}）`);
+      error.status = 502;
+      throw error;
+    }
   }
-  const data = await upstream.json().catch(() => ({}));
-  if (!upstream.ok) {
-    const error = new Error(data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
-    error.status = upstream.status;
-    throw error;
-  }
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) {
-    const error = new Error('模型没有返回可解析的报告草稿');
-    error.status = 502;
-    throw error;
-  }
-  return {
-    content,
-    requestId: data.request_id || data.id || '',
-    model: data.model || reportNarrativeModel,
-    usage: data.usage || null
-  };
 }
 
 async function handleReportSnapshotApi(req, res, url, pathname) {
@@ -811,9 +816,24 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
       const activeApiKey = active.key || await getStoredApiKey();
       const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
       const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds });
-      const generated = await requestReportNarrative(activeApiKey, prompt);
-      const parsed = parseNarrativeModelContent(generated.content);
-      const validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
+      let generated;
+      let validated;
+      let validationError;
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        const activePrompt = attempt === 1 ? prompt : {
+          ...prompt,
+          user: `${prompt.user}\n\n上一次输出未通过服务端校验：${validationError.message}。请修正该错误，仍只输出符合 outputSchema 的 JSON。`
+        };
+        generated = await requestReportNarrative(activeApiKey, activePrompt);
+        try {
+          const parsed = parseNarrativeModelContent(generated.content);
+          validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
+          break;
+        } catch (error) {
+          validationError = error;
+          if (attempt === 2) throw error;
+        }
+      }
       report.draft = buildStoredReportDraft({
         report,
         validatedDraft: validated,
