@@ -92,7 +92,7 @@ function countBy(items, keySelector, emptyLabel = '未分类') {
     .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key, 'zh-CN'));
 }
 
-function compactIssue(issue) {
+function compactIssue(issue, indicatorMeta = null) {
   return {
     id: text(issue?.id, 160),
     problemCode: text(issue?.problemCode, 120),
@@ -100,9 +100,16 @@ function compactIssue(issue) {
     communityId: text(issue?.communityId, 160),
     buildingId: text(issue?.buildingId, 160),
     title: text(issue?.title || issue?.problemName || issue?.type, 240),
+    description: text(issue?.description, 1000),
+    evidence: text(issue?.evidence, 800),
     severity: ['high', 'medium', 'low'].includes(issue?.severity) ? issue.severity : 'medium',
     location: text(issue?.location || issue?.position, 240) || '待定位',
-    suggestion: text(issue?.suggestion, 600) || '待评估'
+    suggestion: text(issue?.suggestion, 600) || '待评估',
+    indicatorName: text(indicatorMeta?.name, 240),
+    indicatorGroup: text(indicatorMeta?.group, 120),
+    metricValue: indicatorMeta?.value == null ? null : number(indicatorMeta.value),
+    metricUnit: text(indicatorMeta?.unit, 40),
+    metricRate: indicatorMeta?.rate == null ? null : number(indicatorMeta.rate)
   };
 }
 
@@ -110,7 +117,11 @@ export function buildReportFactBundle(report) {
   if (!report?.id || !report?.snapshot) throw new Error('报告快照结构无效');
   const snapshot = report.snapshot;
   const rawIssues = list(snapshot.issues?.items);
-  const issues = rawIssues.map(compactIssue);
+  const metricResults = snapshot.metricResults || { housing: null, community: null };
+  const housingMetricItems = list(metricResults?.housing?.items);
+  const communityMetricItems = list(metricResults?.community?.items);
+  const indicatorMetaByCode = new Map(housingMetricItems.map((item) => [text(item?.indicatorCode, 120), item]));
+  const issues = rawIssues.map((issue) => compactIssue(issue, indicatorMetaByCode.get(text(issue?.indicatorCode, 120))));
   const total = number(snapshot.issues?.total ?? issues.length);
   const high = number(snapshot.issues?.high);
   const medium = number(snapshot.issues?.medium);
@@ -125,9 +136,6 @@ export function buildReportFactBundle(report) {
   const topLocations = countBy(issues, (issue) => issue.location).slice(0, 12)
     .map((item) => ({ location: item.key, count: item.count }));
 
-  const metricResults = snapshot.metricResults || { housing: null, community: null };
-  const housingMetricItems = list(metricResults?.housing?.items);
-  const communityMetricItems = list(metricResults?.community?.items);
   return {
     report: {
       id: text(report.id, 160),
@@ -184,6 +192,10 @@ export function buildReportFactBundle(report) {
     communityAnalysis: snapshot.communityAnalysis || null,
     metrics: {
       ...metricResults,
+      catalog: [
+        ...housingMetricItems.map((item) => ({ ...item, dimension: 'housing', dimensionLabel: '住房' })),
+        ...communityMetricItems.map((item) => ({ ...item, dimension: 'community', dimensionLabel: '小区（社区）' }))
+      ],
       overview: {
         communityMetricCount: communityMetricItems.length,
         communityAvailableCount: communityMetricItems.filter((item) => item?.status === 'ready' || item?.status === 'partial').length,
@@ -480,6 +492,7 @@ export function assembleReportDraftDocument({ report, template = REPORT_TEMPLATE
             id: text(block.id, 120),
             type: text(block.type, 80),
             title: text(block.title, 240),
+            tableVariant: text(block.tableVariant, 80),
             sourceMode: block.type === 'fixed'
               ? (subsection.treatment === 'retain' ? 'sample-fixed' : 'template-fixed')
               : (block.type === 'variable-table' ? 'snapshot-data' : (block.type === 'metric-detail' ? 'computed-metrics' : 'ai-assisted-slot')),
