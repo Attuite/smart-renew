@@ -28,6 +28,9 @@ import {
   buildReportSnapshot
 } from './functions/api/report-snapshot-core.js';
 import {
+  normalizeReportTemplate
+} from './functions/api/report-template-core.js';
+import {
   auditLegacyData,
   inferLegacyProblemCode
 } from './functions/api/legacy-migration-core.js';
@@ -42,6 +45,7 @@ const photoRecordStorage = path.join(storageRoot, 'photo-records');
 const photoFileStorage = path.join(storageRoot, 'photo-files');
 const officialIssueStorage = path.join(storageRoot, 'official-issues');
 const reportSnapshotStorage = path.join(storageRoot, 'report-snapshots');
+const reportTemplateStorage = path.join(storageRoot, 'report-templates');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -53,6 +57,7 @@ const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const cloudbaseApiOrigin = (process.env.CLOUDBASE_API_ORIGIN || 'https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com').replace(/\/$/, '');
+const cloudbaseWebOrigin = 'https://smart-renew-d2gamusvr1b96ce95-1456348363.tcloudbaseapp.com';
 const proxyCloudbaseApis = /^(1|true|yes)$/i.test(process.env.SMART_RENEW_USE_CLOUDBASE_API || '');
 const allowedModels = new Set([
   'qwen3-vl-plus',
@@ -83,11 +88,22 @@ const mimeTypes = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
-  '.pdf': 'application/pdf'
+  '.pdf': 'application/pdf',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 };
 
+function applyCors(req, res) {
+  const origin = String(req.headers.origin || '');
+  const allowedOrigin = origin === 'null' || origin === cloudbaseWebOrigin ? origin : 'null';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+}
+
 function json(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'null', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' });
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(body));
 }
 
@@ -250,6 +266,7 @@ async function ensureStorage() {
   await fs.mkdir(photoFileStorage, { recursive: true });
   await fs.mkdir(officialIssueStorage, { recursive: true });
   await fs.mkdir(reportSnapshotStorage, { recursive: true });
+  await fs.mkdir(reportTemplateStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -558,7 +575,7 @@ async function handlePhotoApi(req, res, url) {
       const filePath = path.resolve(photoFileStorage, record.filePath || '');
       if (!filePath.startsWith(path.resolve(photoFileStorage) + path.sep)) return json(res, 403, { message: '照片路径无效' });
       const data = await fs.readFile(filePath);
-      res.writeHead(200, { 'Content-Type': record.mimeType || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Access-Control-Allow-Origin': 'null' });
+      res.writeHead(200, { 'Content-Type': record.mimeType || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
       return res.end(data);
     }
     if (req.method === 'GET' && recordMatch) {
@@ -593,6 +610,37 @@ async function handleOfficialIssueApi(req, res, url) {
     return json(res, 404, { message: '正式问题接口不存在' });
   } catch (error) {
     return json(res, 400, { message: error.message || '正式问题写入失败' });
+  }
+}
+
+async function handleReportTemplateApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const match = url.pathname.match(/^\/api\/report-templates\/([A-Za-z0-9][A-Za-z0-9_.-]{2,119})\/projects\/(\d+)$/);
+    if (!match) return json(res, 404, { message: '报告模板接口不存在' });
+    const baseTemplateId = match[1];
+    const projectId = match[2];
+    const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+    const id = `${baseTemplateId}-P-${projectId}`;
+    const filePath = path.join(reportTemplateStorage, `${id}.json`);
+    if (req.method === 'GET') {
+      const item = await readStoredJson(filePath);
+      return item ? json(res, 200, { item, storage: 'server' }) : json(res, 404, { message: '尚未保存报告模板草稿' });
+    }
+    if (req.method === 'PUT') {
+      const body = await readJson(req, 24 * 1024 * 1024);
+      const item = normalizeReportTemplate(body, id);
+      item.baseTemplateId = baseTemplateId;
+      item.projectId = projectId;
+      item.projectName = project?.name || String(body.projectName || '').slice(0, 200);
+      item.dataScope = { isolation: 'project', projectId, projectDataCollection: 'projectDataRecords', officialIssueCollection: 'officialIssues', photoCollection: 'photoRecords', analysisCollection: 'analysisRecords' };
+      await writeStoredJson(filePath, item);
+      return json(res, 200, { item, storage: 'server' });
+    }
+    return json(res, 405, { message: '不支持的报告模板操作' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '报告模板数据过大' });
+    return json(res, 400, { message: error.message || '报告模板保存失败' });
   }
 }
 
@@ -741,8 +789,9 @@ async function serveStatic(req, res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  applyCors(req, res);
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': 'null', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' });
+    res.writeHead(204);
     return res.end();
   }
   if (!authorize(req, res, url)) return;
@@ -754,6 +803,7 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { ready: provider === 'group' ? Boolean(groupVisionApiKey && groupVisionBaseUrl) : Boolean(apiKey), provider, model: provider === 'group' ? groupVisionModel : defaultModel, storage: 'server-environment' });
   }
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
+  if (url.pathname.startsWith('/api/report-templates')) return handleReportTemplateApi(req, res, url);
   if (proxyCloudbaseApis && url.pathname.startsWith('/api/')) return proxyCloudBaseApi(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);

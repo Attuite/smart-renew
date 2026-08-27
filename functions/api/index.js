@@ -26,6 +26,9 @@ import {
   buildReportSnapshot
 } from './report-snapshot-core.js';
 import {
+  normalizeReportTemplate
+} from './report-template-core.js';
+import {
   auditLegacyData,
   inferLegacyProblemCode
 } from './legacy-migration-core.js';
@@ -42,6 +45,7 @@ const fieldTaskCollection = db.collection('fieldCollectionTasks');
 const photoRecordCollection = db.collection('photoRecords');
 const officialIssueCollection = db.collection('officialIssues');
 const reportSnapshotCollection = db.collection('reportSnapshots');
+const reportTemplateCollection = db.collection('reportTemplates');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -717,6 +721,37 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
   }
 }
 
+async function handleReportTemplateApi(req, res, pathname) {
+  try {
+    await ensureCollection('reportTemplates', reportTemplateCollection);
+    const match = pathname.match(/^\/report-templates\/([A-Za-z0-9][A-Za-z0-9_.-]{2,119})\/projects\/(\d+)$/);
+    if (!match) return writeJson(res, 404, { message: '报告模板接口不存在' });
+    const baseTemplateId = match[1];
+    const projectId = match[2];
+    const project = await getDocument(projectCollection, projectId);
+    if (!project) return writeJson(res, 404, { message: '项目不存在，不能读写报告模板' });
+    const id = `${baseTemplateId}-P-${projectId}`;
+    if (req.method === 'GET') {
+      const item = await getDocument(reportTemplateCollection, id);
+      return item ? writeJson(res, 200, { item, storage: 'cloudbase' }) : writeJson(res, 404, { message: '尚未保存报告模板草稿' });
+    }
+    if (req.method === 'PUT') {
+      const body = await readJson(req, 24 * 1024 * 1024);
+      const item = normalizeReportTemplate(body, id);
+      item.baseTemplateId = baseTemplateId;
+      item.projectId = projectId;
+      item.projectName = project.name || '';
+      item.dataScope = { isolation: 'project', projectId, projectDataCollection: 'projectDataRecords', officialIssueCollection: 'officialIssues', photoCollection: 'photoRecords', analysisCollection: 'analysisRecords' };
+      await putDocument(reportTemplateCollection, id, item);
+      return writeJson(res, 200, { item, storage: 'cloudbase' });
+    }
+    return writeJson(res, 405, { message: '不支持的报告模板操作' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '报告模板数据过大' });
+    return writeJson(res, 400, { message: error.message || '报告模板保存失败' });
+  }
+}
+
 async function handleReportSnapshotApi(req, res, url, pathname) {
   try {
     await ensureCollection('reportSnapshots', reportSnapshotCollection);
@@ -953,6 +988,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
   if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
   if (pathname.startsWith('/issues')) return handleOfficialIssueApi(req, res, url, pathname);
+  if (pathname.startsWith('/report-templates')) return handleReportTemplateApi(req, res, pathname);
   if (pathname.startsWith('/reports')) return handleReportSnapshotApi(req, res, url, pathname);
   if (pathname === '/migrations/legacy') return handleLegacyMigrationApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);

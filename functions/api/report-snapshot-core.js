@@ -53,6 +53,11 @@ export function buildReportSnapshot({ project, issues, photos, analyses, existin
         name: project.name || '',
         area: project.area || '',
         type: project.type || '',
+        administrativeArea: project.administrativeArea || '',
+        stage: project.stage || '',
+        renewalType: project.renewalType || '',
+        responsibleUnit: project.responsibleUnit || '',
+        plannedPeriod: project.plannedPeriod || '',
         scope: project.scope || '',
         description: project.desc || '',
         scopeAreaSqKm: number(project.scopeAreaSqKm)
