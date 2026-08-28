@@ -49,6 +49,7 @@ const reportTemplateCollection = db.collection('reportTemplates');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
+const projectDeletePassword = '888';
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
@@ -179,6 +180,44 @@ async function putDocument(collection, id, body) {
 async function clearCollection(collection) {
   const items = await listCollection(collection);
   await Promise.all(items.map((item) => collection.doc(String(item.id)).remove().catch(() => null)));
+}
+
+async function listCollectionOrEmpty(collection) {
+  try {
+    return await listCollection(collection);
+  } catch (error) {
+    if (isCollectionMissingError(error)) return [];
+    throw error;
+  }
+}
+
+async function deleteProjectCloudData(projectId) {
+  const collectionItems = await Promise.all([
+    [analysisCollection, await listCollectionOrEmpty(analysisCollection)],
+    [projectDataCollection, await listCollectionOrEmpty(projectDataCollection)],
+    [fieldTaskCollection, await listCollectionOrEmpty(fieldTaskCollection)],
+    [photoRecordCollection, await listCollectionOrEmpty(photoRecordCollection)],
+    [officialIssueCollection, await listCollectionOrEmpty(officialIssueCollection)],
+    [reportSnapshotCollection, await listCollectionOrEmpty(reportSnapshotCollection)],
+    [reportTemplateCollection, await listCollectionOrEmpty(reportTemplateCollection)]
+  ]);
+  const photoItems = collectionItems.find(([collection]) => collection === photoRecordCollection)?.[1] || [];
+  const projectPhotoFileIds = photoItems
+    .filter((item) => String(item.projectId) === String(projectId) && item.fileId)
+    .map((item) => item.fileId);
+  if (projectPhotoFileIds.length && typeof app.deleteFile === 'function') {
+    for (let index = 0; index < projectPhotoFileIds.length; index += 50) {
+      await app.deleteFile({ fileList: projectPhotoFileIds.slice(index, index + 50) });
+    }
+  }
+  let deletedRecords = 0;
+  for (const [collection, items] of collectionItems) {
+    const projectItems = items.filter((item) => String(item.projectId) === String(projectId));
+    await Promise.all(projectItems.map((item) => collection.doc(String(item.id)).remove()));
+    deletedRecords += projectItems.length;
+  }
+  await projectCollection.doc(String(projectId)).remove();
+  return { deleted: true, projectId: String(projectId), deletedRecords, storage: 'cloudbase' };
 }
 
 async function putDocuments(collection, records, batchSize = 20) {
@@ -537,6 +576,13 @@ async function handleStorageApi(req, res, url, pathname) {
       const id = safeId(body.id);
       if (!id || id !== projectMatch[1]) return writeJson(res, 400, { message: '项目 ID 无效' });
       return writeJson(res, 200, await putDocument(projectCollection, id, body));
+    }
+    if (req.method === 'DELETE' && projectMatch) {
+      const body = await readJson(req, 16 * 1024);
+      if (!secureEqual(body.password, projectDeletePassword)) return writeJson(res, 403, { message: '项目删除密码不正确' });
+      const project = await getDocument(projectCollection, projectMatch[1]);
+      if (!project) return writeJson(res, 404, { message: '项目不存在' });
+      return writeJson(res, 200, await deleteProjectCloudData(projectMatch[1]));
     }
     if (req.method === 'GET' && pathname === '/analysis-records') {
       let items = await listCollection(analysisCollection);
@@ -921,8 +967,10 @@ async function analyze(req, res) {
     const activeApiKey = active.key;
     if (!activeApiKey) return writeJson(res, 503, { message: provider === 'group' ? '集团视觉模型尚未配置服务端密钥' : '请先选择用户并输入密码启用 API Key' });
     if (provider === 'group' && !groupVisionBaseUrl) return writeJson(res, 503, { message: '集团视觉模型尚未配置接口地址' });
+    const analysisMode = String(body.analysisMode || 'vision');
     const images = Array.isArray(body.images) ? body.images : [];
-    if (!images.length || images.length > 20) return writeJson(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode !== 'community-gap' && (!images.length || images.length > 20)) return writeJson(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode === 'community-gap' && images.length > 0) return writeJson(res, 400, { message: '社区短板分析不应携带现场图片' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return writeJson(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
     const model = provider === 'group' ? groupVisionModel : (allowedModels.has(requestedModel) ? requestedModel : defaultModel);

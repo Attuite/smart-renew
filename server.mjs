@@ -50,6 +50,7 @@ const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
+const projectDeletePassword = '888';
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
@@ -193,8 +194,10 @@ async function analyze(req, res) {
     const activeApiKey = provider === 'group' ? groupVisionApiKey : apiKey;
     const upstreamBaseUrl = provider === 'group' ? groupVisionBaseUrl : baseUrl;
     if (!activeApiKey || !upstreamBaseUrl) return json(res, 503, { message: provider === 'group' ? '服务端尚未配置集团视觉模型' : '服务端尚未配置 DASHSCOPE_API_KEY' });
+    const analysisMode = String(body.analysisMode || 'vision');
     const images = Array.isArray(body.images) ? body.images : [];
-    if (!images.length || images.length > 20) return json(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode !== 'community-gap' && (!images.length || images.length > 20)) return json(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode === 'community-gap' && images.length > 0) return json(res, 400, { message: '社区短板分析不应携带现场图片' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return json(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
     const model = provider === 'group' ? groupVisionModel : (allowedModels.has(requestedModel) ? requestedModel : defaultModel);
@@ -303,6 +306,33 @@ async function listStoredJson(directory) {
     if (value) rows.push(value);
   }
   return rows;
+}
+
+async function deleteProjectData(projectId) {
+  const projectDirectories = [
+    analysisStorage,
+    projectDataStorage,
+    fieldTaskStorage,
+    photoRecordStorage,
+    officialIssueStorage,
+    reportSnapshotStorage,
+    reportTemplateStorage
+  ];
+  let deletedRecords = 0;
+  for (const directory of projectDirectories) {
+    const names = await fs.readdir(directory);
+    for (const name of names.filter((item) => item.endsWith('.json'))) {
+      const filePath = path.join(directory, name);
+      const item = await readStoredJson(filePath);
+      if (item && String(item.projectId) === String(projectId)) {
+        await fs.unlink(filePath);
+        deletedRecords += 1;
+      }
+    }
+  }
+  await fs.rm(path.join(photoFileStorage, String(projectId)), { recursive: true, force: true });
+  await fs.rm(path.join(projectStorage, `${projectId}.json`), { force: true });
+  return { deleted: true, projectId: String(projectId), deletedRecords, storage: 'server' };
 }
 
 async function listLocalProjectData(projectId) {
@@ -427,6 +457,13 @@ async function handleStorageApi(req, res, url) {
       if (!id || id !== projectMatch[1]) return json(res, 400, { message: '项目 ID 无效' });
       await writeStoredJson(path.join(projectStorage, `${id}.json`), body);
       return json(res, 200, body);
+    }
+    if (req.method === 'DELETE' && projectMatch) {
+      const body = await readJson(req, 16 * 1024);
+      if (!secureEqual(body.password, projectDeletePassword)) return json(res, 403, { message: '项目删除密码不正确' });
+      const project = await readStoredJson(path.join(projectStorage, `${projectMatch[1]}.json`));
+      if (!project) return json(res, 404, { message: '项目不存在' });
+      return json(res, 200, await deleteProjectData(projectMatch[1]));
     }
     if (req.method === 'GET' && url.pathname === '/api/analysis-records') {
       let items = await listStoredJson(analysisStorage);

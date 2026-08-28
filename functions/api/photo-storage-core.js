@@ -49,6 +49,9 @@ export function normalizePhotoUpload(input, project, decoded) {
     communityName: clean(community.item.name || '未命名小区'),
     buildingId: building?.id || '',
     buildingName: building?.name || '',
+    source: ['wechat', 'local'].includes(clean(input?.source, 20))
+      ? clean(input?.source, 20)
+      : (input?.collectorId || input?.taskId || String(input?.description || '').includes('微信小程序') ? 'wechat' : 'local'),
     taskId: clean(input?.taskId, 180),
     householdCount: Math.max(0, Number(input?.householdCount) || 0),
     problemCode: problem?.code || '',

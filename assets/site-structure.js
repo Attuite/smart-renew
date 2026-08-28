@@ -13,7 +13,6 @@
     { key: 'analysis', label: '住区分析' },
     { key: 'review', label: '人工复核' },
     { key: 'community', label: '社区／街区' },
-    { key: 'issues', label: '问题台账' },
     { key: 'indicators', label: '指标库' },
     { key: 'reports', label: '报告成果' }
   ];

@@ -498,6 +498,7 @@ Page({
       const extension = info.type === 'png' ? 'png' : info.type === 'webp' ? 'webp' : 'jpeg';
       await api.post('/api/photos/upload', {
         photoId: `PHOTO-${task.id}-1`,
+        source: 'wechat',
         taskId: task.id,
         projectId: photo.projectId,
         communityId: photo.communityId,
