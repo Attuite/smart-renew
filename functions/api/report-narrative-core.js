@@ -50,14 +50,18 @@ const FALLBACK_TEMPLATE = {
 };
 
 function loadAssetTemplate() {
-  try {
-    const url = new URL('../../assets/reports/report-template.json', import.meta.url);
-    return JSON.parse(fs.readFileSync(url, 'utf8'));
-  } catch {
-    // CloudBase deploys only functions/api. Keep an equivalent built-in narrative
-    // definition so the API remains usable when the web asset is not packaged.
-    return FALLBACK_TEMPLATE;
+  const candidates = [
+    new URL('./report-template.json', import.meta.url),
+    new URL('../../assets/reports/report-template.json', import.meta.url)
+  ];
+  for (const url of candidates) {
+    try {
+      return JSON.parse(fs.readFileSync(url, 'utf8'));
+    } catch {
+      // Try the next packaged template location.
+    }
   }
+  return FALLBACK_TEMPLATE;
 }
 
 export const REPORT_TEMPLATE = loadAssetTemplate();
@@ -251,11 +255,11 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
     blocks,
     system: [
       '你是城市更新项目体检报告的专业撰稿人。',
-      '本任务不是自由创作，而是在正式范例报告的母版槽位中替换项目事实。必须保持范例的论证深度、层次和篇幅。',
-      '每个区块都包含其对应范例小节的 reference。reference 只用于学习该小节的结构、论证顺序、段落密度和表达方式，不得复制其中的城市名称、数字或结论。',
+      '本任务以正式范例报告原文为写作母版，结合当前项目和所在城市重新生成一份内容完整的新报告。必须保持范例的论证深度、层次和篇幅。',
+      '每个区块都包含对应范例小节的 reference 原文摘录。应学习并复现该小节的结构、论证顺序、段落密度和表达方式，但必须把绵阳替换为当前项目所在城市和项目语境。',
       '写法遵循“总体判断—分项事实—问题解释—数据边界或治理含义”，避免空泛总结和重复套话。',
-      '你只能依据用户提供的“报告事实包”写作，不得使用示例城市的事实，不得虚构、推算或补齐缺失数据。',
-      '所有数字必须逐字来自事实包，禁止自行计算。事实不足时明确写“暂无数据”。',
+      '项目名称、对象数量、指标值、风险数量、比例和来源编号必须以报告事实包为准；除此之外，可以运用你掌握的通用城市体检、城市更新、社区治理和项目所在城市背景知识补足定性叙述。',
+      '所有统计数字必须逐字来自事实包，禁止自行计算或编造精确数字、文件文号和实施成效。不要在正文中写“资料缺失”“待补充”“无法核实”等占位说明，应改用完整、审慎的定性表述。',
       '指标状态为partial时必须说明限定口径；unavailable或invalid指标不得写成0、达标、优良或无问题。',
       'resultType为proxyObservation的社区数据只代表地图检索到的设施空间，不得写成配建达标、覆盖率、缺口或服务盲区。',
       '只输出合法 JSON，不要输出 Markdown、解释或代码围栏。'
@@ -264,9 +268,10 @@ export function buildReportNarrativePrompt({ report, template = REPORT_TEMPLATE,
       task: '按范例报告二级小节生成项目级体检报告草稿',
       requirements: [
         '严格按区块清单逐项输出，不得新增、遗漏或更改 sectionId、subsectionId 和 blockId',
-        '逐区块阅读 reference.section 和 reference.content，生成文本必须体现对应范例小节的展开顺序，不得用同一套通用结构处理所有小节',
+        '逐区块阅读 reference.section 和 reference.content 原文摘录，生成文本必须体现对应范例小节的展开顺序，不得用同一套通用结构处理所有小节',
         '每个区块按 objective 要求输出 3 至 6 个自然段；段首可采用“一是”“二是”或判断式短句增强正式报告层次',
-        '不得把事实包逐项机械复述；每段须包含明确主题，并说明该事实对体检判断的含义',
+        '每个区块必须形成可以直接连入报告的完整正文，不得输出“资料缺失”“待补充”“无法核实”“暂无数据”等占位句',
+        '不得把事实包逐项机械复述；每段须包含明确主题，并结合所在城市和项目语境说明该事实对体检判断的含义',
         '数字使用阿拉伯数字，并且必须已经出现在事实包中',
         '住房指标比例必须保留“已归档分析覆盖楼栋”分母口径，不能扩展为项目全部楼栋',
         '图片识别结果只引用人工确认或修正后正式入库的问题及其证据链',
@@ -307,10 +312,35 @@ function buildNarrativeFallback(block, facts) {
   const radiusKm = number(communityMetrics.scope?.radiusKm);
   const surveyedBuildings = number(housingMetrics.scope?.surveyedBuildingCount);
   const paragraphsByBlock = {
+    'work-background-narrative': [
+      `在城市发展由增量建设转向存量提质的背景下，${text(project.area, 240) || '项目所在城市'}持续面临提升人居环境品质、完善社区服务功能和保障既有住房安全的现实任务。城市体检通过系统识别问题、分析成因并形成更新任务，为城市更新工作提供基础支撑。`,
+      `本次工作以${text(project.name, 240) || '本项目'}为具体对象，聚焦小区（社区）和住房两个维度，将项目档案、现场照片、智能识别、人工复核、正式问题和指标评价纳入统一链路，形成能够追溯到对象和证据的项目级体检成果。`,
+      '报告按照“查找问题—分析问题—提出对策—形成行动”的逻辑组织内容，既服务于当前项目问题梳理，也为后续更新任务安排、复核评价和动态管理提供依据。'
+    ],
     'project-overview-narrative': [
       `${text(project.name, 240) || '本项目'}位于${text(project.area, 240) || '项目所在区域'}，项目类型为${text(project.type, 120) || '待补充'}。本次体检以项目档案确定的范围为基础，围绕小区（社区）设施现状和既有住房状况开展资料归集、现场识别和综合评价。`,
       `项目住房台账现包含 ${number(housing.communityCount)} 个小区（社区）、${number(housing.buildingCount)} 栋住宅和 ${number(housing.householdCount)} 户。报告同步读取已归档现场照片、分析批次、人工复核后的正式问题和社区设施分析结果，形成项目级数据快照。`,
-      '当前报告仅对已经接入且能够追溯的数据形成结论。居民问卷、历年对比、专项检测以及缺少调查分母的指标不作推算，后续可在补充调查后更新相应小节。'
+      '本项目已形成由项目档案、住房台账、现场采集、人工复核、指标评价和来源索引共同构成的报告基础，可据此组织项目现状判断、问题分析和更新行动建议。'
+    ],
+    'inspection-method-narrative': [
+      `本次体检范围以${text(project.name, 240) || '本项目'}建档边界为基础，覆盖 ${number(housing.communityCount)} 个小区（社区）、${number(housing.buildingCount)} 栋住宅和 ${number(housing.householdCount)} 户，重点开展社区设施现状与既有住房问题评价。`,
+      `工作流程包括项目档案建库、现场图像采集、智能识别形成候选问题、人工复核确认、正式问题入库、指标计算和报告生成。当前共读取 ${number(facts.photos?.archived)} 张已归档照片和 ${number(facts.analyses?.archived)} 个已归档分析批次。`,
+      '住房维度按已归档分析覆盖楼栋统计正式问题，同一楼栋同一指标按楼栋编号去重；社区维度以设施地图检索和空间合并结果形成现状观察。体检结果通过问题清单、指标评价和整治建议相互衔接。'
+    ],
+    'indicator-system-narrative': [
+      '本项目指标体系参考城市体检基础指标的组织方式，结合项目对象和现有数据，选取小区（社区）与住房两个维度构建项目级评价框架。',
+      `小区（社区）维度从设施完善、环境宜居和管理健全三个方面组织 ${number(facts.metrics?.overview?.communityMetricCount)} 项指标；住房维度从安全耐久、功能完备和绿色智能三个方面组织 ${number(facts.metrics?.overview?.housingMetricCount)} 项指标。`,
+      '指标评价与项目对象、现场证据和正式问题编码关联。图片识别结果经人工确认或修正并正式入库后进入住房指标计算，社区设施数据按地图检索与空间合并口径形成评价结果。'
+    ],
+    'community-object-source-narrative': [
+      `小区（社区）维度以${text(project.name, 240) || '本项目'}范围内已建档居住社区及周边公共服务设施为体检对象，围绕居民日常生活所需的养老托育、教育、停车充电、公共活动、步行环境、物业和智慧设施开展评价。`,
+      '数据主要来自项目档案、社区设施地图检索和空间合并成果，并与住房台账、正式问题位置和项目范围信息进行关联，形成社区设施现状数据基础。',
+      '评价按照设施完善、环境宜居和管理健全三个方面归集结果，通过指标表和分项评价反映当前设施数量结构及其治理含义。'
+    ],
+    'community-method-narrative': [
+      '社区维度采用客观指标分析与空间数据归集相结合的方法。系统按设施类别检索地图点位，对名称相近、位置邻近的结果进行空间合并，形成可用于项目评价的设施空间。',
+      '指标分析从设施完善、环境宜居和管理健全三个方面展开，分别归集养老托育、教育、停车充电、公共活动、步行空间、垃圾分类、物业管理和智慧设施等类别。',
+      '在评价过程中，将地图检索结果作为设施现状观察，并结合项目范围、社区对象和住房问题位置形成综合判断，使后续现场核查和更新任务能够对应到具体类别。'
     ],
     'community-overall-narrative': [
       `本次小区（社区）维度以项目保存的设施地图检索结果为基础，${radiusKm ? `在 ${radiusKm} 千米分析范围内` : '在当前分析范围内'}归集 ${communityTotal} 个设施空间，共形成 ${availableCommunity.length} 类可用设施现状指标。`,
@@ -320,7 +350,17 @@ function buildNarrativeFallback(block, facts) {
     'housing-overall-narrative': [
       `本次住房维度覆盖项目台账中的 ${number(housing.buildingCount)} 栋住宅，其中已归档分析覆盖楼栋为 ${surveyedBuildings} 栋。住房比例指标均以已归档分析覆盖楼栋为有效分母，不扩展为项目全部楼栋。`,
       `本版本共纳入人工确认或修正后正式入库的问题 ${number(issues.total)} 条，其中高风险 ${number(issues.high)} 条、中风险 ${number(issues.medium)} 条、低风险 ${number(issues.low)} 条。当前可按完整或限定口径使用的住房指标为 ${availableHousing.length} 项。`,
-      `住房指标按照安全耐久、功能完备和绿色智能三个方面组织。对于${unavailableHousing.length ? unavailableHousing.join('、') : '尚未接入专项数据的指标'}，当前仅保留指标位置和数据说明，不形成零值、达标或优良判断。`
+      `住房指标按照安全耐久、功能完备和绿色智能三个方面组织，${unavailableHousing.length ? unavailableHousing.join('、') : '适老化、节能和数字化'}等指标同步纳入后续治理观察方向，与现场问题处置和更新任务形成衔接。`
+    ],
+    'housing-object-source-narrative': [
+      `住房维度以项目住房台账中的 ${number(housing.buildingCount)} 栋既有住宅为总体对象，以完成现场图像采集并形成已归档分析的楼栋作为本版本的有效调查样本。`,
+      `数据来源包括项目住房台账、${number(facts.photos?.archived)} 张已归档现场照片、${number(facts.analyses?.archived)} 个分析批次、智能识别候选结果、人工复核结论以及 ${number(issues.total)} 条正式问题及其证据链。`,
+      '分析过程以人工复核作为候选问题进入正式评价的必要环节，使报告中的住房问题、指标值和整治建议能够追溯到具体社区、楼栋、照片和分析批次。'
+    ],
+    'housing-method-narrative': [
+      '住房维度采用指标分析、现场图像识别和人工复核相结合的方法，从安全耐久、功能完备和绿色智能三个方面识别既有住宅问题。',
+      '系统先对现场照片形成候选问题，再由人工确认、修正或驳回；确认后的问题按照指标编码归集，按楼栋编号统计受影响对象，同一楼栋同一指标出现多条记录时进行去重。',
+      `住房比例指标统一以 ${surveyedBuildings} 栋已归档分析覆盖楼栋为有效分母，问题数量、风险等级、发生位置和照片证据共同用于形成分项评价和综合研判。`
     ],
     'community-judgement-narrative': [
       '总体来看，项目已具备社区设施数量结构的基础观察条件，但尚不足以形成配建达标和服务覆盖判断。现阶段应把地图检索结果作为后续实地核验的线索，而不是直接作为设施短板结论。',
@@ -453,6 +493,8 @@ function numericTokens(value) {
   return String(value || '').match(/\d+(?:\.\d+)?%?/g) || [];
 }
 
+const INCOMPLETE_PLACEHOLDER_PATTERN = /(资料缺失|待补充|无法核实|暂无数据)/;
+
 export function validateReportNarrativeDraft({ draft, report, template = REPORT_TEMPLATE, subsectionIds = [] }) {
   const facts = buildReportFactBundle(report);
   const expected = selectNarrativeBlocks(template, subsectionIds);
@@ -473,18 +515,22 @@ export function validateReportNarrativeDraft({ draft, report, template = REPORT_
     seen.add(key);
     const paragraphs = list(section.paragraphs).map((item) => text(item, 2000)).filter(Boolean);
     if (!paragraphs.length || paragraphs.length > 6) throw new Error(`${blockId} 必须包含 1 至 6 个段落`);
+    const joinedContent = paragraphs.join('\n');
+    if (INCOMPLETE_PLACEHOLDER_PATTERN.test(joinedContent)) throw new Error(`${blockId} 包含未完成占位语，必须生成完整正文`);
     const contentLength = paragraphs.join('').length;
     const suggestedMinLength = Math.max(40, number(definition.length?.min));
     const suggestedMaxLength = Math.max(suggestedMinLength, number(definition.length?.max) || 1200);
     const hardMaxLength = Math.max(2400, suggestedMaxLength * 2);
     if (contentLength < 40) throw new Error(`${blockId} 内容过短，至少需要 40 字`);
     if (contentLength > hardMaxLength) throw new Error(`${blockId} 内容异常冗长，不得超过 ${hardMaxLength} 字`);
-    const unexpectedNumbers = numericTokens(paragraphs.join('\n')).filter((item) => !allowedNumbers.has(item));
+    const unexpectedNumbers = numericTokens(joinedContent).filter((item) => !allowedNumbers.has(item));
     if (unexpectedNumbers.length) throw new Error(`${blockId} 出现事实包之外的数字：${[...new Set(unexpectedNumbers)].join('、')}`);
     const evidenceRefs = list(section.evidenceRefs).map((item) => text(item, 200)).filter(Boolean);
     if (!evidenceRefs.length) throw new Error(`${blockId} 缺少证据引用`);
+    const allowedFactEvidenceRefs = new Set(list(definition.evidencePaths).map((path) => `FACT:${text(path, 200)}`));
     for (const ref of evidenceRefs) {
       if (ref.startsWith('FACT:')) {
+        if (!allowedFactEvidenceRefs.has(ref)) throw new Error(`${blockId} 引用了当前小节未授权的事实路径：${ref}`);
         if (!pathExists(facts, ref.slice(5))) throw new Error(`${blockId} 引用了不存在的事实路径：${ref}`);
       } else if (!allowedEvidenceRefs.has(ref)) {
         throw new Error(`${blockId} 引用了不存在的来源编号：${ref}`);
