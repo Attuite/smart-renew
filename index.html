@@ -1648,6 +1648,7 @@ var diagnosticPdfObjectUrl='';
 var diagnosticPdfCurrentPage=1;
 var diagnosticDraftDocument=null;
 var diagnosticDraftReportId='';
+var diagnosticDraftProjectId='';
 var diagnosticPdfToc=[
 {title:'一、工作概述',page:4,level:0},{title:'1.1 工作背景',page:4,level:1},{title:'1.2 城市发展概况',page:7,level:1},{title:'1.3 体检范围',page:11,level:1},{title:'1.4 工作思路',page:14,level:1},{title:'1.5 问题清单和整治建议清单',page:22,level:1},{title:'1.6 信息平台与数据库建设',page:23,level:1},{title:'1.7 公众参与和宣传推广',page:24,level:1},{title:'1.8 制度建设',page:25,level:1},
 {title:'二、居民社会问卷调查',page:27,level:0},{title:'2.1 总体调查情况',page:27,level:1},{title:'2.2 城区维度',page:27,level:1},{title:'2.3 街区维度',page:34,level:1},{title:'2.4 社区维度',page:38,level:1},{title:'2.5 住房维度',page:43,level:1},
@@ -1662,6 +1663,12 @@ var diagnosticPdfToc=[
 ];
 function setDiagnosticView(mode){diagnosticViewMode=mode==='dynamic'?'dynamic':(mode==='draft'&&diagnosticDraftDocument?'draft':'pdf');renderDiagnosticReport();}
 function diagnosticViewSwitch(){var draftButton=diagnosticDraftDocument?'<button class="btn '+(diagnosticViewMode==='draft'?'btn-primary':'btn-outline')+' btn-sm" onclick="setDiagnosticView(\'draft\')">AI报告草稿</button>':'';var note=diagnosticViewMode==='pdf'?'原文来源：绵阳市2025年城市体检总报告 · 264 页':(diagnosticViewMode==='draft'?'草稿来源：固定报告版本快照 · AI辅助撰写':'当前项目实时数据预览');return'<div class="report-view-switch"><button class="btn '+(diagnosticViewMode==='pdf'?'btn-primary':'btn-outline')+' btn-sm" onclick="setDiagnosticView(\'pdf\')">完整报告原文</button><button class="btn '+(diagnosticViewMode==='dynamic'?'btn-primary':'btn-outline')+' btn-sm" onclick="setDiagnosticView(\'dynamic\')">项目动态报告</button>'+draftButton+'<span class="report-source-note">'+note+'</span></div>';}
+async function preloadDiagnosticDraft(projectId){
+if(!projectId)return null;
+if(String(diagnosticDraftProjectId)!==String(projectId)){diagnosticDraftDocument=null;diagnosticDraftReportId='';diagnosticDraftProjectId=String(projectId);}
+if(diagnosticDraftDocument)return diagnosticDraftDocument;
+try{var reportData=await storageApi('/api/reports?projectId='+encodeURIComponent(projectId)),reportVersions=reportData.items||[],latestDraftVersion=reportVersions.find(function(item){return item.draft&&item.draft.sections&&item.draft.sections.length;})||reportVersions[0];if(!latestDraftVersion)return null;var savedDraft=await storageApi('/api/reports/'+encodeURIComponent(latestDraftVersion.id)+'/draft');diagnosticDraftDocument=savedDraft.document||null;diagnosticDraftReportId=latestDraftVersion.id;return diagnosticDraftDocument;}catch(draftLoadError){console.warn('读取报告母版失败',draftLoadError);return null;}
+}
 function saveDiagnosticReportReviewer(value){var name=String(value||'').trim();if(name)localStorage.setItem('smart_renew_reviewer_name',name);else localStorage.removeItem('smart_renew_reviewer_name');}
 function renderDiagnosticPdfViewer(){var root=document.getElementById('diagnosticReportRoot');if(!root)return;var toc=diagnosticPdfToc.map(function(item,index){return'<button class="pdf-toc-item level-'+item.level+(index===0?' active':'')+'" data-page="'+item.page+'" onclick="openDiagnosticPdfPage('+item.page+',this)"><span>'+escapeHtml(item.title)+'</span><span class="pdf-toc-page">'+item.page+'</span></button>';}).join('');root.innerHTML=diagnosticViewSwitch()+'<div class="pdf-reader"><aside class="pdf-toc"><div class="pdf-toc-head"><h2>报告目录</h2><p>点击章节跳转到 PDF 对应页</p></div><nav class="pdf-toc-list" aria-label="体检报告目录">'+toc+'</nav></aside><main class="pdf-stage"><div class="pdf-toolbar"><strong>绵阳市2025年城市体检报告</strong><span id="diagnosticPdfPageLabel">第 1 / 264 页</span><button type="button" onclick="openDiagnosticPdfWindow()" style="margin-left:auto;border:0;background:transparent;color:var(--spice-300);font:inherit;font-size:.76rem;cursor:pointer;">在新窗口打开</button></div><div id="diagnosticPdfLoading" style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-size:.84rem;">正在载入 264 页完整报告...</div><iframe class="pdf-frame" id="diagnosticPdfFrame" title="绵阳市2025年城市体检总报告" style="display:none;"></iframe></main></div>';loadDiagnosticPdf(1);}
 async function loadDiagnosticPdf(page){var frame=document.getElementById('diagnosticPdfFrame'),loading=document.getElementById('diagnosticPdfLoading');if(!frame)return;try{if(!diagnosticPdfObjectUrl){var response=await fetch(diagnosticPdfPath);if(!response.ok)throw new Error('PDF 文件读取失败');var buffer=await response.arrayBuffer();diagnosticPdfObjectUrl=URL.createObjectURL(new Blob([buffer],{type:'application/pdf'}));}diagnosticPdfCurrentPage=page||1;frame.src=diagnosticPdfObjectUrl+'#page='+diagnosticPdfCurrentPage+'&view=FitH';frame.style.display='block';if(loading)loading.style.display='none';}catch(e){if(loading){loading.style.display='flex';loading.textContent='报告加载失败：'+e.message;}}}
@@ -1694,16 +1701,17 @@ function renderStoredReportDraft(){var root=document.getElementById('diagnosticR
 
 async function renderDiagnosticReport(){
 var root=document.getElementById('diagnosticReportRoot');if(!root)return;
+var activeProjectId=getActiveProjectId();
+await preloadDiagnosticDraft(activeProjectId);
 if(diagnosticViewMode==='draft'&&diagnosticDraftDocument){renderStoredReportDraft();return;}
 if(diagnosticViewMode==='pdf'){renderDiagnosticPdfViewer();return;}
 root.innerHTML='<div class="result-empty">正在汇总项目档案与分析结果...</div>';
 try{
-var id=getActiveProjectId(),project=id?await getProjectById(id):null;
+var id=activeProjectId,project=id?await getProjectById(id):null;
 if(!project){root.innerHTML='<div class="result-empty"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:8px;">请先选择体检项目</h3><p>体检报告需要挂接到具体项目，并自动读取该项目下的 AI 分析和社区/街区维度分析结果。</p><div style="margin-top:18px;"><a href="#projects" class="btn btn-primary" data-nav="projects">选择项目</a></div></div>';return;}
 var allRecords=await getAllRecords();
 var records=allRecords.filter(function(r){return String(r.projectId)===String(project.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
 var officialIssueData=await storageApi('/api/issues?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),officialIssues=officialIssueData.items||[],photoData=await storageApi('/api/photos?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportData=await storageApi('/api/reports?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportVersions=reportData.items||[],stat={images:countFieldPhotos(photoData.items||[],project.id),total:officialIssues.length,high:0,medium:0,low:0},community=project.communityAnalysis||null,communityTotal=getCommunityTotal(community);officialIssues.forEach(function(issue){if(issue.severity==='high')stat.high++;else if(issue.severity==='low')stat.low++;else stat.medium++;});
-if(!diagnosticDraftDocument){var latestDraftVersion=reportVersions.find(function(item){return item.draft&&item.draft.sections&&item.draft.sections.length;})||reportVersions[0];if(latestDraftVersion){try{var savedDraft=await storageApi('/api/reports/'+encodeURIComponent(latestDraftVersion.id)+'/draft');diagnosticDraftDocument=savedDraft.document||null;diagnosticDraftReportId=latestDraftVersion.id;}catch(draftLoadError){console.warn('读取报告母版失败',draftLoadError);}}}
 var communityCounts=community&&community.counts?community.counts:{cat1:0,cat2:0,cat3:0,cat4:0};
 var reportReady=officialIssues.length>0&&community;
 var issueRows=officialIssues.map(function(issue){var meta=analysisSeverityMeta[issue.severity]||analysisSeverityMeta.medium;return{title:(issue.problemCode?issue.problemCode+' · ':'')+(issue.title||'未命名问题'),severity:meta.label,location:issue.location||'待定位',suggestion:issue.suggestion||'待评估'};});
