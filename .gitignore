@@ -9,6 +9,3 @@ functions/*/node_modules/
 output/
 miniprogram/project.private.config.json
 miniprogram/assets/*-original.png
-.playwright-cli/
-%SystemDrive%/
-_backup*/

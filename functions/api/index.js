@@ -26,8 +26,14 @@ import {
   buildReportSnapshot
 } from './report-snapshot-core.js';
 import {
-  normalizeReportTemplate
-} from './report-template-core.js';
+  REPORT_TEMPLATE,
+  assembleReportDraftDocument,
+  buildReportNarrativePrompt,
+  buildStoredReportDraft,
+  parseNarrativeModelContent,
+  selectNarrativeBlocks,
+  validateReportNarrativeDraft
+} from './report-narrative-core.js';
 import {
   auditLegacyData,
   inferLegacyProblemCode
@@ -45,11 +51,11 @@ const fieldTaskCollection = db.collection('fieldCollectionTasks');
 const photoRecordCollection = db.collection('photoRecords');
 const officialIssueCollection = db.collection('officialIssues');
 const reportSnapshotCollection = db.collection('reportSnapshots');
-const reportTemplateCollection = db.collection('reportTemplates');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
+const reportNarrativeModel = process.env.DASHSCOPE_REPORT_MODEL || defaultModel;
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 let apiKeyLoaded = Boolean(apiKey);
@@ -721,40 +727,65 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
   }
 }
 
-async function handleReportTemplateApi(req, res, pathname) {
-  try {
-    await ensureCollection('reportTemplates', reportTemplateCollection);
-    const match = pathname.match(/^\/report-templates\/([A-Za-z0-9][A-Za-z0-9_.-]{2,119})\/projects\/(\d+)$/);
-    if (!match) return writeJson(res, 404, { message: '报告模板接口不存在' });
-    const baseTemplateId = match[1];
-    const projectId = match[2];
-    const project = await getDocument(projectCollection, projectId);
-    if (!project) return writeJson(res, 404, { message: '项目不存在，不能读写报告模板' });
-    const id = `${baseTemplateId}-P-${projectId}`;
-    if (req.method === 'GET') {
-      const item = await getDocument(reportTemplateCollection, id);
-      return item ? writeJson(res, 200, { item, storage: 'cloudbase' }) : writeJson(res, 404, { message: '尚未保存报告模板草稿' });
+async function requestReportNarrative(activeApiKey, prompt) {
+  if (!activeApiKey) {
+    const error = new Error('请先选择用户并输入密码启用 API Key');
+    error.status = 503;
+    throw error;
+  }
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120000);
+    let upstream;
+    try {
+      upstream = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeApiKey}` },
+        body: JSON.stringify({
+          model: reportNarrativeModel,
+          stream: false,
+          messages: [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: attempt === 1 ? prompt.user : `${prompt.user}\n\n上一次响应内容为空。请严格按 outputSchema 返回一个非空 JSON 对象。` }
+          ],
+          max_tokens: 8000,
+          temperature: 0.2,
+          top_p: 0.9,
+          response_format: { type: 'json_object' }
+        })
+      });
+    } finally {
+      clearTimeout(timer);
     }
-    if (req.method === 'PUT') {
-      const body = await readJson(req, 24 * 1024 * 1024);
-      const item = normalizeReportTemplate(body, id);
-      item.baseTemplateId = baseTemplateId;
-      item.projectId = projectId;
-      item.projectName = project.name || '';
-      item.dataScope = { isolation: 'project', projectId, projectDataCollection: 'projectDataRecords', officialIssueCollection: 'officialIssues', photoCollection: 'photoRecords', analysisCollection: 'analysisRecords' };
-      await putDocument(reportTemplateCollection, id, item);
-      return writeJson(res, 200, { item, storage: 'cloudbase' });
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      const error = new Error(data.error?.message || data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
+      error.status = upstream.status;
+      throw error;
     }
-    return writeJson(res, 405, { message: '不支持的报告模板操作' });
-  } catch (error) {
-    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '报告模板数据过大' });
-    return writeJson(res, 400, { message: error.message || '报告模板保存失败' });
+    const content = data.choices?.[0]?.message?.content;
+    if (content) {
+      return {
+        content,
+        requestId: data.request_id || data.id || '',
+        model: data.model || reportNarrativeModel,
+        usage: data.usage || null
+      };
+    }
+    if (attempt === 2) {
+      const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+      const error = new Error(`模型连续两次返回空报告内容（model=${data.model || reportNarrativeModel}, finish_reason=${finishReason}）`);
+      error.status = 502;
+      throw error;
+    }
   }
 }
 
 async function handleReportSnapshotApi(req, res, url, pathname) {
   try {
     await ensureCollection('reportSnapshots', reportSnapshotCollection);
+    const draftMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)\/draft$/);
     const reportMatch = pathname.match(/^\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
     if (req.method === 'GET' && pathname === '/reports') {
       const projectId = safeId(url.searchParams.get('projectId'));
@@ -766,6 +797,72 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
     if (req.method === 'GET' && reportMatch) {
       const item = await getDocument(reportSnapshotCollection, reportMatch[1]);
       return item ? writeJson(res, 200, { item, storage: 'cloudbase' }) : writeJson(res, 404, { message: '报告版本不存在' });
+    }
+    if (req.method === 'GET' && draftMatch) {
+      const report = await getDocument(reportSnapshotCollection, draftMatch[1]);
+      if (!report) return writeJson(res, 404, { message: '报告版本不存在' });
+      return writeJson(res, 200, {
+        item: report.draft || null,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        reportId: report.id,
+        storage: 'cloudbase'
+      });
+    }
+    if (req.method === 'POST' && draftMatch) {
+      const body = await readJson(req, 256 * 1024);
+      const report = await getDocument(reportSnapshotCollection, draftMatch[1]);
+      if (!report) return writeJson(res, 404, { message: '报告版本不存在' });
+      const active = await getApiKeyFromRequest(req, body.keySessionToken);
+      const activeApiKey = active.key || await getStoredApiKey();
+      const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
+      const targetSubsectionIds = [...new Set(selectNarrativeBlocks(REPORT_TEMPLATE, subsectionIds).map((item) => item.subsectionId))];
+      const completed = [];
+      const failed = [];
+      for (const subsectionId of targetSubsectionIds) {
+        const activeIds = [subsectionId];
+        const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
+        try {
+          let generated;
+          let validated;
+          let validationError;
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
+            const activePrompt = attempt === 1 ? prompt : {
+              ...prompt,
+              user: `${prompt.user}\n\n上一次输出未通过服务端校验：${validationError.message}。请修正该错误，仍只输出符合 outputSchema 的 JSON。`
+            };
+            generated = await requestReportNarrative(activeApiKey, activePrompt);
+            try {
+              const parsed = parseNarrativeModelContent(generated.content);
+              validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
+              break;
+            } catch (error) {
+              validationError = error;
+              if (attempt === 2) throw error;
+            }
+          }
+          report.draft = buildStoredReportDraft({
+            report,
+            validatedDraft: validated,
+            model: generated.model,
+            requestId: generated.requestId,
+            usage: generated.usage,
+            subsectionIds: activeIds
+          });
+          report.draftUpdatedAt = report.draft.generatedAt;
+          await putDocument(reportSnapshotCollection, report.id, report);
+          completed.push(subsectionId);
+        } catch (error) {
+          failed.push({ subsectionId, message: String(error?.message || '生成失败').slice(0, 500) });
+        }
+      }
+      if (!completed.length && failed.length) throw new Error(failed.map((item) => `${item.subsectionId}：${item.message}`).join('；'));
+      return writeJson(res, 200, {
+        item: report.draft,
+        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
+        generation: { completed, failed },
+        reportId: report.id,
+        storage: 'cloudbase'
+      });
     }
     if (req.method === 'POST' && pathname === '/reports/generate') {
       const body = await readJson(req, 256 * 1024);
@@ -784,7 +881,8 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
     }
     return writeJson(res, 404, { message: '报告版本接口不存在' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '报告版本生成失败' });
+    if (error.name === 'AbortError') return writeJson(res, 504, { message: '报告草稿生成超时，请稍后重试' });
+    return writeJson(res, Number(error.status) || 400, { message: error.message || '报告版本生成失败' });
   }
 }
 
@@ -988,7 +1086,6 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
   if (pathname.startsWith('/photos')) return handlePhotoApi(req, res, url, pathname);
   if (pathname.startsWith('/issues')) return handleOfficialIssueApi(req, res, url, pathname);
-  if (pathname.startsWith('/report-templates')) return handleReportTemplateApi(req, res, pathname);
   if (pathname.startsWith('/reports')) return handleReportSnapshotApi(req, res, url, pathname);
   if (pathname === '/migrations/legacy') return handleLegacyMigrationApi(req, res, url, pathname);
   if (pathname.startsWith('/projects') || pathname.startsWith('/analysis-records')) return handleStorageApi(req, res, url, pathname);
