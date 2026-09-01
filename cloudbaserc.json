@@ -14,8 +14,6 @@
         "DASHSCOPE_MODEL": "qwen3-vl-plus",
         "DASHSCOPE_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "GROUP_VISION_MODEL": "qwen3-vl-plus",
-        "GROUP_VISION_BASE_URL": "{{env.GROUP_VISION_BASE_URL}}",
-        "GROUP_VISION_API_KEY": "{{env.GROUP_VISION_API_KEY}}",
         "GROUP_RELAY_SECRET": "{{env.GROUP_RELAY_SECRET}}"
       }
     }

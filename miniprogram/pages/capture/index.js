@@ -80,9 +80,17 @@ Page({
     lastError: ''
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    this.isSharedEntry = options.share === '1';
     this.restoreDraft();
     this.loadInitialData();
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '智更现场采集',
+      path: '/pages/capture/index?share=1'
+    };
   },
 
   onUnload() {
@@ -90,6 +98,7 @@ Page({
   },
 
   restoreDraft() {
+    if (this.isSharedEntry) return;
     const draft = wx.getStorageSync('smartRenewCaptureDraft');
     if (!draft || !Array.isArray(draft.photos)) return;
     this.pendingDraft = draft;
@@ -108,7 +117,10 @@ Page({
     const project = this.data.projects[this.data.projectIndex];
     const community = this.data.communities[this.data.communityIndex];
     const building = this.data.buildings[this.data.buildingIndex];
-    wx.setStorageSync('smartRenewCaptureDraft', {
+    const storageKey = this.isSharedEntry
+      ? 'smartRenewSharedCaptureDraft'
+      : 'smartRenewCaptureDraft';
+    wx.setStorageSync(storageKey, {
       projectId: project?.id || community?.projectId || '',
       communityId: community?.id || '',
       buildingId: building?.id || '',
@@ -133,15 +145,15 @@ Page({
       const problemGroups = problemResult.items || [];
       this.setData({
         projects: selectedProjects,
-        projectIndex: selectedProjects.length === 1 ? 0 : -1,
+        projectIndex: !this.isSharedEntry && selectedProjects.length === 1 ? 0 : -1,
         communities: [],
         problemGroups,
         loading: false
       });
-      if (selectedProjects.length === 1) {
+      if (!this.isSharedEntry && selectedProjects.length === 1) {
         await this.loadCommunities();
       }
-      await this.applyDraftSelection();
+      if (!this.isSharedEntry) await this.applyDraftSelection();
     } catch (error) {
       this.setData({ loading: false, loadError: error.message || '读取数据失败' });
     }

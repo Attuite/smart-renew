@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $startScript = Join-Path $PSScriptRoot 'start-lan-proxy.ps1'
 $userId = "$env:USERDOMAIN\$env:USERNAME"
@@ -11,12 +12,20 @@ $principal = New-ScheduledTaskPrincipal `
   -UserId $userId `
   -LogonType Interactive `
   -RunLevel Limited
+$settings = New-ScheduledTaskSettingsSet `
+  -MultipleInstances IgnoreNew `
+  -RestartCount 10 `
+  -RestartInterval (New-TimeSpan -Minutes 1) `
+  -ExecutionTimeLimit (New-TimeSpan -Seconds 0) `
+  -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries
 
 Register-ScheduledTask `
   -TaskName 'SmartRenewLanProxy' `
   -Action $action `
   -Trigger $trigger `
   -Principal $principal `
+  -Settings $settings `
   -Description 'Smart Renew group vision LAN proxy' `
   -Force | Out-Null
 

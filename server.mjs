@@ -28,14 +28,8 @@ import {
   buildReportSnapshot
 } from './functions/api/report-snapshot-core.js';
 import {
-  REPORT_TEMPLATE,
-  assembleReportDraftDocument,
-  buildReportNarrativePrompt,
-  buildStoredReportDraft,
-  parseNarrativeModelContent,
-  selectNarrativeBlocks,
-  validateReportNarrativeDraft
-} from './functions/api/report-narrative-core.js';
+  normalizeReportTemplate
+} from './functions/api/report-template-core.js';
 import {
   auditLegacyData,
   inferLegacyProblemCode
@@ -51,6 +45,7 @@ const photoRecordStorage = path.join(storageRoot, 'photo-records');
 const photoFileStorage = path.join(storageRoot, 'photo-files');
 const officialIssueStorage = path.join(storageRoot, 'official-issues');
 const reportSnapshotStorage = path.join(storageRoot, 'report-snapshots');
+const reportTemplateStorage = path.join(storageRoot, 'report-templates');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -59,11 +54,11 @@ const projectDeletePassword = '888';
 let apiKey = process.env.DASHSCOPE_API_KEY || '';
 const baseUrl = (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/, '');
 const defaultModel = process.env.DASHSCOPE_MODEL || 'qwen3-vl-plus';
-const reportNarrativeModel = process.env.DASHSCOPE_REPORT_MODEL || defaultModel;
 const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const cloudbaseApiOrigin = (process.env.CLOUDBASE_API_ORIGIN || 'https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com').replace(/\/$/, '');
+const cloudbaseWebOrigin = 'https://smart-renew-d2gamusvr1b96ce95-1456348363.tcloudbaseapp.com';
 const proxyCloudbaseApis = /^(1|true|yes)$/i.test(process.env.SMART_RENEW_USE_CLOUDBASE_API || '');
 const trustedLanPrefix = String(process.env.SMART_RENEW_TRUSTED_LAN_PREFIX || '').trim();
 const groupRelaySecret = String(process.env.GROUP_RELAY_SECRET || '').trim();
@@ -99,11 +94,22 @@ const mimeTypes = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
-  '.pdf': 'application/pdf'
+  '.pdf': 'application/pdf',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 };
 
+function applyCors(req, res) {
+  const origin = String(req.headers.origin || '');
+  const allowedOrigin = origin === 'null' || origin === cloudbaseWebOrigin ? origin : 'null';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+}
+
 function json(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'null', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' });
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(body));
 }
 
@@ -249,61 +255,6 @@ async function analyze(req, res) {
   }
 }
 
-async function requestReportNarrative(prompt) {
-  if (!apiKey) {
-    const error = new Error('服务端尚未配置 DASHSCOPE_API_KEY，无法生成报告草稿');
-    error.status = 503;
-    throw error;
-  }
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 120000);
-    let upstream;
-    try {
-      upstream = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: reportNarrativeModel,
-          stream: false,
-          messages: [
-            { role: 'system', content: prompt.system },
-            { role: 'user', content: attempt === 1 ? prompt.user : `${prompt.user}\n\n上一次响应内容为空。请严格按 outputSchema 返回一个非空 JSON 对象。` }
-          ],
-          max_tokens: 8000,
-          temperature: 0.2,
-          top_p: 0.9,
-          response_format: { type: 'json_object' }
-        })
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      const error = new Error(data.error?.message || data.message || data.code || `模型请求失败: HTTP ${upstream.status}`);
-      error.status = upstream.status;
-      throw error;
-    }
-    const content = data.choices?.[0]?.message?.content;
-    if (content) {
-      return {
-        content,
-        requestId: data.request_id || data.id || '',
-        model: data.model || reportNarrativeModel,
-        usage: data.usage || null
-      };
-    }
-    if (attempt === 2) {
-      const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
-      const error = new Error(`模型连续两次返回空报告内容（model=${data.model || reportNarrativeModel}, finish_reason=${finishReason}）`);
-      error.status = 502;
-      throw error;
-    }
-  }
-}
-
 async function configureKey(req, res) {
   try {
     const body = await readJson(req, 16 * 1024);
@@ -331,6 +282,7 @@ async function ensureStorage() {
   await fs.mkdir(photoFileStorage, { recursive: true });
   await fs.mkdir(officialIssueStorage, { recursive: true });
   await fs.mkdir(reportSnapshotStorage, { recursive: true });
+  await fs.mkdir(reportTemplateStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -697,7 +649,7 @@ async function handlePhotoApi(req, res, url) {
       const filePath = path.resolve(photoFileStorage, record.filePath || '');
       if (!filePath.startsWith(path.resolve(photoFileStorage) + path.sep)) return json(res, 403, { message: '照片路径无效' });
       const data = await fs.readFile(filePath);
-      res.writeHead(200, { 'Content-Type': record.mimeType || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Access-Control-Allow-Origin': 'null' });
+      res.writeHead(200, { 'Content-Type': record.mimeType || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
       return res.end(data);
     }
     if (req.method === 'GET' && recordMatch) {
@@ -735,10 +687,40 @@ async function handleOfficialIssueApi(req, res, url) {
   }
 }
 
+async function handleReportTemplateApi(req, res, url) {
+  try {
+    await ensureStorage();
+    const match = url.pathname.match(/^\/api\/report-templates\/([A-Za-z0-9][A-Za-z0-9_.-]{2,119})\/projects\/(\d+)$/);
+    if (!match) return json(res, 404, { message: '报告模板接口不存在' });
+    const baseTemplateId = match[1];
+    const projectId = match[2];
+    const project = await readStoredJson(path.join(projectStorage, `${projectId}.json`));
+    const id = `${baseTemplateId}-P-${projectId}`;
+    const filePath = path.join(reportTemplateStorage, `${id}.json`);
+    if (req.method === 'GET') {
+      const item = await readStoredJson(filePath);
+      return item ? json(res, 200, { item, storage: 'server' }) : json(res, 404, { message: '尚未保存报告模板草稿' });
+    }
+    if (req.method === 'PUT') {
+      const body = await readJson(req, 24 * 1024 * 1024);
+      const item = normalizeReportTemplate(body, id);
+      item.baseTemplateId = baseTemplateId;
+      item.projectId = projectId;
+      item.projectName = project?.name || String(body.projectName || '').slice(0, 200);
+      item.dataScope = { isolation: 'project', projectId, projectDataCollection: 'projectDataRecords', officialIssueCollection: 'officialIssues', photoCollection: 'photoRecords', analysisCollection: 'analysisRecords' };
+      await writeStoredJson(filePath, item);
+      return json(res, 200, { item, storage: 'server' });
+    }
+    return json(res, 405, { message: '不支持的报告模板操作' });
+  } catch (error) {
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '报告模板数据过大' });
+    return json(res, 400, { message: error.message || '报告模板保存失败' });
+  }
+}
+
 async function handleReportSnapshotApi(req, res, url) {
   try {
     await ensureStorage();
-    const draftMatch = url.pathname.match(/^\/api\/reports\/(RPT-[A-Za-z0-9_.-]+)\/draft$/);
     const reportMatch = url.pathname.match(/^\/api\/reports\/(RPT-[A-Za-z0-9_.-]+)$/);
     if (req.method === 'GET' && url.pathname === '/api/reports') {
       const projectId = safeId(url.searchParams.get('projectId'));
@@ -750,71 +732,6 @@ async function handleReportSnapshotApi(req, res, url) {
     if (req.method === 'GET' && reportMatch) {
       const item = await readStoredJson(path.join(reportSnapshotStorage, `${reportMatch[1]}.json`));
       return item ? json(res, 200, { item, storage: 'server' }) : json(res, 404, { message: '报告版本不存在' });
-    }
-    if (req.method === 'GET' && draftMatch) {
-      const report = await readStoredJson(path.join(reportSnapshotStorage, `${draftMatch[1]}.json`));
-      if (!report) return json(res, 404, { message: '报告版本不存在' });
-      return json(res, 200, {
-        item: report.draft || null,
-        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
-        reportId: report.id,
-        storage: 'server'
-      });
-    }
-    if (req.method === 'POST' && draftMatch) {
-      const body = await readJson(req, 256 * 1024);
-      const reportPath = path.join(reportSnapshotStorage, `${draftMatch[1]}.json`);
-      const report = await readStoredJson(reportPath);
-      if (!report) return json(res, 404, { message: '报告版本不存在' });
-      const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
-      const targetSubsectionIds = [...new Set(selectNarrativeBlocks(REPORT_TEMPLATE, subsectionIds).map((item) => item.subsectionId))];
-      const completed = [];
-      const failed = [];
-      for (const subsectionId of targetSubsectionIds) {
-        const activeIds = [subsectionId];
-        const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
-        try {
-          let generated;
-          let validated;
-          let validationError;
-          for (let attempt = 1; attempt <= 2; attempt += 1) {
-            const activePrompt = attempt === 1 ? prompt : {
-              ...prompt,
-              user: `${prompt.user}\n\n上一次输出未通过服务端校验：${validationError.message}。请修正该错误，仍只输出符合 outputSchema 的 JSON。`
-            };
-            generated = await requestReportNarrative(activePrompt);
-            try {
-              const parsed = parseNarrativeModelContent(generated.content);
-              validated = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds: activeIds });
-              break;
-            } catch (error) {
-              validationError = error;
-              if (attempt === 2) throw error;
-            }
-          }
-          report.draft = buildStoredReportDraft({
-            report,
-            validatedDraft: validated,
-            model: generated.model,
-            requestId: generated.requestId,
-            usage: generated.usage,
-            subsectionIds: activeIds
-          });
-          report.draftUpdatedAt = report.draft.generatedAt;
-          await writeStoredJson(reportPath, report);
-          completed.push(subsectionId);
-        } catch (error) {
-          failed.push({ subsectionId, message: String(error?.message || '生成失败').slice(0, 500) });
-        }
-      }
-      if (!completed.length && failed.length) throw new Error(failed.map((item) => `${item.subsectionId}：${item.message}`).join('；'));
-      return json(res, 200, {
-        item: report.draft,
-        document: assembleReportDraftDocument({ report, template: REPORT_TEMPLATE }),
-        generation: { completed, failed },
-        reportId: report.id,
-        storage: 'server'
-      });
     }
     if (req.method === 'POST' && url.pathname === '/api/reports/generate') {
       const body = await readJson(req, 256 * 1024);
@@ -833,8 +750,7 @@ async function handleReportSnapshotApi(req, res, url) {
     }
     return json(res, 404, { message: '报告版本接口不存在' });
   } catch (error) {
-    if (error.name === 'AbortError') return json(res, 504, { message: '报告草稿生成超时，请稍后重试' });
-    return json(res, Number(error.status) || 400, { message: error.message || '报告版本生成失败' });
+    return json(res, 400, { message: error.message || '报告版本生成失败' });
   }
 }
 
@@ -950,7 +866,7 @@ const server = http.createServer(async (req, res) => {
   applyCors(req, res);
   if (!allowTrustedLan(req, res)) return;
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': 'null', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' });
+    res.writeHead(204);
     return res.end();
   }
   if (!authorize(req, res, url)) return;
@@ -962,6 +878,7 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { ready: provider === 'group' ? Boolean(groupVisionApiKey && groupVisionBaseUrl) : Boolean(apiKey), provider, model: provider === 'group' ? groupVisionModel : defaultModel, storage: 'server-environment' });
   }
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
+  if (url.pathname.startsWith('/api/report-templates')) return handleReportTemplateApi(req, res, url);
   if (proxyCloudbaseApis && url.pathname.startsWith('/api/')) return proxyCloudBaseApi(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);
