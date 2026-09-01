@@ -61,6 +61,8 @@ if ($Lan) {
   }
   $env:SMART_RENEW_TRUSTED_LAN_PREFIX = "$($lanOctets[0]).$($lanOctets[1]).$($lanOctets[2])."
 }
+
+$env:HOST = '0.0.0.0'
 $env:PORT = [string]$Port
 $env:GROUP_VISION_API_KEY = $match.Groups[1].Value
 $env:GROUP_VISION_BASE_URL = 'https://jcpt.cscec.com/aijsxmywyapi/0510220001/v1.0/qwen3_vl_plus_public'
