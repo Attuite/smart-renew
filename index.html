@@ -347,7 +347,7 @@ a{text-decoration:none;color:inherit}ul{list-style:none}img{max-width:100%;displ
  .upload-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:16px}
 .upload-thumb-v2{position:relative;aspect-ratio:1;background:var(--bg-elevated);overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-default);transition:border-color var(--transition)}.upload-thumb-v2 img{width:100%;height:100%;object-fit:cover}.upload-thumb-v2 .thumb-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,.55);color:white;border:none;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity var(--transition)}.upload-thumb-v2:hover .thumb-remove{opacity:1}
 .upload-count-v2{font-size:.85rem;color:var(--text-secondary);margin-top:12px;font-weight:500}
- .photo-archive-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:16px}.photo-archive-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}.photo-archive-card{position:relative;border:1px solid var(--border-default);background:var(--bg-surface)}.photo-archive-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--ink-950)}.photo-archive-check{position:absolute;top:9px;left:9px;width:20px;height:20px;accent-color:var(--spice-500)}.photo-archive-meta{padding:10px;font-size:.72rem;color:var(--text-muted);line-height:1.55}.photo-archive-meta strong{display:block;color:var(--ink-900);font-size:.78rem}.photo-archive-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}
+ .photo-archive-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:10px;margin-bottom:16px}.photo-archive-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}.photo-archive-card{position:relative;border:1px solid var(--border-default);background:var(--bg-surface)}.photo-archive-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--ink-950)}.photo-archive-check{position:absolute;top:9px;left:9px;width:20px;height:20px;accent-color:var(--spice-500)}.photo-archive-meta{padding:10px;font-size:.72rem;color:var(--text-muted);line-height:1.55}.photo-archive-meta strong{display:block;color:var(--ink-900);font-size:.78rem}.photo-archive-card-delete{display:block;margin-top:8px;padding:0;border:0;background:transparent;color:var(--red-500);font:inherit;font-size:.72rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.photo-archive-card-delete:hover{color:var(--ink-900)}.photo-archive-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}.photo-archive-upload-btn{white-space:nowrap}.photo-upload-target-dialog{width:min(460px,94vw);background:var(--bg-surface);border:1px solid var(--border-default);box-shadow:0 28px 90px rgba(0,0,0,.45)}.photo-upload-target-body{display:grid;gap:14px;padding:22px}.photo-upload-target-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 @media (max-width:900px){.photo-archive-toolbar{grid-template-columns:1fr 1fr}.photo-archive-toolbar .btn{width:100%}}
 @media (max-width:720px){.photo-archive-toolbar{grid-template-columns:1fr}.photo-archive-actions{align-items:stretch;flex-direction:column}.photo-archive-actions .btn{width:100%}.photo-source-banner{align-items:flex-start;flex-direction:column;gap:6px}}
 .loading-overlay{display:none;position:fixed;inset:0;background:rgba(8,15,26,.65);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:20px}.loading-overlay.show{display:flex}.loading-spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.15);border-top-color:var(--spice-400);border-radius:50%;animation:ai-spin .7s linear infinite}.loading-text{color:white;font-size:.95rem;font-weight:500;letter-spacing:.3px}.loading-detail{color:rgba(255,255,255,.5);font-size:.8rem}
@@ -790,6 +790,7 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 .home-capability-actions{display:flex;gap:12px;justify-content:center;margin-top:28px}.story-advance.ghost{background:rgba(0,20,20,.12);color:rgba(255,255,255,.64)}
 @media (max-width:900px){.capability-grid-cinematic{grid-template-columns:repeat(2,1fr)}.capability-grid-cinematic article{min-height:170px}.cap-photo{width:130px;height:82px}.home-capability-content h2{font-size:2.55rem}}
 @media (max-width:520px){.home-capability-stage{padding:86px 20px 24px;place-items:center;overflow:hidden}.home-capability-meta{left:20px;top:84px;font-size:.72rem}.home-capability-meta i{width:28px}.home-capability-content{width:100%;margin-top:58px}.home-capability-content .hero-tag{margin-bottom:10px;font-size:.68rem}.home-capability-content h2{font-size:1.72rem;line-height:1.12;margin-bottom:14px}.capability-grid-cinematic{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:none;overflow:visible;padding-right:0}.capability-grid-cinematic article{min-height:148px;padding:12px}.capability-grid-cinematic span{font-size:.66rem;margin-bottom:8px}.capability-grid-cinematic h3{font-size:1.04rem;margin-bottom:7px}.capability-grid-cinematic p{font-size:.68rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.home-capability-actions{margin-top:14px;display:flex}.home-capability-actions .story-advance{padding:9px 12px;font-size:.76rem}.cap-photo{opacity:.34}.p2,.p4,.p9,.p13{display:none}}
+ .analysis-upload-options{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0 8px}.analysis-upload-options .btn{min-width:170px}
 </style>
 <link rel="stylesheet" href="assets/site-structure.css">
 <link rel="stylesheet" href="assets/site-polish.css">
@@ -1107,10 +1108,10 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div class="upload-zone" id="uploadZone">
 <div class="upload-icon">⬆</div>
 <div class="photo-source-badge photo-source-local">本地照片上传</div>
-<h3>选择本地现场照片</h3>
-<p>从当前电脑上传现场照片；其他已归档照片请到“照片档案”中选择。</p>
-<div class="upload-hint" id="analysisUploadHint">建议至少上传 3 张清晰现场照片，当前单次上限 10 张，单张不超过 10MB</div>
-<button type="button" class="btn btn-outline btn-sm" data-photo-source-action onclick="activateAnalysisTab('photo-archive')">查看照片档案</button>
+<h3>添加分析照片</h3>
+<p>可上传当前电脑中的现场照片，也可从照片档案按小区筛选选择。</p>
+<div class="upload-hint" id="analysisUploadHint">不设置照片数量上限，实际受模型和请求大小影响；单张不超过 10MB</div>
+<div class="analysis-upload-options"><button type="button" class="btn btn-primary btn-sm" data-photo-source-action onclick="document.getElementById('analysisUploadInput').click()">上传现场照片</button><button type="button" class="btn btn-outline btn-sm" data-photo-source-action onclick="openAnalysisPhotoArchiveSelector()">选择照片档案照片</button></div>
 <input type="file" id="analysisUploadInput" multiple accept="image/*" style="display:none;">
 <div class="upload-grid" id="uploadPreviewV2"></div>
 <div class="upload-count-v2" id="uploadCountV2">当前未上传图片</div>
@@ -1150,6 +1151,8 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <select class="form-select" id="photoArchiveBuilding" onchange="renderPhotoArchive()"><option value="">全部楼栋</option></select>
 <select class="form-select" id="photoArchiveSource" onchange="renderPhotoArchive()"><option value="">全部来源</option><option value="local">本地上传</option><option value="wechat">微信小程序上传</option></select>
 <button class="btn btn-outline btn-sm" onclick="renderPhotoArchive()">刷新档案</button>
+<button type="button" class="btn btn-primary btn-sm photo-archive-upload-btn" id="photoArchiveLocalUploadBtn" onclick="openPhotoArchiveLocalUpload()">上传本地照片</button>
+<input type="file" id="photoArchiveLocalUploadInput" multiple accept="image/*" style="display:none;" onchange="handlePhotoArchiveLocalFiles(this.files);this.value='';">
 </div>
 <div class="photo-archive-grid" id="photoArchiveGrid"><div class="result-empty" style="grid-column:1/-1;">正在读取照片档案...</div></div>
 <div class="photo-archive-actions"><span id="photoArchiveCount" style="font-size:.78rem;color:var(--text-muted);">0 张照片</span><button class="btn btn-primary btn-sm" onclick="loadArchivedPhotosToAnalysis()">将所选照片加入重新分析</button></div>
@@ -1242,7 +1245,6 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <div class="form-group"><label>Temperature（0-2，越低越稳定）</label><input type="number" class="form-input" id="cfgTemperature" min="0" max="2" step="0.1" value="0.3"></div>
 <div class="form-group"><label>Max Tokens（输出最大长度）</label><input type="number" class="form-input" id="cfgMaxTokens" min="100" max="8000" step="100" value="3000"></div>
 <div class="form-group"><label>Top P（0-1，核采样参数）</label><input type="number" class="form-input" id="cfgTopP" min="0" max="1" step="0.05" value="0.9"></div>
-<div class="form-group"><label>单次最多上传图片数</label><input type="number" class="form-input" id="cfgMaxImages" min="1" max="50" step="1" value="10"></div>
 </div>
 <div class="text-center mt-6"><button class="btn btn-primary" id="cfgSaveParamsBtn">保存参数设置</button></div>
 </div>
@@ -1854,6 +1856,7 @@ window.addEventListener('scroll',function(){var h=document.getElementById('heade
 var API_BASE='https://dashscope.aliyuncs.com/compatible-mode/v1';
 var AI_PROXY_ORIGIN='http://127.0.0.1:4173';
 var GROUP_VISION_PROXY_ORIGIN=AI_PROXY_ORIGIN;
+var GROUP_VISION_LAN_ORIGIN='http://172.16.71.17:4173';
 var CLOUDBASE_API_ORIGIN='https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com';
 var analysisUploadedFiles=[];
 var aiServiceMode='checking';
@@ -1890,8 +1893,12 @@ if(location.protocol==='file:')return AI_PROXY_ORIGIN+path;
 if(location.hostname.indexOf('tcloudbaseapp.com')>-1)return CLOUDBASE_API_ORIGIN+path;
 return path;
 }
+function isCloudHostedPage(){return location.hostname.indexOf('tcloudbaseapp.com')>-1;}
+function getGroupVisionWorkspaceUrl(){return GROUP_VISION_LAN_ORIGIN+location.pathname+location.search+location.hash;}
+function getGroupVisionProxyOrigin(){return location.protocol==='http:'&&location.port==='4173'?location.origin:GROUP_VISION_PROXY_ORIGIN;}
 function getVisionApiUrl(path,provider){
-return provider==='group'?GROUP_VISION_PROXY_ORIGIN+path:getProxyApiUrl(path);
+if(provider==='group'&&isCloudHostedPage())return CLOUDBASE_API_ORIGIN+path;
+return provider==='group'?getGroupVisionProxyOrigin()+path:getProxyApiUrl(path);
 }
 async function configureProxyKey(key,silent,scope){
 try{var form=getApiKeyForm(scope),username=form.username,password=form.password,nextKey=key||form.apiKey;if(!username||!password){if(!silent)showToast('请先填写用户名和密码','error');return false;}var body=nextKey?{username:username,password:password,apiKey:nextKey}:{username:username,password:password,select:true};var resp=await fetch(getProxyApiUrl('/api/config/key'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});var data=await resp.json().catch(function(){return{};});if(!resp.ok)throw new Error(data.message||'服务端密钥配置失败');proxyKeyConfigured=!!data.ready;clearApiKey();if(data.token)setKeySession(data.username||username,data.token,data.expiresAt);syncApiKeyUserInputs(data.username||username);await loadApiKeyUsers();updateApiKeyUI();updateCfgApiKeyStatus();if(!silent)showToast(nextKey?'该用户密钥已加密保存并启用':'已启用用户 '+(data.username||username),'success');return true;}catch(e){if(!silent)showToast('密钥配置失败：'+e.message,'error');return false;}
@@ -1917,7 +1924,7 @@ updateApiKeyUI();loadApiKeyUsers();renderActiveProjectPanel();initAnalysisTabs()
 activateAnalysisTab(currentRoute&&currentRoute.projectView==='photos'?'photo-archive':'new-analysis');
 }
 
-function updateUploadGuidance(){var hint=document.getElementById('analysisUploadHint'),maxImages=getConfigMaxImages();if(hint)hint.textContent='建议至少上传 '+Math.min(3,maxImages)+' 张清晰现场照片，当前单次上限 '+maxImages+' 张，单张不超过 10MB';}
+function updateUploadGuidance(){var hint=document.getElementById('analysisUploadHint');if(hint)hint.textContent='不设置照片数量上限，实际受模型和请求大小影响；单张不超过 10MB';}
 
 function setAnalysisWorkflowStep(step){var nodes=document.querySelectorAll('#analysisWorkflow .ai-workflow-step');for(var i=0;i<nodes.length;i++){var n=parseInt(nodes[i].getAttribute('data-step'),10);nodes[i].classList.toggle('active',n===step);nodes[i].classList.toggle('done',n<step);}}
 
@@ -1927,7 +1934,7 @@ var healthUrl=getVisionApiUrl('/api/config/session/health',provider);
 try{
 var resp=await fetch(healthUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,keySessionToken:getKeySessionToken()})});var data=await resp.json();proxyKeyConfigured=!!data.ready;
 if(provider==='dashscope'&&!data.ready&&getApiKey()){var migrated=await configureProxyKey(getApiKey(),true,'main');if(migrated){data.ready=true;data.model=getConfigModel();data.username=getSelectedKeyUser();}}
-if(data.ready){proxyKeyConfigured=true;if(provider==='dashscope'&&data.username)setKeySession(data.username,getKeySessionToken(),localStorage.getItem('smart_renew_key_session_expires')||'');aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent=provider==='group'?'集团视觉模型已通过本机代理连接':'千问视觉模型已连接';el.querySelector('.ai-connection-meta').textContent=provider==='group'?'姚工电脑正在作为单位内网中转 · 127.0.0.1:4173 · '+(data.model||'qwen3-vl-plus'):(data.username?'当前用户：'+data.username+' · ':'')+'密钥已加密保存到服务端 · '+(data.model||getConfigModel());if(showMessage)showToast(provider==='group'?'集团模型已切换到本机代理':'模型服务连接正常','success');return true;}
+if(data.ready){proxyKeyConfigured=true;if(provider==='dashscope'&&data.username)setKeySession(data.username,getKeySessionToken(),localStorage.getItem('smart_renew_key_session_expires')||'');aiServiceMode='proxy';el.className='ai-connection ready';el.querySelector('.ai-connection-title').textContent=provider==='group'?'集团视觉模型已连接':'千问视觉模型已连接';el.querySelector('.ai-connection-meta').textContent=provider==='group'?(isCloudHostedPage()?'已通过安全云端中转连接单位内网工作站 · ':'姚工电脑正在作为单位内网中转 · ')+(data.model||'qwen3-vl-plus'):(data.username?'当前用户：'+data.username+' · ':'')+'密钥已加密保存到服务端 · '+(data.model||getConfigModel());if(showMessage)showToast(provider==='group'?'集团模型连接正常':'模型服务连接正常','success');return true;}
 if(provider==='group'){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='集团视觉模型尚未配置';el.querySelector('.ai-connection-meta').textContent='请联系管理员检查服务端集团接口密钥';if(showMessage)showToast('集团视觉模型服务不可用','error');return false;}
 if(location.protocol!=='file:'||!getApiKey()){aiServiceMode='proxy';el.className='ai-connection error';el.querySelector('.ai-connection-title').textContent='尚未启用用户密钥';el.querySelector('.ai-connection-meta').textContent='请选择用户名并输入密码；首次使用需同时保存 API Key';if(showMessage)showToast('请先启用用户密钥','error');return false;}
 }catch(e){}
@@ -1945,7 +1952,6 @@ var model=getConfigModel();var sel=document.getElementById('cfgModelSelect');if(
 var temp=document.getElementById('cfgTemperature');if(temp)temp.value=getConfigTemperature();
 var mt=document.getElementById('cfgMaxTokens');if(mt)mt.value=getConfigMaxTokens();
 var tp=document.getElementById('cfgTopP');if(tp)tp.value=getConfigTopP();
-var mi=document.getElementById('cfgMaxImages');if(mi)mi.value=getConfigMaxImages();
 }
 
 function updateCfgApiKeyStatus(){
@@ -1960,7 +1966,7 @@ if(cfgToggleApiKeyBtn){cfgToggleApiKeyBtn.addEventListener('click',function(){va
 var cfgSaveModelBtn=document.getElementById('cfgSaveModelBtn');
 if(cfgSaveModelBtn){cfgSaveModelBtn.addEventListener('click',function(){var cfg=getConfig();cfg.provider=getConfigProvider();cfg.model=document.getElementById('cfgModelSelect').value;setConfig(cfg);syncVisionProviderControls();showToast(cfg.provider==='group'?'已切换为集团视觉模型':'模型已切换为 '+cfg.model,'success');checkAiService();});}
 var cfgSaveParamsBtn=document.getElementById('cfgSaveParamsBtn');
-if(cfgSaveParamsBtn){cfgSaveParamsBtn.addEventListener('click',function(){var cfg=getConfig();cfg.temperature=parseFloat(document.getElementById('cfgTemperature').value);cfg.maxTokens=parseInt(document.getElementById('cfgMaxTokens').value);cfg.topP=parseFloat(document.getElementById('cfgTopP').value);var maxImages=parseInt(document.getElementById('cfgMaxImages').value,10);cfg.maxImages=Math.max(1,Math.min(50,isNaN(maxImages)?10:maxImages));document.getElementById('cfgMaxImages').value=cfg.maxImages;setConfig(cfg);updateUploadGuidance();showToast('参数已保存，单次最多 '+cfg.maxImages+' 张','success');});}
+if(cfgSaveParamsBtn){cfgSaveParamsBtn.addEventListener('click',function(){var cfg=getConfig();cfg.temperature=parseFloat(document.getElementById('cfgTemperature').value);cfg.maxTokens=parseInt(document.getElementById('cfgMaxTokens').value);cfg.topP=parseFloat(document.getElementById('cfgTopP').value);delete cfg.maxImages;setConfig(cfg);updateUploadGuidance();showToast('参数已保存','success');});}
 
 function initAnalysisTabs(){
 var tabs=document.querySelectorAll('.analysis-tab');
@@ -1980,6 +1986,7 @@ for(var k=0;k<panels.length;k++)panels[k].classList.toggle('active',panels[k].id
 if(tabName==='history')renderHistoryList();
 if(tabName==='photo-archive')renderPhotoArchive();
 }
+function openAnalysisPhotoArchiveSelector(){activateAnalysisTab('photo-archive');var community=document.getElementById('photoArchiveCommunity');if(community){setTimeout(function(){community.focus();},0);}}
 
 function reportVersionListHtml(items){if(!items||!items.length)return'<p style="font-size:.78rem;color:var(--text-muted);">尚未生成固定版本</p>';return'<div style="display:grid;gap:7px;">'+items.slice(0,6).map(function(item){return'<button class="btn btn-outline btn-sm" style="justify-content:space-between;" onclick="viewReportSnapshot(\''+item.id+'\')"><span>V'+item.version+'</span><span>'+escapeHtml(new Date(item.generatedAt).toLocaleDateString('zh-CN'))+'</span></button>';}).join('')+'</div>';}
 async function generateCurrentReportSnapshot(){var projectId=getActiveProjectId(),generatedBy=localStorage.getItem('smart_renew_reviewer_name')||'';if(!generatedBy){showToast('请先在住区维度填写复核人员','error');return;}try{showLoading('正在生成报告版本快照...','固定本次使用的数据与来源编号');var result=await storageApi('/api/reports/generate',{method:'POST',body:JSON.stringify({projectId:String(projectId),generatedBy:generatedBy})});showToast('报告 V'+result.item.version+' 已保存','success');renderDiagnosticReport();}catch(error){showToast('报告版本生成失败：'+error.message,'error');}finally{hideLoading();}}
@@ -1989,9 +1996,20 @@ var photoArchiveItems=[];
 function syncPhotoArchiveFilters(){var community=document.getElementById('photoArchiveCommunity'),building=document.getElementById('photoArchiveBuilding');if(!community||!building)return;var items=activeResidentialItems(analysisLocationProject),previous=community.value;community.innerHTML='<option value="">全部小区</option>'+items.map(function(item,index){return'<option value="'+escapeHtml(residentialItemId(item,index))+'">'+escapeHtml(item.name||'未命名小区')+'</option>';}).join('');if(items.some(function(item,index){return residentialItemId(item,index)===previous;}))community.value=previous;var selected=null;for(var i=0;i<items.length;i++){if(residentialItemId(items[i],i)===community.value){selected=items[i];break;}}var buildings=selected&&Array.isArray(selected.buildings)?selected.buildings.filter(function(item){return item&&item.status!=='deleted';}):[],oldBuilding=building.value;building.innerHTML='<option value="">全部楼栋</option>'+buildings.map(function(item,index){return'<option value="'+escapeHtml(String(item.id||('building-'+(index+1))))+'">'+escapeHtml(item.name||((index+1)+'号楼'))+'</option>';}).join('');if(buildings.some(function(item,index){return String(item.id||('building-'+(index+1)))===oldBuilding;}))building.value=oldBuilding;if(!community.dataset.bound){community.addEventListener('change',function(){building.value='';syncPhotoArchiveFilters();renderPhotoArchive();});community.dataset.bound='1';}}
 function getPhotoSource(item){if(item&&item.source==='wechat')return'wechat';if(item&&item.source==='local')return'local';return item&&(item.collectorId||item.taskId||String(item.description||'').includes('微信小程序'))?'wechat':'local';}
 function photoSourceLabel(item){return getPhotoSource(item)==='wechat'?'微信小程序上传':'本地上传';}
-async function renderPhotoArchive(){var grid=document.getElementById('photoArchiveGrid'),count=document.getElementById('photoArchiveCount'),sourceSelect=document.getElementById('photoArchiveSource'),projectId=getActiveProjectId();if(!grid)return;if(!projectId){photoArchiveItems=[];if(count)count.textContent='0 张照片';grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">请先选择一个体检项目，再查看照片档案</div>';return;}syncPhotoArchiveFilters();grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">正在读取照片档案...</div>';try{var community=document.getElementById('photoArchiveCommunity').value,building=document.getElementById('photoArchiveBuilding').value,sourceFilter=sourceSelect?sourceSelect.value:'',query='?projectId='+encodeURIComponent(projectId)+(community?'&communityId='+encodeURIComponent(community):'')+(building?'&buildingId='+encodeURIComponent(building):''),result=await storageApi('/api/photos'+query),allPhotoArchiveItems=result.items||[];photoArchiveItems=sourceFilter?allPhotoArchiveItems.filter(function(item){return getPhotoSource(item)===sourceFilter;}):allPhotoArchiveItems;if(count)count.textContent=photoArchiveItems.length+' 张照片';if(!photoArchiveItems.length){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">当前筛选条件下暂无照片</div>';return;}grid.innerHTML=photoArchiveItems.map(function(item,index){var sourceKey=getPhotoSource(item),details=[photoSourceLabel(item)];if(item.problemName)details.push(item.problemCode+' · '+item.problemName);if(item.householdCount)details.push('总户数 '+item.householdCount);return'<label class="photo-archive-card"><input class="photo-archive-check" type="checkbox" value="'+index+'"><img src="'+escapeHtml(usablePhotoUrl(item.url))+'" alt="'+escapeHtml(item.name||'现场照片')+'"><span class="photo-archive-meta"><span class="photo-card-source '+sourceKey+'">'+escapeHtml(photoSourceLabel(item))+'</span><strong>'+escapeHtml(item.communityName||'未命名小区')+(item.buildingName?' · '+escapeHtml(item.buildingName):'')+'</strong>'+escapeHtml(item.name||item.id)+(details.length?'<br>'+escapeHtml(details.join(' · ')):'')+'<br>'+escapeHtml(item.status==='archived'?'已归档':'处理中')+'</span></label>';}).join('');}catch(error){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;color:var(--red-500);">照片档案读取失败：'+escapeHtml(error.message)+'</div>';}}
-async function loadArchivedPhotosToAnalysis(){var selected=Array.prototype.slice.call(document.querySelectorAll('.photo-archive-check:checked')).map(function(input){return photoArchiveItems[Number(input.value)];}).filter(Boolean);if(!selected.length){showToast('请先选择需要重新分析的照片','error');return;}var firstLocation=String(selected[0].communityId||'')+'|'+String(selected[0].buildingId||'');if(selected.some(function(item){return String(item.communityId||'')+'|'+String(item.buildingId||'')!==firstLocation;})){showToast('一次分析请选择同一小区、同一楼栋或公共区域的照片','error');return;}var limit=Math.max(0,getConfigMaxImages()-analysisUploadedFiles.length);if(!limit){showToast('新建分析中的照片数量已达上限','error');return;}selected=selected.slice(0,limit);try{showLoading('正在读取已归档照片...','共 '+selected.length+' 张');for(var i=0;i<selected.length;i++){var response=await fetch(usablePhotoUrl(selected[i].url),{cache:'no-store'});if(!response.ok)throw new Error('照片读取失败：'+selected[i].name);var blob=await response.blob(),file=new File([blob],selected[i].name||('归档照片-'+(i+1)+'.jpg'),{type:selected[i].mimeType||blob.type||'image/jpeg'});file._photoRecord=selected[i];analysisUploadedFiles.push(file);}var community=document.getElementById('analysisCommunity'),building=document.getElementById('analysisBuilding');if(community){community.value=selected[0].communityId||'';populateAnalysisBuildingSelect();}if(building)building.value=selected[0].buildingId||'';renderUploadPreview();document.querySelector('.analysis-tab[data-tab="new-analysis"]').click();showToast('已加入 '+selected.length+' 张归档照片，可明确发起重新分析','success');}catch(error){showToast(error.message||'归档照片读取失败','error');}finally{hideLoading();}}
+var photoArchiveUploadTarget=null;
+function photoArchiveCommunityById(communityId){var items=activeResidentialItems(analysisLocationProject);for(var i=0;i<items.length;i++){if(residentialItemId(items[i],i)===String(communityId||''))return items[i];}return null;}
+function photoArchiveUploadBuildingOptions(communityId){var community=photoArchiveCommunityById(communityId),buildings=community&&Array.isArray(community.buildings)?community.buildings.filter(function(item){return item&&item.status!=='deleted';}):[];return'<option value="">小区公共区域／暂不指定楼栋</option>'+buildings.map(function(item,index){var id=String(item.id||('building-'+(index+1)));return'<option value="'+escapeHtml(id)+'">'+escapeHtml(item.name||((index+1)+'号楼'))+'</option>';}).join('');}
+function syncPhotoArchiveUploadBuildingTarget(){var community=document.getElementById('photoArchiveUploadCommunityTarget'),building=document.getElementById('photoArchiveUploadBuildingTarget');if(community&&building)building.innerHTML=photoArchiveUploadBuildingOptions(community.value);}
+function closePhotoArchiveUploadTarget(){var modal=document.getElementById('photoArchiveUploadTargetModal');if(modal)modal.remove();document.body.classList.remove('manual-annotation-locked');}
+function confirmPhotoArchiveUploadTarget(){var community=document.getElementById('photoArchiveUploadCommunityTarget'),building=document.getElementById('photoArchiveUploadBuildingTarget');if(!community||!community.value){showToast('请先选择照片所属小区','error');return;}photoArchiveUploadTarget={communityId:community.value,buildingId:building?building.value:''};closePhotoArchiveUploadTarget();var input=document.getElementById('photoArchiveLocalUploadInput');if(input)input.click();}
+function openPhotoArchiveLocalUpload(){var projectId=getActiveProjectId(),communitySelect=document.getElementById('photoArchiveCommunity'),buildingSelect=document.getElementById('photoArchiveBuilding'),input=document.getElementById('photoArchiveLocalUploadInput'),items=activeResidentialItems(analysisLocationProject);if(!projectId){showToast('请先选择一个体检项目','error');return;}if(!items.length){showToast('当前项目尚未建立小区，请先完善项目住区台账','error');return;}if(communitySelect&&communitySelect.value){photoArchiveUploadTarget={communityId:communitySelect.value,buildingId:buildingSelect?buildingSelect.value:''};if(input)input.click();return;}closePhotoArchiveUploadTarget();var options='<option value="">请选择照片所属小区</option>'+items.map(function(item,index){return'<option value="'+escapeHtml(residentialItemId(item,index))+'">'+escapeHtml(item.name||'未命名小区')+'</option>';}).join(''),modal=document.createElement('div');modal.id='photoArchiveUploadTargetModal';modal.className='manual-annotation-backdrop';modal.innerHTML='<section class="photo-upload-target-dialog" role="dialog" aria-modal="true" aria-labelledby="photoArchiveUploadTargetTitle"><header class="manual-annotation-head"><div><h3 id="photoArchiveUploadTargetTitle">选择本地照片归属</h3><p style="font-size:.76rem;color:var(--text-muted);margin-top:3px;">当前正在查看全部小区，请先指定照片所属位置</p></div><button type="button" class="btn btn-outline btn-sm" onclick="closePhotoArchiveUploadTarget()">关闭</button></header><div class="photo-upload-target-body"><div class="form-group"><label><span class="required">所属小区</span></label><select class="form-select" id="photoArchiveUploadCommunityTarget" onchange="syncPhotoArchiveUploadBuildingTarget()">'+options+'</select></div><div class="form-group"><label>所属楼栋</label><select class="form-select" id="photoArchiveUploadBuildingTarget"><option value="">请先选择小区</option></select></div><div class="photo-upload-target-actions"><button type="button" class="btn btn-outline" onclick="closePhotoArchiveUploadTarget()">取消</button><button type="button" class="btn btn-primary" onclick="confirmPhotoArchiveUploadTarget()">继续选择照片</button></div></div></section>';modal.addEventListener('click',function(event){if(event.target===modal)closePhotoArchiveUploadTarget();});document.body.appendChild(modal);document.body.classList.add('manual-annotation-locked');}
+ async function handlePhotoArchiveLocalFiles(fileList){var projectId=getActiveProjectId(),target=photoArchiveUploadTarget,files=Array.prototype.slice.call(fileList||[]),button=document.getElementById('photoArchiveLocalUploadBtn');if(!projectId||!target||!target.communityId||!files.length)return;var valid=[],batchNames=Object.create(null),batchDuplicateCount=0;for(var i=0;i<files.length;i++){if(!/^image\//.test(files[i].type||''))continue;if(files[i].size>10*1024*1024){showToast('图片 '+files[i].name+' 超过 10MB，已跳过','error');continue;}var nameKey=normalizePhotoFileName(files[i].name);if(nameKey&&batchNames[nameKey]){batchDuplicateCount++;continue;}if(nameKey)batchNames[nameKey]=true;valid.push(files[i]);}if(!valid.length){showToast('没有可上传的有效图片','error');return;}var existingItems;try{existingItems=(await storageApi('/api/photos?projectId='+encodeURIComponent(String(projectId)))).items||[];}catch(error){showToast('无法检查同名照片，已停止上传：'+(error.message||'读取照片档案失败'),'error');return;}var existingNames=Object.create(null),existingDuplicateNames=[];for(var e=0;e<existingItems.length;e++){var existingKey=normalizePhotoFileName(existingItems[e].name);if(existingKey){existingNames[existingKey]=true;}}for(var d=0;d<valid.length;d++){var duplicateKey=normalizePhotoFileName(valid[d].name);if(duplicateKey&&existingNames[duplicateKey])existingDuplicateNames.push(valid[d].name);}if(existingDuplicateNames.length&&!photoDuplicatePrompt(existingDuplicateNames)){valid=valid.filter(function(file){return !existingNames[normalizePhotoFileName(file.name)];});}if(!valid.length){showToast('重复照片未保留，本次没有需要上传的照片','info');return;}var uploaded=0,failed=[];if(button)button.disabled=true;try{for(var j=0;j<valid.length;j++){var file=valid[j];showLoading('正在压缩并上传本地照片...',(j+1)+' / '+valid.length+' · '+file.name);try{var compressed=await compressImageFile(file),photoId='PHOTO-LOCAL-'+Date.now()+'-'+(j+1)+'-'+Math.random().toString(36).slice(2,8);await storageApi('/api/photos/upload',{method:'POST',body:JSON.stringify({photoId:photoId,source:'local',projectId:String(projectId),communityId:target.communityId,buildingId:target.buildingId||'',imageIndex:j+1,name:file.name,description:'从当前电脑直接上传到项目照片档案',capturedAt:file.lastModified?new Date(file.lastModified).toISOString():new Date().toISOString(),width:compressed.width||0,height:compressed.height||0,dataUrl:compressed.dataUrl})});uploaded++;}catch(error){failed.push(file.name+'：'+(error.message||'上传失败'));}}if(uploaded){var sourceSelect=document.getElementById('photoArchiveSource');if(sourceSelect)sourceSelect.value='local';await renderPhotoArchive();showToast('已将 '+uploaded+' 张本地照片存入照片档案','success');}if(batchDuplicateCount)showToast('本次选择中有 '+batchDuplicateCount+' 个同名文件，已自动跳过重复项','info');if(failed.length)showToast('有 '+failed.length+' 张照片上传失败，请重新选择','error');}finally{hideLoading();if(button)button.disabled=false;}}
+ async function renderPhotoArchive(){var grid=document.getElementById('photoArchiveGrid'),count=document.getElementById('photoArchiveCount'),sourceSelect=document.getElementById('photoArchiveSource'),projectId=getActiveProjectId();if(!grid)return;if(!projectId){photoArchiveItems=[];if(count)count.textContent='0 张照片';grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">请先选择一个体检项目，再查看照片档案</div>';return;}syncPhotoArchiveFilters();grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">正在读取照片档案...</div>';try{var community=document.getElementById('photoArchiveCommunity').value,building=document.getElementById('photoArchiveBuilding').value,sourceFilter=sourceSelect?sourceSelect.value:'',query='?projectId='+encodeURIComponent(projectId)+(community?'&communityId='+encodeURIComponent(community):'')+(building?'&buildingId='+encodeURIComponent(building):''),result=await storageApi('/api/photos'+query),allPhotoArchiveItems=result.items||[];photoArchiveItems=sourceFilter?allPhotoArchiveItems.filter(function(item){return getPhotoSource(item)===sourceFilter;}):allPhotoArchiveItems;if(count)count.textContent=photoArchiveItems.length+' 张照片';if(!photoArchiveItems.length){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;">当前筛选条件下暂无照片</div>';return;}grid.innerHTML=photoArchiveItems.map(function(item,index){var sourceKey=getPhotoSource(item),details=[photoSourceLabel(item)];if(item.problemName)details.push(item.problemCode+' · '+item.problemName);if(item.householdCount)details.push('总户数 '+item.householdCount);var deleteTitle=item.analysisId?'该照片已关联分析，不能删除':'删除这张照片';return'<label class="photo-archive-card"><input class="photo-archive-check" type="checkbox" value="'+index+'"><img src="'+escapeHtml(usablePhotoUrl(item.url))+'" alt="'+escapeHtml(item.name||'现场照片')+'"><span class="photo-archive-meta"><span class="photo-card-source '+sourceKey+'">'+escapeHtml(photoSourceLabel(item))+'</span><strong>'+escapeHtml(item.communityName||'未命名小区')+(item.buildingName?' · '+escapeHtml(item.buildingName):'')+'</strong>'+escapeHtml(item.name||item.id)+(details.length?'<br>'+escapeHtml(details.join(' · ')):'')+'<br>'+escapeHtml(item.status==='archived'?'已归档':'处理中')+'<button type="button" class="photo-archive-card-delete" title="'+escapeHtml(deleteTitle)+'" onclick="event.preventDefault();event.stopPropagation();deletePhotoArchiveItem('+index+')">删除照片</button></span></label>';}).join('');}catch(error){grid.innerHTML='<div class="result-empty" style="grid-column:1/-1;color:var(--red-500);">照片档案读取失败：'+escapeHtml(error.message)+'</div>';}}
+ async function deletePhotoArchiveItem(index){var item=photoArchiveItems[index];if(!item)return;var name=item.name||item.id||'这张照片';if(!window.confirm('确认删除照片“'+name+'”？\n删除后照片文件和档案记录都会移除，且不可恢复。'))return;try{showLoading('正在删除照片...','清理照片文件和档案记录');await storageApi('/api/photos/'+encodeURIComponent(String(item.id)),{method:'DELETE'});await renderPhotoArchive();showToast('照片已删除','success');}catch(error){showToast(error.message||'照片删除失败','error');}finally{hideLoading();}}
+ async function loadArchivedPhotosToAnalysis(){var selected=Array.prototype.slice.call(document.querySelectorAll('.photo-archive-check:checked')).map(function(input){return photoArchiveItems[Number(input.value)];}).filter(Boolean);if(!selected.length){showToast('请先选择需要重新分析的照片','error');return;}var firstLocation=String(selected[0].communityId||'')+'|'+String(selected[0].buildingId||'');if(selected.some(function(item){return String(item.communityId||'')+'|'+String(item.buildingId||'')!==firstLocation;})){showToast('一次分析请选择同一小区、同一楼栋或公共区域的照片','error');return;}try{showLoading('正在读取已归档照片...','共 '+selected.length+' 张');for(var i=0;i<selected.length;i++){var response=await fetch(usablePhotoUrl(selected[i].url),{cache:'no-store'});if(!response.ok)throw new Error('照片读取失败：'+selected[i].name);var blob=await response.blob(),file=new File([blob],selected[i].name||('归档照片-'+(i+1)+'.jpg'),{type:selected[i].mimeType||blob.type||'image/jpeg'});file._photoRecord=selected[i];analysisUploadedFiles.push(file);}var community=document.getElementById('analysisCommunity'),building=document.getElementById('analysisBuilding');if(community){community.value=selected[0].communityId||'';populateAnalysisBuildingSelect();}if(building)building.value=selected[0].buildingId||'';renderUploadPreview();document.querySelector('.analysis-tab[data-tab="new-analysis"]').click();showToast('已加入 '+selected.length+' 张归档照片，可明确发起重新分析','success');}catch(error){showToast(error.message||'归档照片读取失败','error');}finally{hideLoading();}}
 
+function normalizePhotoFileName(name){return String(name||'').trim().toLocaleLowerCase();}
+function photoDuplicatePrompt(names){var unique=[],seen=Object.create(null);for(var i=0;i<names.length;i++){var name=String(names[i]||'').trim();if(name&&!seen[name]){seen[name]=true;unique.push(name);}}if(!unique.length)return true;var shown=unique.slice(0,8).join('\n');if(unique.length>8)shown+='\n……另有 '+(unique.length-8)+' 个';return window.confirm('当前项目照片档案中已存在同名照片：\n'+shown+'\n\n点击“确定”仍然保留并上传，点击“取消”跳过这些重复照片。');}
 var saveApiKeyBtn=document.getElementById('saveApiKeyBtn');
 if(saveApiKeyBtn){saveApiKeyBtn.addEventListener('click',async function(){var k=document.getElementById('apiKeyInput').value.trim();this.disabled=true;try{await configureProxyKey(k,false,'main');document.getElementById('apiKeyInput').value='';await checkAiService();}finally{this.disabled=false;}});}
 
@@ -2012,20 +2030,25 @@ input.addEventListener('change',function(e){addFiles(this.files);this.value='';e
 
 function addFiles(fileList){
 var files=Array.prototype.slice.call(fileList||[]);
-var maxImages=getConfigMaxImages();
 var newFiles=[];
+var batchNames=Object.create(null),existingNameKeys=Object.create(null),existingDuplicateNames=[],batchDuplicateCount=0;
+for(var n=0;n<analysisUploadedFiles.length;n++){var existingNameKey=normalizePhotoFileName(analysisUploadedFiles[n].name);if(existingNameKey)existingNameKeys[existingNameKey]=true;}
 for(var i=0;i<files.length;i++){
 var f=files[i];
 if(!f.type.match(/^image\//))continue;
 if(f.size>10*1024*1024){showToast('图片 '+f.name+' 超过 10MB，已跳过','error');continue;}
 var dup=false;
 for(var j=0;j<analysisUploadedFiles.length;j++){if(analysisUploadedFiles[j].name===f.name&&analysisUploadedFiles[j].size===f.size&&analysisUploadedFiles[j].lastModified===f.lastModified){dup=true;break;}}
-if(!dup)newFiles.push(f);
+if(dup)continue;
+var nameKey=normalizePhotoFileName(f.name);if(nameKey&&batchNames[nameKey]){batchDuplicateCount++;continue;}
+if(nameKey&&existingNameKeys[nameKey])existingDuplicateNames.push(f.name);
+if(nameKey)batchNames[nameKey]=true;
+newFiles.push(f);
 }
-if(analysisUploadedFiles.length+newFiles.length>maxImages){showToast('最多 '+maxImages+' 张，超出的已跳过','error');}
-var remain=Math.max(0,maxImages-analysisUploadedFiles.length);
-for(var k=0;k<Math.min(newFiles.length,remain);k++){analysisUploadedFiles.push(newFiles[k]);}
+if(existingDuplicateNames.length&&!photoDuplicatePrompt(existingDuplicateNames)){newFiles=newFiles.filter(function(file){return !existingNameKeys[normalizePhotoFileName(file.name)];});}
+for(var k=0;k<newFiles.length;k++){analysisUploadedFiles.push(newFiles[k]);}
 renderUploadPreview();
+if(batchDuplicateCount)showToast('本次选择中有 '+batchDuplicateCount+' 个同名文件，已自动跳过重复项','info');
 if(newFiles.length===0&&files.length>0)showToast('所选图片均已存在','info');
 }
 
@@ -2065,10 +2088,12 @@ function loadImageSource(src){return new Promise(function(resolve,reject){var im
 async function compressImageFile(file){
 var objectUrl=URL.createObjectURL(file),img;
 try{img=await loadImageSource(objectUrl);}finally{URL.revokeObjectURL(objectUrl);}
-var maxSide=1920,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight)),width=Math.max(1,Math.round(img.naturalWidth*scale)),height=Math.max(1,Math.round(img.naturalHeight*scale));
-var canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;var ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(img,0,0,width,height);
-var quality=.86,dataUrl=canvas.toDataURL('image/jpeg',quality);while(dataUrl.length>8.5*1024*1024&&quality>.5){quality-=.08;dataUrl=canvas.toDataURL('image/jpeg',quality);}
-if(dataUrl.length>9.5*1024*1024)throw new Error(file.name+' 压缩后仍超过模型限制');
+var maxEncodedSize=4.5*1024*1024,maxSide=1600,quality=.84,canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),width=0,height=0,dataUrl='';
+function render(){var scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));width=Math.max(1,Math.round(img.naturalWidth*scale));height=Math.max(1,Math.round(img.naturalHeight*scale));canvas.width=width;canvas.height=height;ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(img,0,0,width,height);dataUrl=canvas.toDataURL('image/jpeg',quality);}
+render();
+while(dataUrl.length>maxEncodedSize&&quality>.42){quality=Math.max(.42,quality-.08);render();}
+while(dataUrl.length>maxEncodedSize&&maxSide>960){maxSide=Math.max(960,Math.round(maxSide*.8));render();}
+if(dataUrl.length>maxEncodedSize)throw new Error(file.name+' 压缩后仍超过线上请求限制');
 return{dataUrl:dataUrl,name:file.name,originalSize:file.size,compressedSize:Math.round((dataUrl.length-dataUrl.indexOf(',')-1)*.75),width:width,height:height,sourcePhotoId:file._photoRecord&&file._photoRecord.id||'',sourcePhotoRecord:file._photoRecord||null};
 }
 
@@ -2091,7 +2116,6 @@ function getConfigModel(){var model=getConfig().model||'qwen3-vl-plus';return['q
 function getConfigTemperature(){var v=parseFloat(getConfig().temperature);return isNaN(v)?0.3:v;}
 function getConfigMaxTokens(){var v=parseInt(getConfig().maxTokens);return isNaN(v)?3000:v;}
 function getConfigTopP(){var v=parseFloat(getConfig().topP);return isNaN(v)?0.9:v;}
-function getConfigMaxImages(){var v=parseInt(getConfig().maxImages,10);return isNaN(v)?10:Math.max(1,Math.min(50,v));}
 
 function openPwdModal(){document.getElementById('pwdModalOverlay').classList.add('show');document.getElementById('pwdModalInput').value='';document.getElementById('pwdErr').style.display='none';setTimeout(function(){document.getElementById('pwdModalInput').focus();},150);}
 function closePwdModal(){document.getElementById('pwdModalOverlay').classList.remove('show');}
@@ -2156,12 +2180,31 @@ function normalizeIssueTitle(v){return String(v||'').replace(/[的了与及、�
 function deduplicateAnalysisIssues(issues){var merged=[];for(var i=0;i<issues.length;i++){var cur=issues[i],hit=null;for(var j=0;j<merged.length;j++){var prev=merged[j];if(prev.imageIndex===cur.imageIndex&&prev.categoryCode===cur.categoryCode&&(boxIou(prev.bbox,cur.bbox)>.42||normalizeIssueTitle(prev.title)===normalizeIssueTitle(cur.title))){hit=prev;break;}}if(hit){hit.confidence=Math.max(hit.confidence,cur.confidence);hit.mergedCount=(hit.mergedCount||1)+1;if(cur.desc.length>hit.desc.length)hit.desc=cur.desc;if(cur.evidence.length>hit.evidence.length)hit.evidence=cur.evidence;}else merged.push(cur);}return merged;}
 function normalizeAnalysisResult(result,imageCount){var raw=result&&Array.isArray(result.issues)?result.issues:[],normalized=raw.map(function(issue,i){return normalizeAnalysisIssue(issue,i,imageCount);});return{summary:String(result&&result.summary||''),issues:deduplicateAnalysisIssues(normalized),rawIssueCount:raw.length};}
 
+async function waitForVisionJob(jobId,provider,expiresAt){
+var statusUrl=getVisionApiUrl('/api/vision/jobs/'+encodeURIComponent(jobId),provider),started=Date.now(),serverDeadline=Date.parse(expiresAt||''),deadline=Number.isFinite(serverDeadline)?serverDeadline+15000:started+615000,lastStatus='';
+while(Date.now()<deadline){
+await new Promise(function(resolve){setTimeout(resolve,1800);});
+var resp=await fetch(statusUrl,{cache:'no-store'}),data=await resp.json().catch(function(){return{};});
+if(!resp.ok)throw new Error(data.message||('集团模型任务查询失败: HTTP '+resp.status));
+if(data.status==='completed')return data.result;
+if(data.status==='failed')throw new Error(data.message||'集团模型分析失败');
+if(data.status!==lastStatus){lastStatus=data.status;showLoading(data.status==='processing'?'集团模型正在识别分析...':'已提交，等待工作站处理...','任务 '+jobId.slice(-8)+' · 请保持页面打开');}
+}
+throw new Error('集团模型任务已超过有效等待时间，请检查工作站连接后重试');
+}
+
+async function parseVisionProxyResponse(resp,provider,errorPrefix){
+var data=await resp.json().catch(function(){return{};});
+if(!resp.ok)throw new Error(data.message||(errorPrefix+': HTTP '+resp.status));
+if(resp.status===202&&data.jobId)return await waitForVisionJob(data.jobId,provider,data.expiresAt);
+return data;
+}
+
 async function callVisionAPI(imagesBase64,prompt){
 var provider=getConfigProvider(),model=getConfigModel(),temperature=getConfigTemperature(),maxTokens=getConfigMaxTokens(),topP=getConfigTopP();
 if(aiServiceMode==='proxy'){
 var proxyUrl=getVisionApiUrl('/api/vision/analyze',provider);var proxyResp=await fetch(proxyUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,images:imagesBase64,prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP,keySessionToken:getKeySessionToken()})});
-if(!proxyResp.ok){var proxyError=await proxyResp.json().catch(function(){return{};});throw new Error(proxyError.message||('模型代理请求失败: HTTP '+proxyResp.status));}
-return await proxyResp.json();
+return await parseVisionProxyResponse(proxyResp,provider,'模型代理请求失败');
 }
 var apiKey=getApiKey();if(!apiKey)throw new Error('请先配置 API Key');
 var messages=[{role:'system',content:'你是一位专业的住区安全体检专家。只输出符合要求的 JSON。'}],userContent=[{type:'text',text:prompt}];for(var i=0;i<imagesBase64.length;i++){userContent.push({type:'image_url',image_url:{url:imagesBase64[i]}});}messages.push({role:'user',content:userContent});
@@ -2176,8 +2219,7 @@ var content=data.choices&&data.choices[0]&&data.choices[0].message?data.choices[
  var provider=getConfigProvider(),model=getConfigModel(),temperature=Math.min(getConfigTemperature(),.3),maxTokens=Math.min(getConfigMaxTokens(),2200),topP=getConfigTopP(),payload={provider:provider,images:[],prompt:prompt,model:model,temperature:temperature,maxTokens:maxTokens,topP:topP,analysisMode:'community-gap',keySessionToken:getKeySessionToken()};
  if(aiServiceMode==='proxy'||location.protocol!=='file:'){
  var proxyResp=await fetch(getVisionApiUrl('/api/vision/analyze',provider),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
- if(!proxyResp.ok){var proxyError=await proxyResp.json().catch(function(){return{};});throw new Error(proxyError.message||('社区短板分析请求失败：HTTP '+proxyResp.status));}
- return await proxyResp.json();
+ return await parseVisionProxyResponse(proxyResp,provider,'社区短板分析请求失败');
  }
  var apiKey=getApiKey();if(!apiKey)throw new Error('请先配置 API Key');
  var messages=[{role:'system',content:'你是一位专业的完整社区与城市体检更新评估专家。只输出符合要求的 JSON。'},{role:'user',content:[{type:'text',text:prompt}]}];

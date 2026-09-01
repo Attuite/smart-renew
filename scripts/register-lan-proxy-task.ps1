@@ -5,7 +5,7 @@ $userId = "$env:USERDOMAIN\$env:USERNAME"
 
 $action = New-ScheduledTaskAction `
   -Execute 'powershell.exe' `
-  -Argument ("-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$startScript`"")
+  -Argument ("-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$startScript`" -Lan -UseCloudBaseApi")
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal `
   -UserId $userId `

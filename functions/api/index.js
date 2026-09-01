@@ -46,6 +46,8 @@ const photoRecordCollection = db.collection('photoRecords');
 const officialIssueCollection = db.collection('officialIssues');
 const reportSnapshotCollection = db.collection('reportSnapshots');
 const reportTemplateCollection = db.collection('reportTemplates');
+const groupVisionJobCollection = db.collection('groupVisionJobs');
+const groupVisionWorkerCollection = db.collection('groupVisionWorkers');
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -57,6 +59,7 @@ let apiKeyLoaded = Boolean(apiKey);
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
+const groupRelaySecret = String(process.env.GROUP_RELAY_SECRET || '').trim();
 const keyEncryptionSecret = process.env.KEY_ENCRYPTION_SECRET || `${envId}:smart-renew-default-key`;
 const sessionTtlMs = 12 * 60 * 60 * 1000;
 const allowedModels = new Set([
@@ -94,6 +97,126 @@ function secureEqual(left, right) {
   const a = Buffer.from(String(left));
   const b = Buffer.from(String(right));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function authorizeGroupRelay(req, res) {
+  const supplied = String(req.headers['x-smart-renew-relay-secret'] || '');
+  if (groupRelaySecret && supplied && secureEqual(supplied, groupRelaySecret)) return true;
+  writeJson(res, 401, { message: '集团模型中转认证失败' });
+  return false;
+}
+
+async function groupRelayStatus() {
+  if (!groupRelaySecret) return { ready: false, lastSeenAt: '' };
+  await ensureCollection('groupVisionWorkers', groupVisionWorkerCollection);
+  const worker = await getDocument(groupVisionWorkerCollection, 'primary').catch(() => null);
+  const lastSeen = Date.parse(worker?.lastSeenAt || '');
+  return { ready: Number.isFinite(lastSeen) && Date.now() - lastSeen < 20000, lastSeenAt: worker?.lastSeenAt || '' };
+}
+
+async function createGroupVisionJob(body) {
+  await ensureCollection('groupVisionJobs', groupVisionJobCollection);
+  await ensureCollection('groupVisionWorkers', groupVisionWorkerCollection);
+  const analysisMode = String(body.analysisMode || 'vision');
+  const images = Array.isArray(body.images) ? body.images : [];
+  if (analysisMode !== 'community-gap' && !images.length) throw new Error('至少需要上传 1 张图片');
+  if (analysisMode === 'community-gap' && images.length > 0) throw new Error('社区短板分析不应携带现场图片');
+  if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) throw new Error('图片格式无效');
+  const relay = await groupRelayStatus();
+  if (!relay.ready) throw new Error('集团视觉模型工作站当前离线，请联系管理员确认姚工电脑已开机并连接单位内网');
+  const id = `GVJ-${Date.now()}-${crypto.randomBytes(16).toString('hex')}`;
+  const now = new Date();
+  const job = {
+    id,
+    status: 'pending',
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + 10 * 60 * 1000).toISOString(),
+    payload: {
+      provider: 'group',
+      images,
+      prompt: String(body.prompt || ''),
+      model: groupVisionModel,
+      temperature: body.temperature,
+      maxTokens: body.maxTokens,
+      topP: body.topP,
+      analysisMode
+    }
+  };
+  await putDocument(groupVisionJobCollection, id, job);
+  return job;
+}
+
+async function handleGroupVisionJobStatus(req, res, pathname) {
+  const match = pathname.match(/^\/vision\/jobs\/(GVJ-[A-Za-z0-9-]+)$/);
+  if (!match || req.method !== 'GET') return false;
+  await ensureCollection('groupVisionJobs', groupVisionJobCollection);
+  const job = await getDocument(groupVisionJobCollection, match[1]).catch(() => null);
+  if (!job) return writeJson(res, 404, { message: '集团模型任务不存在或已过期' });
+  if (Date.parse(job.expiresAt || '') < Date.now() && !['completed', 'failed'].includes(job.status)) {
+    await putDocument(groupVisionJobCollection, job.id, { ...job, status: 'failed', message: '集团模型任务已过期', payload: null });
+    return writeJson(res, 200, { id: job.id, status: 'failed', message: '集团模型任务已过期' });
+  }
+  return writeJson(res, 200, { id: job.id, status: job.status, createdAt: job.createdAt, startedAt: job.startedAt || '', expiresAt: job.expiresAt, result: job.status === 'completed' ? job.result : undefined, message: job.status === 'failed' ? job.message : undefined });
+}
+
+async function handleGroupRelayApi(req, res, pathname) {
+  if (!pathname.startsWith('/group-relay/')) return false;
+  if (!authorizeGroupRelay(req, res)) return true;
+  try {
+  await ensureCollection('groupVisionJobs', groupVisionJobCollection);
+  await ensureCollection('groupVisionWorkers', groupVisionWorkerCollection);
+  if (req.method === 'POST' && pathname === '/group-relay/jobs/next') {
+    const body = await readJson(req, 16 * 1024).catch(() => ({}));
+    const workerId = String(body.workerId || 'primary').slice(0, 100);
+    await putDocument(groupVisionWorkerCollection, 'primary', { id: 'primary', workerId, lastSeenAt: new Date().toISOString() });
+    if (body.acceptJob === false) { res.writeHead(204, { 'Cache-Control': 'no-store' }); res.end(); return true; }
+    const jobs = await listCollection(groupVisionJobCollection).catch(() => []);
+    const nowMs = Date.now();
+    const expiredJobs = jobs.filter((item) => Date.parse(item.expiresAt || '') <= nowMs);
+    await Promise.all(expiredJobs.map((item) => groupVisionJobCollection.doc(String(item.id)).remove().catch(() => null)));
+    const activeJobs = jobs.filter((item) => Date.parse(item.expiresAt || '') > nowMs);
+    for (const item of activeJobs) {
+      if (item.status === 'processing' && nowMs - Date.parse(item.startedAt || item.createdAt || '') > 240000) {
+        item.status = 'pending';
+        delete item.workerId;
+        delete item.startedAt;
+        await putDocument(groupVisionJobCollection, item.id, item);
+      }
+    }
+    const job = activeJobs
+      .filter((item) => item.status === 'pending' && Date.parse(item.expiresAt || '') > Date.now())
+      .sort((a, b) => Date.parse(a.createdAt || '') - Date.parse(b.createdAt || ''))[0];
+    if (!job) { res.writeHead(204, { 'Cache-Control': 'no-store' }); res.end(); return true; }
+    job.status = 'processing';
+    job.workerId = workerId;
+    job.startedAt = new Date().toISOString();
+    await putDocument(groupVisionJobCollection, job.id, job);
+    writeJson(res, 200, { id: job.id, payload: job.payload });
+    return true;
+  }
+  const completeMatch = pathname.match(/^\/group-relay\/jobs\/(GVJ-[A-Za-z0-9-]+)\/complete$/);
+  if (req.method === 'POST' && completeMatch) {
+    const body = await readJson(req, 2 * 1024 * 1024);
+    const job = await getDocument(groupVisionJobCollection, completeMatch[1]).catch(() => null);
+    if (!job) { writeJson(res, 404, { message: '任务不存在' }); return true; }
+    const completed = {
+      ...job,
+      status: body.ok === true ? 'completed' : 'failed',
+      completedAt: new Date().toISOString(),
+      payload: null,
+      result: body.ok === true ? body.result : null,
+      message: body.ok === true ? '' : String(body.message || '集团模型分析失败')
+    };
+    await putDocument(groupVisionJobCollection, job.id, completed);
+    writeJson(res, 200, { ok: true });
+    return true;
+  }
+  writeJson(res, 404, { message: '集团模型中转接口不存在' });
+  return true;
+  } catch (error) {
+    writeJson(res, 500, { message: error.message || '集团模型中转处理失败' });
+    return true;
+  }
 }
 
 function authorize(req, res, url) {
@@ -606,7 +729,7 @@ async function handleStorageApi(req, res, url, pathname) {
     }
     return writeJson(res, 404, { message: '数据接口不存在' });
   } catch (error) {
-    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '保存数据过大，请减少单次上传图片数量' });
+    if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '保存数据过大，请压缩图片或分批处理' });
     return writeJson(res, 500, { message: error.message || 'CloudBase 数据库存储失败' });
   }
 }
@@ -690,6 +813,28 @@ async function handlePhotoApi(req, res, url, pathname) {
       const items = filterPhotoRecords(await listCollection(photoRecordCollection), url.searchParams)
         .map((item) => ({ ...item, url: `/api/photos/${item.id}/content` }));
       return writeJson(res, 200, { items, storage: 'cloudbase-storage' });
+    }
+    if (req.method === 'DELETE' && recordMatch) {
+      const photoId = recordMatch[1];
+      const record = await getDocument(photoRecordCollection, photoId);
+      if (!record) return writeJson(res, 404, { message: '照片不存在' });
+      if (record.analysisId) return writeJson(res, 409, { message: '该照片已被分析记录引用，不能删除' });
+      const [analyses, issues, reports] = await Promise.all([
+        listCollectionOrEmpty(analysisCollection),
+        listCollectionOrEmpty(officialIssueCollection),
+        listCollectionOrEmpty(reportSnapshotCollection)
+      ]);
+      const referenced = analyses.some((item) =>
+        [item.photoIds, item.annotatedPhotoIds].some((ids) => Array.isArray(ids) && ids.some((id) => String(id) === photoId))
+      ) || issues.some((item) => String(item.originalPhotoId || '') === photoId || String(item.annotatedPhotoId || '') === photoId)
+        || reports.some((item) => Array.isArray(item.sourceIds?.photoIds) && item.sourceIds.photoIds.some((id) => String(id) === photoId));
+      if (referenced) return writeJson(res, 409, { message: '该照片已被历史成果引用，不能删除' });
+      if (record.fileId) {
+        if (typeof app.deleteFile !== 'function') return writeJson(res, 500, { message: '当前云端环境不支持删除照片文件' });
+        await app.deleteFile({ fileList: [record.fileId] });
+      }
+      await photoRecordCollection.doc(photoId).remove();
+      return writeJson(res, 200, { deleted: true, item: { id: photoId }, storage: 'cloudbase-storage' });
     }
     if (req.method === 'GET' && contentMatch) {
       const record = await getDocument(photoRecordCollection, contentMatch[1]);
@@ -938,11 +1083,13 @@ async function sessionHealth(req, res) {
     const body = await readJson(req);
     const provider = normalizeVisionProvider(body.provider);
     if (provider === 'group') {
+      const relay = await groupRelayStatus();
       return writeJson(res, 200, {
-        ready: Boolean(groupVisionApiKey && groupVisionBaseUrl),
+        ready: relay.ready,
         provider,
         model: groupVisionModel,
-        storage: 'cloudbase-environment'
+        storage: 'private-workstation-relay',
+        lastSeenAt: relay.lastSeenAt
       });
     }
     const active = await getApiKeyFromRequest(req, body.keySessionToken);
@@ -963,13 +1110,17 @@ async function analyze(req, res) {
   try {
     const body = await readJson(req);
     provider = normalizeVisionProvider(body.provider);
+    if (provider === 'group') {
+      const job = await createGroupVisionJob(body);
+      return writeJson(res, 202, { jobId: job.id, status: job.status, expiresAt: job.expiresAt, provider, model: groupVisionModel });
+    }
     const active = provider === 'group' ? { key: groupVisionApiKey, session: null } : await getApiKeyFromRequest(req, body.keySessionToken);
     const activeApiKey = active.key;
     if (!activeApiKey) return writeJson(res, 503, { message: provider === 'group' ? '集团视觉模型尚未配置服务端密钥' : '请先选择用户并输入密码启用 API Key' });
     if (provider === 'group' && !groupVisionBaseUrl) return writeJson(res, 503, { message: '集团视觉模型尚未配置接口地址' });
     const analysisMode = String(body.analysisMode || 'vision');
     const images = Array.isArray(body.images) ? body.images : [];
-    if (analysisMode !== 'community-gap' && (!images.length || images.length > 20)) return writeJson(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode !== 'community-gap' && !images.length) return writeJson(res, 400, { message: '至少需要上传 1 张图片' });
     if (analysisMode === 'community-gap' && images.length > 0) return writeJson(res, 400, { message: '社区短板分析不应携带现场图片' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return writeJson(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
@@ -1023,10 +1174,13 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204);
     return res.end();
   }
+  if (pathname.startsWith('/group-relay/')) return handleGroupRelayApi(req, res, pathname);
   if (!authorize(req, res, url)) return;
+  if (pathname.startsWith('/vision/jobs/')) return handleGroupVisionJobStatus(req, res, pathname);
   if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health')) {
     const active = await getApiKeyFromRequest(req).catch(() => ({ key: '' }));
-    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, provider: 'dashscope', providers: { dashscope: Boolean(active.key), group: Boolean(groupVisionApiKey && groupVisionBaseUrl) }, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
+    const relay = await groupRelayStatus();
+    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, provider: 'dashscope', providers: { dashscope: Boolean(active.key), group: relay.ready }, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
   }
   if (req.method === 'GET' && pathname === '/config/users') return listApiKeyUsers(req, res);
   if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);

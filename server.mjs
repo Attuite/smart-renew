@@ -60,6 +60,11 @@ const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const cloudbaseApiOrigin = (process.env.CLOUDBASE_API_ORIGIN || 'https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com').replace(/\/$/, '');
 const cloudbaseWebOrigin = 'https://smart-renew-d2gamusvr1b96ce95-1456348363.tcloudbaseapp.com';
 const proxyCloudbaseApis = /^(1|true|yes)$/i.test(process.env.SMART_RENEW_USE_CLOUDBASE_API || '');
+const trustedLanPrefix = String(process.env.SMART_RENEW_TRUSTED_LAN_PREFIX || '').trim();
+const groupRelaySecret = String(process.env.GROUP_RELAY_SECRET || '').trim();
+const groupRelayWorkerId = `worker-${crypto.randomBytes(8).toString('hex')}`;
+const groupRelayMaxConcurrency = Math.max(1, Math.min(4, Number(process.env.GROUP_RELAY_CONCURRENCY) || 2));
+const activeGroupRelayJobs = new Set();
 const allowedModels = new Set([
   'qwen3-vl-plus',
   'qwen3-vl-flash',
@@ -135,6 +140,14 @@ function authorize(req, res, url) {
   return false;
 }
 
+function allowTrustedLan(req, res) {
+  if (!trustedLanPrefix) return true;
+  const remoteAddress = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+  if (remoteAddress === '127.0.0.1' || remoteAddress === '::1' || remoteAddress.startsWith(trustedLanPrefix)) return true;
+  json(res, 403, { message: '仅允许可信单位局域网访问集团模型工作站' });
+  return false;
+}
+
 async function readJson(req, maxBytes = 120 * 1024 * 1024) {
   const chunks = [];
   let size = 0;
@@ -196,7 +209,7 @@ async function analyze(req, res) {
     if (!activeApiKey || !upstreamBaseUrl) return json(res, 503, { message: provider === 'group' ? '服务端尚未配置集团视觉模型' : '服务端尚未配置 DASHSCOPE_API_KEY' });
     const analysisMode = String(body.analysisMode || 'vision');
     const images = Array.isArray(body.images) ? body.images : [];
-    if (analysisMode !== 'community-gap' && (!images.length || images.length > 20)) return json(res, 400, { message: '单批图片数量必须为 1-20 张' });
+    if (analysisMode !== 'community-gap' && !images.length) return json(res, 400, { message: '至少需要上传 1 张图片' });
     if (analysisMode === 'community-gap' && images.length > 0) return json(res, 400, { message: '社区短板分析不应携带现场图片' });
     if (images.some((item) => typeof item !== 'string' || !item.startsWith('data:image/'))) return json(res, 400, { message: '图片格式无效' });
     const requestedModel = String(body.model || defaultModel);
@@ -489,7 +502,7 @@ async function handleStorageApi(req, res, url) {
     }
     return json(res, 404, { message: '数据接口不存在' });
   } catch (error) {
-    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '保存数据过大，请减少单次上传图片数量' });
+    if (error.message === 'REQUEST_TOO_LARGE') return json(res, 413, { message: '保存数据过大，请压缩图片或分批处理' });
     return json(res, 500, { message: error.message || '服务端数据存储失败' });
   }
 }
@@ -570,6 +583,30 @@ async function handlePhotoApi(req, res, url) {
       const items = filterPhotoRecords(await listStoredJson(photoRecordStorage), url.searchParams)
         .map((item) => ({ ...item, url: `/api/photos/${item.id}/content` }));
       return json(res, 200, { items, storage: 'server-filesystem' });
+    }
+    if (req.method === 'DELETE' && recordMatch) {
+      const photoId = recordMatch[1];
+      const recordPath = path.join(photoRecordStorage, `${photoId}.json`);
+      const record = await readStoredJson(recordPath);
+      if (!record) return json(res, 404, { message: '照片不存在' });
+      if (record.analysisId) return json(res, 409, { message: '该照片已被分析记录引用，不能删除' });
+      const [analyses, issues, reports] = await Promise.all([
+        listStoredJson(analysisStorage),
+        listStoredJson(officialIssueStorage),
+        listStoredJson(reportSnapshotStorage)
+      ]);
+      const referenced = analyses.some((item) =>
+        [item.photoIds, item.annotatedPhotoIds].some((ids) => Array.isArray(ids) && ids.some((id) => String(id) === photoId))
+      ) || issues.some((item) => String(item.originalPhotoId || '') === photoId || String(item.annotatedPhotoId || '') === photoId)
+        || reports.some((item) => Array.isArray(item.sourceIds?.photoIds) && item.sourceIds.photoIds.some((id) => String(id) === photoId));
+      if (referenced) return json(res, 409, { message: '该照片已被历史成果引用，不能删除' });
+      if (record.filePath) {
+        const filePath = path.resolve(photoFileStorage, record.filePath);
+        if (!filePath.startsWith(path.resolve(photoFileStorage) + path.sep)) return json(res, 403, { message: '照片路径无效' });
+        await fs.rm(filePath, { force: true });
+      }
+      await fs.rm(recordPath, { force: true });
+      return json(res, 200, { deleted: true, item: { id: photoId }, storage: 'server-filesystem' });
     }
     if (req.method === 'POST' && url.pathname === '/api/photos/upload') {
       const body = await readJson(req, 18 * 1024 * 1024);
@@ -827,6 +864,7 @@ async function serveStatic(req, res) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   applyCors(req, res);
+  if (!allowTrustedLan(req, res)) return;
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     return res.end();
@@ -854,8 +892,104 @@ const server = http.createServer(async (req, res) => {
   json(res, 405, { message: '不支持的请求方法' });
 });
 
+async function relayRequest(pathname, options = {}) {
+  const { timeout = 135000, ...fetchOptions } = options;
+  return fetch(`${cloudbaseApiOrigin}${pathname}`, {
+    ...fetchOptions,
+    headers: {
+      ...(fetchOptions.headers || {}),
+      'X-Smart-Renew-Relay-Secret': groupRelaySecret,
+      'Content-Type': 'application/json'
+    },
+    signal: AbortSignal.timeout(timeout)
+  });
+}
+
+async function completeGroupRelayJob(jobId, payload) {
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await relayRequest(`/api/group-relay/jobs/${encodeURIComponent(jobId)}/complete`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        timeout: 20000
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log(`Group relay ${jobId}: completed callback accepted`);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(`Group relay ${jobId}: callback attempt ${attempt} failed: ${error.message || error}`);
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+    }
+  }
+  throw lastError || new Error('集团模型任务结果回传失败');
+}
+
+async function processGroupRelayJob(job) {
+  const localHost = host === '0.0.0.0' ? '127.0.0.1' : host;
+  const headers = { 'Content-Type': 'application/json' };
+  if (appPassword) headers.Authorization = `Basic ${Buffer.from(`${appUsername}:${appPassword}`).toString('base64')}`;
+  try {
+    const response = await fetch(`http://${localHost}:${port}/api/vision/analyze`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...(job.payload || {}), provider: 'group' }),
+      signal: AbortSignal.timeout(130000)
+    });
+    const result = await response.json().catch(() => ({}));
+    await completeGroupRelayJob(job.id, response.ok
+      ? { ok: true, result }
+      : { ok: false, message: result.message || `集团模型请求失败: HTTP ${response.status}` });
+  } catch (error) {
+    await completeGroupRelayJob(job.id, { ok: false, message: error.name === 'TimeoutError' ? '集团模型响应超时' : (error.message || '集团模型任务执行失败') }).catch((completeError) => {
+      console.error(`Group relay ${job.id}: result callback failed: ${completeError.message || completeError}`);
+    });
+  }
+}
+
+async function pollGroupRelay() {
+  if (!groupRelaySecret || !groupVisionApiKey || !groupVisionBaseUrl) return;
+  try {
+    const canAcceptJob = activeGroupRelayJobs.size < groupRelayMaxConcurrency;
+    const response = await relayRequest('/api/group-relay/jobs/next', {
+      method: 'POST',
+      body: JSON.stringify({ workerId: groupRelayWorkerId, acceptJob: canAcceptJob }),
+      timeout: 20000
+    });
+    if (response.status === 204) return;
+    if (!response.ok) throw new Error(`云端任务中转请求失败: HTTP ${response.status}`);
+    const job = await response.json();
+    if (job && job.id && !activeGroupRelayJobs.has(job.id)) {
+      activeGroupRelayJobs.add(job.id);
+      console.log(`Group relay ${job.id}: started (${activeGroupRelayJobs.size}/${groupRelayMaxConcurrency})`);
+      processGroupRelayJob(job).catch((error) => {
+        console.error(`Group relay ${job.id}: ${error.message || error}`);
+      }).finally(() => {
+        activeGroupRelayJobs.delete(job.id);
+      });
+    }
+  } catch (error) {
+    console.error(`Group relay: ${error.message || error}`);
+  }
+}
+
+function startGroupRelayWorker() {
+  if (!groupRelaySecret || !groupVisionApiKey || !groupVisionBaseUrl) {
+    console.log('Group relay: disabled (private relay secret or group model configuration is missing)');
+    return;
+  }
+  console.log(`Group relay: ready for cloud tasks (concurrency ${groupRelayMaxConcurrency})`);
+  const schedule = async () => {
+    await pollGroupRelay();
+    setTimeout(schedule, 2500);
+  };
+  schedule();
+}
+
 server.listen(port, host, () => {
   console.log(`Smart Renew: http://${host}:${port}`);
   console.log(apiKey ? 'DashScope proxy: ready' : 'DashScope proxy: DASHSCOPE_API_KEY is not configured');
   console.log(appPassword ? `Access control: enabled for ${appUsername}` : 'Access control: disabled (local development)');
+  startGroupRelayWorker();
 });
