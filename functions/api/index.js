@@ -59,6 +59,9 @@ let apiKeyLoaded = Boolean(apiKey);
 const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const groupVisionBaseUrl = (process.env.GROUP_VISION_BASE_URL || '').replace(/\/$/, '');
 const groupVisionApiKey = process.env.GROUP_VISION_API_KEY || '';
+const arkApiKey = String(process.env.ARK_API_KEY || '').trim();
+const arkBaseUrl = String(process.env.ARK_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3').replace(/\/$/, '');
+const arkModel = String(process.env.ARK_MODEL || 'doubao-seed-2-0-lite-260215').trim();
 const groupRelaySecret = String(process.env.GROUP_RELAY_SECRET || '').trim();
 const keyEncryptionSecret = process.env.KEY_ENCRYPTION_SECRET || `${envId}:smart-renew-default-key`;
 const sessionTtlMs = 12 * 60 * 60 * 1000;
@@ -1167,6 +1170,52 @@ async function analyze(req, res) {
   }
 }
 
+function extractArkResponseText(data) {
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) return data.output_text.trim();
+  for (const item of Array.isArray(data?.output) ? data.output : []) {
+    for (const content of Array.isArray(item?.content) ? item.content : []) {
+      if (content?.type === 'output_text' && typeof content.text === 'string' && content.text.trim()) return content.text.trim();
+    }
+  }
+  return '';
+}
+
+function communitySummaryInput(body) {
+  const rows = (Array.isArray(body.categories) ? body.categories : []).slice(0, 20).map((item) => {
+    const names = (Array.isArray(item.names) ? item.names : []).slice(0, 6).map((name) => String(name || '').slice(0, 60)).filter(Boolean);
+    return `- ${String(item.label || '未分类').slice(0, 40)}：${Math.max(0, Number(item.count) || 0)} 个${names.length ? `；代表设施：${names.join('、')}` : ''}`;
+  }).join('\n');
+  return `你是一位熟悉中国城市更新、完整社区建设和社区生活圈评估的规划咨询专家。请基于以下项目所在地与高德地图 POI 检索结果，形成一份明显区别于“基础分析结论”的深入中文总结。\n\n写作要求：\n1. 输出 500 至 800 个汉字，分为 4 个自然段，不使用 Markdown 标题或项目符号。\n2. 第一段结合项目所在地，解释本次设施结构对当地社区日常生活与城市更新的含义；可以提出符合当地实施场景的一般性判断，但不得虚构当地政策、人口、规划指标或政府承诺。\n3. 第二段说明相对充足的设施、可能形成的服务基础及代表设施，不要只重复数量。\n4. 第三段分析当前地图检索未识别到或相对薄弱的类别。数量为 0 必须表述为“当前地图检索未识别到，仍需现场核实”，不能断言不存在。\n5. 第四段提出具有空间指向的补充建议，包括项目范围内部优化、与周边社区共享衔接、步行联系、服务半径、运营开放情况和现场核查优先级。建议应有先后顺序，并说明哪些内容适合内部补齐、哪些可通过周边共享完善。\n6. 只能使用给定的项目和设施事实，不得编造具体设施、道路、政策标准或距离。避免复述基础结论，重点提供解释、关联判断和可执行建议。\n\n项目：${String(body.projectName || '未命名项目').slice(0, 80)}\n项目所在地：${String(body.projectLocation || '项目所在地未填写').slice(0, 160)}\n项目说明：${String(body.projectDescription || '未填写').slice(0, 300)}\n分析维度：${String(body.dimensionLabel || '社区／街区').slice(0, 30)}\n检索范围：${String(body.scopeLabel || '当前范围').slice(0, 80)}\n归并后设施：${Math.max(0, Number(body.spaceTotal) || 0)} 个\n高德原始 POI：${Math.max(0, Number(body.rawTotal) || 0)} 个\n分类结果：\n${rows || '- 暂无分类结果'}\n\n基础分析结论：${String(body.conclusion || '').slice(0, 300)}\n基础建议：${String(body.advice || '').slice(0, 300)}`;
+}
+
+async function generateCommunitySummary(req, res) {
+  try {
+    if (!arkApiKey) return writeJson(res, 503, { message: '服务端尚未配置 ARK_API_KEY' });
+    const body = await readJson(req, 128 * 1024);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    let upstream;
+    try {
+      upstream = await fetch(`${arkBaseUrl}/responses`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${arkApiKey}` },
+        body: JSON.stringify({ model: arkModel, input: communitySummaryInput(body), max_output_tokens: 1600, thinking: { type: 'disabled' } })
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) return writeJson(res, upstream.status, { message: data?.error?.message || data?.message || `方舟请求失败: HTTP ${upstream.status}` });
+    const content = extractArkResponseText(data);
+    if (!content) return writeJson(res, 502, { message: '方舟模型没有返回有效总结' });
+    return writeJson(res, 200, { content, model: data.model || arkModel, requestId: data.id || '', provider: 'volcengine-ark' });
+  } catch (error) {
+    if (error.name === 'AbortError') return writeJson(res, 504, { message: '方舟总结响应超时，请稍后重试' });
+    return writeJson(res, 500, { message: error.message || '方舟总结生成失败' });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = normalizePath(url.pathname);
@@ -1185,6 +1234,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname === '/config/users') return listApiKeyUsers(req, res);
   if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);
   if (req.method === 'POST' && pathname === '/config/session/health') return sessionHealth(req, res);
+  if (req.method === 'POST' && pathname === '/community/summary') return generateCommunitySummary(req, res);
   if (req.method === 'POST' && pathname === '/vision/analyze') return analyze(req, res);
   if (pathname.startsWith('/project-data') || /^\/projects\/\d+\/data-/.test(pathname)) return handleProjectDataApi(req, res, url, pathname);
   if (pathname.startsWith('/field/')) return handleFieldCollectionApi(req, res, pathname);
