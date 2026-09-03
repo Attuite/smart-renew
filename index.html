@@ -1610,7 +1610,7 @@ var listEl=document.getElementById('allProjects'),countEl=document.getElementByI
 if(!listEl)return;
 listEl.innerHTML='<div class="result-empty" style="grid-column:1/-1;">正在读取项目档案...</div>';
 try{
- var projectData=await Promise.all([getAllProjects(),getAllRecords(),storageApi('/api/photos').catch(function(){return{items:[]};})]);
+ var projectData=await Promise.all([getAllProjects(),getAllRecords(),storageApi('/api/photos').catch(emptyItemsOnLocalFailure)]);
  var projectList=projectData[0],records=projectData[1],photoItems=projectData[2].items||[],photoCountsByProject={},photoCoversByProject={},photoSlidesByProject={};
 for(var ph=0;ph<photoItems.length;ph++){var photo=photoItems[ph],photoProjectId=String(photo.projectId||''),annotatedPhoto=isAnnotatedPhotoRecord(photo);if(!photoProjectId)continue;if(!annotatedPhoto)photoCountsByProject[photoProjectId]=(photoCountsByProject[photoProjectId]||0)+1;if(photo.url){var photoUrl=usablePhotoUrl(photo.url);if(!photoSlidesByProject[photoProjectId])photoSlidesByProject[photoProjectId]=[];if(!annotatedPhoto||!photoSlidesByProject[photoProjectId].length)photoSlidesByProject[photoProjectId].push(photoUrl);if(photo.url&&(!photoCoversByProject[photoProjectId]||!annotatedPhoto))photoCoversByProject[photoProjectId]=photoUrl;}}
 records.sort(function(a,b){return b.id-a.id;});
@@ -1677,7 +1677,7 @@ var hash=window.location.hash,pid=normalizeStorageKey(hash.split('/')[1]),main=d
 if(pid===null){navigateTo('#projects');return;}
 if(main)main.innerHTML='<div class="result-empty">正在读取项目档案...</div>';
 try{
-var loaded=await Promise.all([getProjectById(pid),getProjectRecords(pid),storageApi('/api/photos?projectId='+encodeURIComponent(pid)).catch(function(){return{items:[]};})]),p=loaded[0],allRecords=loaded[1],projectPhotos=loaded[2].items||[];if(!p){navigateTo('#projects');return;}
+var loaded=await Promise.all([getProjectById(pid),getProjectRecords(pid),storageApi('/api/photos?projectId='+encodeURIComponent(pid)).catch(emptyItemsOnLocalFailure)]),p=loaded[0],allRecords=loaded[1],projectPhotos=loaded[2].items||[];if(!p){navigateTo('#projects');return;}
 setActiveProjectId(p.id);
 var records=allRecords.filter(function(r){return String(r.projectId)===String(p.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
  var community=p.communityAnalysis||null,issues=buildDiagnosticIssueRows(records,community),stat=collectDiagnosticStats(records),communityTotal=getCommunityTotal(community),scopeStats=getProjectScopeStats(p);stat.images=countFieldPhotos(projectPhotos,p.id);
@@ -1976,7 +1976,7 @@ var id=getActiveProjectId(),project=id?await getProjectById(id):null;
 if(!project){root.innerHTML='<div class="result-empty"><h3 style="font-size:1rem;color:var(--ink-900);margin-bottom:8px;">请先选择体检项目</h3><p>体检报告需要挂接到具体项目，并自动读取该项目下的 AI 分析和社区/街区维度分析结果。</p><div style="margin-top:18px;"><a href="#projects" class="btn btn-primary" data-nav="projects">选择项目</a></div></div>';return;}
 var allRecords=await getAllRecords();
 var records=allRecords.filter(function(r){return String(r.projectId)===String(project.id);}).sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp);});
-var officialIssueData=await storageApi('/api/issues?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),officialIssues=officialIssueData.items||[],photoData=await storageApi('/api/photos?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportData=await storageApi('/api/reports?projectId='+encodeURIComponent(project.id)).catch(function(){return{items:[]};}),reportVersions=reportData.items||[],stat={images:countFieldPhotos(photoData.items||[],project.id),total:officialIssues.length,high:0,medium:0,low:0},community=project.communityAnalysis||null,communityTotal=getCommunityTotal(community);officialIssues.forEach(function(issue){if(issue.severity==='high')stat.high++;else if(issue.severity==='low')stat.low++;else stat.medium++;});
+var officialIssueData=await storageApi('/api/issues?projectId='+encodeURIComponent(project.id)).catch(emptyItemsOnLocalFailure),officialIssues=officialIssueData.items||[],photoData=await storageApi('/api/photos?projectId='+encodeURIComponent(project.id)).catch(emptyItemsOnLocalFailure),reportData=await storageApi('/api/reports?projectId='+encodeURIComponent(project.id)).catch(emptyItemsOnLocalFailure),reportVersions=reportData.items||[],stat={images:countFieldPhotos(photoData.items||[],project.id),total:officialIssues.length,high:0,medium:0,low:0},community=project.communityAnalysis||null,communityTotal=getCommunityTotal(community);officialIssues.forEach(function(issue){if(issue.severity==='high')stat.high++;else if(issue.severity==='low')stat.low++;else stat.medium++;});
 var communityCounts=community&&community.counts?community.counts:{cat1:0,cat2:0,cat3:0,cat4:0};
 var reportReady=officialIssues.length>0&&community;
 var issueRows=officialIssues.map(function(issue){var meta=analysisSeverityMeta[issue.severity]||analysisSeverityMeta.medium;return{title:(issue.problemCode?issue.problemCode+' · ':'')+(issue.title||'未命名问题'),severity:meta.label,location:issue.location||'待定位',suggestion:issue.suggestion||'待评估'};});
@@ -2550,18 +2550,18 @@ function getActiveProjectId(){return normalizeStorageKey(localStorage.getItem('s
 function setActiveProjectId(id){localStorage.setItem('smart_renew_active_project_id',String(id));}
 
 async function saveProject(project){
-try{await ensureServerStorage();await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
+try{await ensureServerStorage();await storageApi('/api/projects/'+project.id,{method:'PUT',body:JSON.stringify(project)});setStorageStatus(true,'服务端已保存');}catch(e){if(!allowBrowserStorageFallback()){setStorageStatus(false,'线上数据服务暂不可用 · 未写入浏览器缓存');throw e;}setStorageStatus(false,'本地服务暂不可用，当前改动仅保存在本浏览器');console.warn(e);}
 await saveProjectLocal(project);projectReadCache[project.id]=project;if(window.scheduleProjectDataIndexSync)window.scheduleProjectDataIndexSync(project.id);return project;
 }
 
 async function getAllProjects(){
-try{await ensureServerStorage();var data=await storageApi('/api/projects');setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return data.items||[];}catch(e){setStorageStatus(false,'服务端暂不可用 · 正在读取本浏览器备份');return getAllProjectsLocal();}
+try{await ensureServerStorage();var data=await storageApi('/api/projects');setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return data.items||[];}catch(e){if(!allowBrowserStorageFallback()){setStorageStatus(false,'线上数据服务暂不可用 · 未读取浏览器旧缓存');throw e;}setStorageStatus(false,'本地服务暂不可用 · 正在读取本浏览器备份');return getAllProjectsLocal();}
 }
 
 async function getProjectById(id){
 var projectId=normalizeStorageKey(id);if(projectId===null)return null;
 if(projectReadCache[projectId])return projectReadCache[projectId];
-try{await ensureServerStorage();projectReadCache[projectId]=await storageApi('/api/projects/'+projectId);}catch(e){projectReadCache[projectId]=await getProjectByIdLocal(projectId);}
+try{await ensureServerStorage();projectReadCache[projectId]=await storageApi('/api/projects/'+projectId);}catch(e){if(!allowBrowserStorageFallback())throw e;projectReadCache[projectId]=await getProjectByIdLocal(projectId);}
 return projectReadCache[projectId];
 }
 
@@ -2654,33 +2654,37 @@ try{var wasEditing=!!projectScopeEditingProjectId;await saveProject(project);set
 }
 
 async function saveRecord(record){
-try{await ensureServerStorage();await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){setStorageStatus(false,'服务端暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
+try{await ensureServerStorage();await storageApi('/api/analysis-records/'+record.id,{method:'PUT',body:JSON.stringify(record)});setStorageStatus(true,'服务端已保存');}catch(e){if(!allowBrowserStorageFallback()){setStorageStatus(false,'线上数据服务暂不可用 · 未写入浏览器缓存');throw e;}setStorageStatus(false,'本地服务暂不可用，分析记录仅保存在本浏览器');console.warn(e);}
 var saved=await saveRecordLocal(record);delete projectRecordsReadCache[record.projectId];if(window.scheduleProjectDataIndexSync&&record.projectId)window.scheduleProjectDataIndexSync(record.projectId);return saved;
 }
 
 async function getProjectRecords(projectId){
 var id=normalizeStorageKey(projectId);if(id===null)return[];
 if(projectRecordsReadCache[id])return projectRecordsReadCache[id];
-try{await ensureServerStorage();var data=await storageApi('/api/analysis-records?projectId='+encodeURIComponent(id));projectRecordsReadCache[id]=data.items||[];}catch(e){projectRecordsReadCache[id]=(await getAllRecordsLocal()).filter(function(record){return String(record.projectId)===String(id);});}
+try{await ensureServerStorage();var data=await storageApi('/api/analysis-records?projectId='+encodeURIComponent(id));projectRecordsReadCache[id]=data.items||[];}catch(e){if(!allowBrowserStorageFallback())throw e;projectRecordsReadCache[id]=(await getAllRecordsLocal()).filter(function(record){return String(record.projectId)===String(id);});}
 return projectRecordsReadCache[id];
 }
 
 async function getAllRecords(){
-try{await ensureServerStorage();var data=await storageApi('/api/analysis-records');return data.items||[];}catch(e){return getAllRecordsLocal();}
+try{await ensureServerStorage();var data=await storageApi('/api/analysis-records');return data.items||[];}catch(e){if(!allowBrowserStorageFallback())throw e;return getAllRecordsLocal();}
 }
 
 async function getRecordById(id){
-try{await ensureServerStorage();return await storageApi('/api/analysis-records/'+parseInt(id,10));}catch(e){return getRecordByIdLocal(id);}
+try{await ensureServerStorage();return await storageApi('/api/analysis-records/'+parseInt(id,10));}catch(e){if(!allowBrowserStorageFallback())throw e;return getRecordByIdLocal(id);}
 }
 
 async function deleteAllRecords(){
-projectRecordsReadCache={};try{await storageApi('/api/analysis-records',{method:'DELETE'});}catch(e){console.warn(e);}return deleteAllRecordsLocal();
+projectRecordsReadCache={};try{await storageApi('/api/analysis-records',{method:'DELETE'});}catch(e){if(!allowBrowserStorageFallback())throw e;console.warn(e);}return deleteAllRecordsLocal();
 }
 
 var serverStorageMigration=null;
-async function storageApi(url,options){var opts=options||{},headers=Object.assign({'Content-Type':'application/json'},opts.headers||{}),response=await fetch(getProxyApiUrl(url),Object.assign({},opts,{headers:headers})),payload=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(payload.message||('数据服务请求失败：HTTP '+response.status));return payload;}
+function allowBrowserStorageFallback(){var host=String(location.hostname||'').toLowerCase();return location.protocol==='file:'||host==='localhost'||host==='127.0.0.1'||host==='0.0.0.0'||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host);}
+function emptyItemsOnLocalFailure(error){if(!allowBrowserStorageFallback())throw error;return{items:[]};}
+function waitForStorageRetry(attempt){return new Promise(function(resolve){setTimeout(resolve,attempt*350);});}
+function isCredentialStorageFailure(error){return error&&((error.code==='CLOUDBASE_CREDENTIAL_EXPIRED')||/tmp secret key expire|SIGN_PARAM_INVALID|credential.*expir|凭证.*失效|凭证.*刷新失败/i.test(String(error.message||error)));}
+async function storageApi(url,options){var opts=Object.assign({},options||{}),headers=Object.assign({'Content-Type':'application/json'},opts.headers||{}),method=String(opts.method||'GET').toUpperCase(),attempts=3;delete opts.retryAttempts;for(var attempt=1;attempt<=attempts;attempt++){try{var response=await fetch(getProxyApiUrl(url),Object.assign({},opts,{headers:headers,cache:'no-store'})),payload=await response.json().catch(function(){return{};});if(response.ok)return payload;var error=new Error(payload.message||('数据服务请求失败：HTTP '+response.status));error.status=response.status;error.code=payload.code||'';error.retryable=payload.retryable===true||isCredentialStorageFailure(error)||(method==='GET'&&[502,503,504].indexOf(response.status)>=0);if(!error.retryable||attempt>=attempts)throw error;await waitForStorageRetry(attempt);}catch(error){var retryable=isCredentialStorageFailure(error)||(method==='GET'&&!error.status);if((!retryable&&!error.retryable)||attempt>=attempts)throw error;await waitForStorageRetry(attempt);}}}
 function setStorageStatus(ready,text){var el=document.getElementById('projectStorageStatus');if(!el)return;el.textContent=text;el.style.color=ready?'var(--green-500)':'var(--amber-500)';}
-async function ensureServerStorage(){if(serverStorageMigration)return serverStorageMigration;serverStorageMigration=(async function(){var remoteProjects=(await storageApi('/api/projects')).items||[],remoteRecords=(await storageApi('/api/analysis-records')).items||[],localProjects=await getAllProjectsLocal(),localRecords=await getAllRecordsLocal(),projectMap={},recordMap={};for(var i=0;i<remoteProjects.length;i++)projectMap[String(remoteProjects[i].id)]=remoteProjects[i];for(var j=0;j<localProjects.length;j++){var localProject=localProjects[j],remoteProject=projectMap[String(localProject.id)],localTime=new Date(localProject.updatedAt||localProject.createdAt||0).getTime(),remoteTime=remoteProject?new Date(remoteProject.updatedAt||remoteProject.createdAt||0).getTime():0;if(!remoteProject||localTime>remoteTime)await storageApi('/api/projects/'+localProject.id,{method:'PUT',body:JSON.stringify(localProject)});}for(var k=0;k<remoteRecords.length;k++)recordMap[String(remoteRecords[k].id)]=remoteRecords[k];for(var m=0;m<localRecords.length;m++){var localRecord=localRecords[m],remoteRecord=recordMap[String(localRecord.id)],localRecordTime=new Date(localRecord.archivedAt||localRecord.timestamp||0).getTime(),remoteRecordTime=remoteRecord?new Date(remoteRecord.archivedAt||remoteRecord.timestamp||0).getTime():0;if(!remoteRecord||localRecordTime>remoteRecordTime)await storageApi('/api/analysis-records/'+localRecord.id,{method:'PUT',body:JSON.stringify(localRecord)});}setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return true;})().catch(function(error){serverStorageMigration=null;throw error;});return serverStorageMigration;}
+async function ensureServerStorage(){if(serverStorageMigration)return serverStorageMigration;if(!allowBrowserStorageFallback()){serverStorageMigration=Promise.resolve(true);return serverStorageMigration;}serverStorageMigration=(async function(){var remoteProjects=(await storageApi('/api/projects')).items||[],remoteRecords=(await storageApi('/api/analysis-records')).items||[],localProjects=await getAllProjectsLocal(),localRecords=await getAllRecordsLocal(),projectMap={},recordMap={};for(var i=0;i<remoteProjects.length;i++)projectMap[String(remoteProjects[i].id)]=remoteProjects[i];for(var j=0;j<localProjects.length;j++){var localProject=localProjects[j],remoteProject=projectMap[String(localProject.id)],localTime=new Date(localProject.updatedAt||localProject.createdAt||0).getTime(),remoteTime=remoteProject?new Date(remoteProject.updatedAt||remoteProject.createdAt||0).getTime():0;if(!remoteProject||localTime>remoteTime)await storageApi('/api/projects/'+localProject.id,{method:'PUT',body:JSON.stringify(localProject)});}for(var k=0;k<remoteRecords.length;k++)recordMap[String(remoteRecords[k].id)]=remoteRecords[k];for(var m=0;m<localRecords.length;m++){var localRecord=localRecords[m],remoteRecord=recordMap[String(localRecord.id)],localRecordTime=new Date(localRecord.archivedAt||localRecord.timestamp||0).getTime(),remoteRecordTime=remoteRecord?new Date(remoteRecord.archivedAt||remoteRecord.timestamp||0).getTime():0;if(!remoteRecord||localRecordTime>remoteRecordTime)await storageApi('/api/analysis-records/'+localRecord.id,{method:'PUT',body:JSON.stringify(localRecord)});}setStorageStatus(true,'服务端持久化 · 可跨浏览器查看');return true;})().catch(function(error){serverStorageMigration=null;throw error;});return serverStorageMigration;}
 async function saveProjectLocal(project){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readwrite'),req=tx.objectStore('projectRecords').put(project);req.onsuccess=function(){resolve(project);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function getAllProjectsLocal(){var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readonly'),req=tx.objectStore('projectRecords').getAll();req.onsuccess=function(){resolve(req.result||[]);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}
 async function getProjectByIdLocal(id){var projectId=normalizeStorageKey(id);if(projectId===null)return undefined;var db=await openDB();return new Promise(function(resolve,reject){var tx=db.transaction('projectRecords','readonly'),req=tx.objectStore('projectRecords').get(projectId);req.onsuccess=function(){resolve(req.result);};req.onerror=function(e){reject(e.target.error);};tx.oncomplete=function(){db.close();};});}

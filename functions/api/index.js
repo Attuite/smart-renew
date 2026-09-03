@@ -34,20 +34,86 @@ import {
 } from './legacy-migration-core.js';
 
 const envId = process.env.TCB_ENV || process.env.SCF_NAMESPACE || 'smart-renew-d2gamusvr1b96ce95';
-const app = cloudbase.init({ env: envId });
-const db = app.database();
-const projectCollection = db.collection('projects');
-const analysisCollection = db.collection('analysisRecords');
-const projectDataCollection = db.collection('projectDataRecords');
-const settingsCollection = db.collection('settings');
-const apiKeyUsersCollection = db.collection('apiKeyUsers');
-const fieldTaskCollection = db.collection('fieldCollectionTasks');
-const photoRecordCollection = db.collection('photoRecords');
-const officialIssueCollection = db.collection('officialIssues');
-const reportSnapshotCollection = db.collection('reportSnapshots');
-const reportTemplateCollection = db.collection('reportTemplates');
-const groupVisionJobCollection = db.collection('groupVisionJobs');
-const groupVisionWorkerCollection = db.collection('groupVisionWorkers');
+const cloudbaseAccessKey = String(process.env.CLOUDBASE_APIKEY || '').trim();
+const cloudbaseCollectionNames = new WeakMap();
+let app;
+let db;
+let projectCollection;
+let analysisCollection;
+let projectDataCollection;
+let settingsCollection;
+let apiKeyUsersCollection;
+let fieldTaskCollection;
+let photoRecordCollection;
+let officialIssueCollection;
+let reportSnapshotCollection;
+let reportTemplateCollection;
+let groupVisionJobCollection;
+let groupVisionWorkerCollection;
+
+function registerCloudbaseCollection(name) {
+  const collection = db.collection(name);
+  cloudbaseCollectionNames.set(collection, name);
+  return collection;
+}
+
+function initializeCloudbaseClient() {
+  app = cloudbase.init(cloudbaseAccessKey ? { env: envId, accessKey: cloudbaseAccessKey } : { env: envId });
+  db = app.database();
+  projectCollection = registerCloudbaseCollection('projects');
+  analysisCollection = registerCloudbaseCollection('analysisRecords');
+  projectDataCollection = registerCloudbaseCollection('projectDataRecords');
+  settingsCollection = registerCloudbaseCollection('settings');
+  apiKeyUsersCollection = registerCloudbaseCollection('apiKeyUsers');
+  fieldTaskCollection = registerCloudbaseCollection('fieldCollectionTasks');
+  photoRecordCollection = registerCloudbaseCollection('photoRecords');
+  officialIssueCollection = registerCloudbaseCollection('officialIssues');
+  reportSnapshotCollection = registerCloudbaseCollection('reportSnapshots');
+  reportTemplateCollection = registerCloudbaseCollection('reportTemplates');
+  groupVisionJobCollection = registerCloudbaseCollection('groupVisionJobs');
+  groupVisionWorkerCollection = registerCloudbaseCollection('groupVisionWorkers');
+}
+
+function isCloudbaseCredentialError(error) {
+  return /tmp secret key expire|SIGN_PARAM_INVALID|getCredential failed|secretId or secretKey not found|credential.*expir|token.*expir/i.test(String(error?.message || error));
+}
+
+function writeCloudbaseError(res, error, status, fallbackMessage) {
+  if (isCloudbaseCredentialError(error)) {
+    return writeJson(res, 503, {
+      message: 'CloudBase 服务凭证刷新失败，请稍后重试',
+      code: 'CLOUDBASE_CREDENTIAL_EXPIRED',
+      retryable: true
+    });
+  }
+  return writeJson(res, status, { message: error?.message || fallbackMessage });
+}
+
+function waitForCloudbaseRetry(attempt) {
+  return new Promise((resolve) => setTimeout(resolve, attempt * 300));
+}
+
+async function withCloudbaseRetry(operation, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isCloudbaseCredentialError(error) || attempt >= attempts) throw error;
+      initializeCloudbaseClient();
+      await waitForCloudbaseRetry(attempt);
+    }
+  }
+  throw lastError;
+}
+
+function activeCloudbaseCollection(collection) {
+  const name = cloudbaseCollectionNames.get(collection);
+  return name ? db.collection(name) : collection;
+}
+
+initializeCloudbaseClient();
 
 const appUsername = process.env.APP_USERNAME || 'admin';
 const appPassword = process.env.APP_PASSWORD || '';
@@ -176,7 +242,7 @@ async function handleGroupRelayApi(req, res, pathname) {
     const jobs = await listCollection(groupVisionJobCollection).catch(() => []);
     const nowMs = Date.now();
     const expiredJobs = jobs.filter((item) => Date.parse(item.expiresAt || '') <= nowMs);
-    await Promise.all(expiredJobs.map((item) => groupVisionJobCollection.doc(String(item.id)).remove().catch(() => null)));
+    await Promise.all(expiredJobs.map((item) => removeDocument(groupVisionJobCollection, item.id).catch(() => null)));
     const activeJobs = jobs.filter((item) => Date.parse(item.expiresAt || '') > nowMs);
     for (const item of activeJobs) {
       if (item.status === 'processing' && nowMs - Date.parse(item.startedAt || item.createdAt || '') > 240000) {
@@ -217,7 +283,7 @@ async function handleGroupRelayApi(req, res, pathname) {
   writeJson(res, 404, { message: '集团模型中转接口不存在' });
   return true;
   } catch (error) {
-    writeJson(res, 500, { message: error.message || '集团模型中转处理失败' });
+    writeCloudbaseError(res, error, 500, '集团模型中转处理失败');
     return true;
   }
 }
@@ -280,7 +346,7 @@ async function listCollection(collection) {
   const items = [];
   const pageSize = 100;
   for (let offset = 0; offset < 10000; offset += pageSize) {
-    const result = await collection.skip(offset).limit(pageSize).get();
+    const result = await withCloudbaseRetry(() => activeCloudbaseCollection(collection).skip(offset).limit(pageSize).get());
     const page = (result.data || []).map(stripCloudId);
     items.push(...page);
     if (page.length < pageSize) break;
@@ -289,7 +355,7 @@ async function listCollection(collection) {
 }
 
 async function getDocument(collection, id) {
-  const result = await collection.doc(id).get();
+  const result = await withCloudbaseRetry(() => activeCloudbaseCollection(collection).doc(id).get());
   const data = Array.isArray(result.data) ? result.data[0] : result.data;
   return data ? stripCloudId(data) : null;
 }
@@ -298,14 +364,18 @@ async function putDocument(collection, id, body) {
   const updateData = { ...body };
   delete updateData._id;
   const existing = await getDocument(collection, id).catch(() => null);
-  if (existing) await collection.doc(id).update(updateData);
-  else await collection.add({ ...updateData, _id: id });
+  if (existing) await withCloudbaseRetry(() => activeCloudbaseCollection(collection).doc(id).update(updateData));
+  else await withCloudbaseRetry(() => activeCloudbaseCollection(collection).add({ ...updateData, _id: id }));
   return body;
+}
+
+async function removeDocument(collection, id) {
+  return withCloudbaseRetry(() => activeCloudbaseCollection(collection).doc(String(id)).remove());
 }
 
 async function clearCollection(collection) {
   const items = await listCollection(collection);
-  await Promise.all(items.map((item) => collection.doc(String(item.id)).remove().catch(() => null)));
+  await Promise.all(items.map((item) => removeDocument(collection, item.id).catch(() => null)));
 }
 
 async function listCollectionOrEmpty(collection) {
@@ -333,16 +403,16 @@ async function deleteProjectCloudData(projectId) {
     .map((item) => item.fileId);
   if (projectPhotoFileIds.length && typeof app.deleteFile === 'function') {
     for (let index = 0; index < projectPhotoFileIds.length; index += 50) {
-      await app.deleteFile({ fileList: projectPhotoFileIds.slice(index, index + 50) });
+      await withCloudbaseRetry(() => app.deleteFile({ fileList: projectPhotoFileIds.slice(index, index + 50) }));
     }
   }
   let deletedRecords = 0;
   for (const [collection, items] of collectionItems) {
     const projectItems = items.filter((item) => String(item.projectId) === String(projectId));
-    await Promise.all(projectItems.map((item) => collection.doc(String(item.id)).remove()));
+    await Promise.all(projectItems.map((item) => removeDocument(collection, item.id)));
     deletedRecords += projectItems.length;
   }
-  await projectCollection.doc(String(projectId)).remove();
+  await removeDocument(projectCollection, projectId);
   return { deleted: true, projectId: String(projectId), deletedRecords, storage: 'cloudbase' };
 }
 
@@ -365,7 +435,7 @@ async function replaceNativeProjectIndex(projectId) {
     .filter((item) => String(item.projectId) === String(projectId));
   const existing = await listProjectData(projectId);
   const nativeItems = existing.filter((item) => item.source === 'smart-renew');
-  await Promise.all(nativeItems.map((item) => projectDataCollection.doc(String(item.id)).remove().catch(() => null)));
+  await Promise.all(nativeItems.map((item) => removeDocument(projectDataCollection, item.id).catch(() => null)));
   const records = buildNativeProjectIndex(project, analyses);
   await putDocuments(projectDataCollection, records);
   const combined = existing.filter((item) => item.source !== 'smart-renew').concat(records);
@@ -411,7 +481,7 @@ async function handleProjectDataApi(req, res, url, pathname) {
       return writeJson(res, 200, await putDocument(projectDataCollection, id, normalized));
     }
     if (req.method === 'DELETE' && recordMatch) {
-      await projectDataCollection.doc(recordMatch[1]).remove();
+      await removeDocument(projectDataCollection, recordMatch[1]);
       return writeJson(res, 200, { deleted: true, id: recordMatch[1] });
     }
     if (req.method === 'POST' && pathname === '/project-data/import') {
@@ -423,7 +493,7 @@ async function handleProjectDataApi(req, res, url, pathname) {
       if (body.mode === 'replace') {
         const existing = await listProjectData(projectId);
         const imported = existing.filter((item) => item.source !== 'smart-renew');
-        await Promise.all(imported.map((item) => projectDataCollection.doc(String(item.id)).remove().catch(() => null)));
+        await Promise.all(imported.map((item) => removeDocument(projectDataCollection, item.id).catch(() => null)));
       }
       const records = inputs.map((item) => normalizeProjectDataRecord(item, projectId));
       await putDocuments(projectDataCollection, records);
@@ -453,7 +523,7 @@ async function handleProjectDataApi(req, res, url, pathname) {
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '导入数据过大，请拆分后重试' });
     if (isCollectionMissingError(error)) return writeJson(res, 503, { message: 'CloudBase 缺少 projectDataRecords 集合，请创建后重试' });
-    return writeJson(res, 500, { message: error.message || '项目数据索引操作失败' });
+    return writeCloudbaseError(res, error, 500, '项目数据索引操作失败');
   }
 }
 
@@ -493,17 +563,17 @@ function isCollectionMissingError(error) {
 
 async function ensureSettingsCollection() {
   try {
-    await settingsCollection.limit(1).get();
+    await withCloudbaseRetry(() => activeCloudbaseCollection(settingsCollection).limit(1).get());
   } catch (error) {
     if (!isCollectionMissingError(error)) throw error;
-    await settingsCollection.add({ _id: '__init__', createdAt: new Date().toISOString() });
-    await settingsCollection.doc('__init__').remove().catch(() => null);
+    await withCloudbaseRetry(() => activeCloudbaseCollection(settingsCollection).add({ _id: '__init__', createdAt: new Date().toISOString() }));
+    await removeDocument(settingsCollection, '__init__').catch(() => null);
   }
 }
 
 async function ensureApiKeyUsersCollection() {
   try {
-    await apiKeyUsersCollection.limit(1).get();
+    await withCloudbaseRetry(() => activeCloudbaseCollection(apiKeyUsersCollection).limit(1).get());
   } catch (error) {
     if (isCollectionMissingError(error)) {
       throw new Error('CloudBase 数据库缺少 apiKeyUsers 集合，请先创建后再保存用户密钥');
@@ -514,20 +584,20 @@ async function ensureApiKeyUsersCollection() {
 
 async function ensureOfficialIssueCollection() {
   try {
-    await officialIssueCollection.limit(1).get();
+    await withCloudbaseRetry(() => activeCloudbaseCollection(officialIssueCollection).limit(1).get());
   } catch (error) {
     if (!isCollectionMissingError(error)) throw error;
-    await db.createCollection('officialIssues');
+    await withCloudbaseRetry(() => db.createCollection('officialIssues'));
   }
 }
 
 async function ensureCollection(collectionName, collection) {
   try {
-    await collection.limit(1).get();
+    await withCloudbaseRetry(() => activeCloudbaseCollection(collection).limit(1).get());
   } catch (error) {
     if (!isCollectionMissingError(error)) throw error;
     try {
-      await db.createCollection(collectionName);
+      await withCloudbaseRetry(() => db.createCollection(collectionName));
     } catch (createError) {
       if (!/already exist|已存在|RESOURCE_EXIST/i.test(String(createError?.message || createError))) throw createError;
     }
@@ -633,7 +703,7 @@ async function clearStoredApiKey() {
   await ensureSettingsCollection();
   apiKey = '';
   apiKeyLoaded = false;
-  await settingsCollection.doc('dashscopeApiKey').remove().catch(() => null);
+  await removeDocument(settingsCollection, 'dashscopeApiKey').catch(() => null);
 }
 
 async function listApiKeyUsers(req, res) {
@@ -661,7 +731,7 @@ async function configureUserKey(body) {
 
   if (body.clear === true) {
     if (!existing || !verifyPassword(password, existing.password)) throw new Error('用户名或密码不正确');
-    await apiKeyUsersCollection.doc(id).remove();
+    await removeDocument(apiKeyUsersCollection, id);
     return { ready: false, username, model: defaultModel, storage: 'cloudbase-user-encrypted' };
   }
 
@@ -733,7 +803,7 @@ async function handleStorageApi(req, res, url, pathname) {
     return writeJson(res, 404, { message: '数据接口不存在' });
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '保存数据过大，请压缩图片或分批处理' });
-    return writeJson(res, 500, { message: error.message || 'CloudBase 数据库存储失败' });
+    return writeCloudbaseError(res, error, 500, 'CloudBase 数据库存储失败');
   }
 }
 
@@ -798,13 +868,13 @@ async function handleFieldCollectionApi(req, res, pathname) {
     }
     return writeJson(res, 404, { message: '现场采集接口不存在' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '现场采集数据无效' });
+    return writeCloudbaseError(res, error, 400, '现场采集数据无效');
   }
 }
 
 async function photoWithTemporaryUrl(record) {
   if (!record?.fileId) return record;
-  const result = await app.getTempFileURL({ fileList: [{ fileID: record.fileId, maxAge: 3600 }] });
+  const result = await withCloudbaseRetry(() => app.getTempFileURL({ fileList: [{ fileID: record.fileId, maxAge: 3600 }] }));
   return { ...record, url: result.fileList?.[0]?.tempFileURL || '' };
 }
 
@@ -834,15 +904,15 @@ async function handlePhotoApi(req, res, url, pathname) {
       if (referenced) return writeJson(res, 409, { message: '该照片已被历史成果引用，不能删除' });
       if (record.fileId) {
         if (typeof app.deleteFile !== 'function') return writeJson(res, 500, { message: '当前云端环境不支持删除照片文件' });
-        await app.deleteFile({ fileList: [record.fileId] });
+        await withCloudbaseRetry(() => app.deleteFile({ fileList: [record.fileId] }));
       }
-      await photoRecordCollection.doc(photoId).remove();
+      await removeDocument(photoRecordCollection, photoId);
       return writeJson(res, 200, { deleted: true, item: { id: photoId }, storage: 'cloudbase-storage' });
     }
     if (req.method === 'GET' && contentMatch) {
       const record = await getDocument(photoRecordCollection, contentMatch[1]);
       if (!record?.fileId) return writeJson(res, 404, { message: '照片不存在' });
-      const downloaded = await app.downloadFile({ fileID: record.fileId });
+      const downloaded = await withCloudbaseRetry(() => app.downloadFile({ fileID: record.fileId }));
       res.writeHead(200, {
         'Content-Type': record.mimeType || 'application/octet-stream',
         'Cache-Control': 'private, max-age=3600',
@@ -874,7 +944,7 @@ async function handlePhotoApi(req, res, url, pathname) {
       const record = normalizePhotoUpload(body, project, decoded);
       const existing = await getDocument(photoRecordCollection, record.id).catch(() => null);
       if (existing) return writeJson(res, 200, { item: await photoWithTemporaryUrl(existing), duplicated: true });
-      const uploaded = await app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer });
+      const uploaded = await withCloudbaseRetry(() => app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer }));
       record.storage = 'cloudbase-storage';
       record.fileId = uploaded.fileID || '';
       await putDocument(photoRecordCollection, record.id, record);
@@ -887,7 +957,7 @@ async function handlePhotoApi(req, res, url, pathname) {
     return writeJson(res, 404, { message: '照片档案接口不存在' });
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '照片数据过大' });
-    return writeJson(res, 400, { message: error.message || '照片归档失败' });
+    return writeCloudbaseError(res, error, 400, '照片归档失败');
   }
 }
 
@@ -911,7 +981,7 @@ async function handleOfficialIssueApi(req, res, url, pathname) {
     }
     return writeJson(res, 404, { message: '正式问题接口不存在' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '正式问题写入失败' });
+    return writeCloudbaseError(res, error, 400, '正式问题写入失败');
   }
 }
 
@@ -942,7 +1012,7 @@ async function handleReportTemplateApi(req, res, pathname) {
     return writeJson(res, 405, { message: '不支持的报告模板操作' });
   } catch (error) {
     if (error.message === 'REQUEST_TOO_LARGE') return writeJson(res, 413, { message: '报告模板数据过大' });
-    return writeJson(res, 400, { message: error.message || '报告模板保存失败' });
+    return writeCloudbaseError(res, error, 400, '报告模板保存失败');
   }
 }
 
@@ -978,7 +1048,7 @@ async function handleReportSnapshotApi(req, res, url, pathname) {
     }
     return writeJson(res, 404, { message: '报告版本接口不存在' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '报告版本生成失败' });
+    return writeCloudbaseError(res, error, 400, '报告版本生成失败');
   }
 }
 
@@ -999,7 +1069,7 @@ async function storeMigratedCloudPhoto(project, analysis, dataUrl, meta, imageIn
   }, project, decoded);
   const existing = await getDocument(photoRecordCollection, record.id).catch(() => null);
   if (existing) return existing;
-  const uploaded = await app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer });
+  const uploaded = await withCloudbaseRetry(() => app.uploadFile({ cloudPath: record.cloudPath, fileContent: decoded.buffer }));
   record.storage = 'cloudbase-storage';
   record.fileId = uploaded.fileID || '';
   await putDocument(photoRecordCollection, record.id, record);
@@ -1059,7 +1129,7 @@ async function handleLegacyMigrationApi(req, res, url, pathname) {
     const after = auditLegacyData(projectId, await listCollection(analysisCollection), await listCollection(photoRecordCollection), await listCollection(officialIssueCollection));
     return writeJson(res, 200, { applied: true, migratedPhotos, migratedIssues, before, after });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '旧数据迁移失败' });
+    return writeCloudbaseError(res, error, 400, '旧数据迁移失败');
   }
 }
 
@@ -1077,7 +1147,7 @@ async function configureKey(req, res) {
     await saveStoredApiKey(nextKey);
     return writeJson(res, 200, { ready: true, model: defaultModel, storage: 'cloudbase-encrypted' });
   } catch (error) {
-    return writeJson(res, 400, { message: error.message || '密钥配置失败' });
+    return writeCloudbaseError(res, error, 400, '密钥配置失败');
   }
 }
 
@@ -1229,7 +1299,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health')) {
     const active = await getApiKeyFromRequest(req).catch(() => ({ key: '' }));
     const relay = await groupRelayStatus();
-    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, provider: 'dashscope', providers: { dashscope: Boolean(active.key), group: relay.ready }, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase') });
+    return writeJson(res, 200, { ready: Boolean(active.key), username: active.session?.username || '', model: defaultModel, provider: 'dashscope', providers: { dashscope: Boolean(active.key), group: relay.ready }, storage: active.session ? 'cloudbase-user-encrypted' : (active.key ? 'cloudbase-encrypted' : 'cloudbase'), cloudbaseAuth: cloudbaseAccessKey ? 'server-api-key' : 'runtime-temporary', cloudbaseStableAuth: Boolean(cloudbaseAccessKey) });
   }
   if (req.method === 'GET' && pathname === '/config/users') return listApiKeyUsers(req, res);
   if (req.method === 'POST' && pathname === '/config/key') return configureKey(req, res);
