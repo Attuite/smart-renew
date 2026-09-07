@@ -79,7 +79,8 @@ export function buildReportSnapshot({ project, issues, photos, analyses, existin
         indicatorCounts,
         items: issues.map((issue) => ({ ...issue }))
       },
-      communityAnalysis: project.communityAnalysis || null
+      communityAnalysis: project.communityAnalysis || null,
+      aiReportDraft: project.aiReportDraft || null
     },
     pdfFileId: '',
     schemaVersion: '1.0.0'

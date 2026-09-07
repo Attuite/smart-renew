@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.mjs",
+    "start": "set NODE_USE_ENV_PROXY=1&& node server.mjs",
     "check": "node --check server.mjs"
   }
 }

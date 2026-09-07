@@ -10,6 +10,7 @@
   var projectTabs = [
     { key: 'overview', label: '项目概览' },
     { key: 'ledger', label: '住宅台账' },
+    { key: 'photos', label: '照片档案' },
     { key: 'analysis', label: '住区分析' },
     { key: 'review', label: '人工复核' },
     { key: 'community', label: '社区／街区' },
@@ -28,7 +29,7 @@
     var parts = raw.split('/');
     if (parts[0] === 'project' && parts[1]) {
       var view = parts[2] || 'overview';
-      var legacyViews = { data: 'indicators', indicator: 'indicators', report: 'reports', photos: 'analysis' };
+      var legacyViews = { data: 'indicators', indicator: 'indicators', report: 'reports' };
       if (legacyViews[view]) view = legacyViews[view];
       if (!projectTabs.some(function (item) { return item.key === view; })) view = 'overview';
       return {
@@ -54,7 +55,8 @@
       analysis: 'outcomes',
       diagnostic: 'outcomes',
       settings: 'settings',
-      'ai-config': 'settings'
+      'ai-config': 'settings',
+      'text-config': 'settings'
     };
     if (!primaryByPage[raw]) raw = 'home';
     return {

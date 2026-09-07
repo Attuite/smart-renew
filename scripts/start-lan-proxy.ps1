@@ -77,6 +77,7 @@ if ($UseCloudBaseApi) {
   Remove-Item Env:\CLOUDBASE_API_ORIGIN -ErrorAction SilentlyContinue
 }
 $env:NO_PROXY = (($env:NO_PROXY -split ',' | Where-Object { $_ }) + @('jcpt.cscec.com', '10.240.254.135', '127.0.0.1', 'localhost') | Select-Object -Unique) -join ','
+$env:NODE_USE_ENV_PROXY = '1'
 
 Write-Host "Smart Renew proxy: http://$lanAddress`:$Port"
 ("{0:o} starting http://{1}:{2}" -f [DateTime]::Now, $lanAddress, $Port) | Out-File -LiteralPath $runtimeLog -Encoding utf8 -Append
@@ -101,5 +102,5 @@ try {
   }
 } finally {
   Pop-Location
-  Remove-Item Env:\GROUP_VISION_API_KEY,Env:\GROUP_VISION_BASE_URL,Env:\GROUP_VISION_MODEL,Env:\GROUP_RELAY_SECRET,Env:\SMART_RENEW_TRUSTED_LAN_PREFIX -ErrorAction SilentlyContinue
+  Remove-Item Env:\GROUP_VISION_API_KEY,Env:\GROUP_VISION_BASE_URL,Env:\GROUP_VISION_MODEL,Env:\GROUP_RELAY_SECRET,Env:\SMART_RENEW_TRUSTED_LAN_PREFIX,Env:\NODE_USE_ENV_PROXY -ErrorAction SilentlyContinue
 }
