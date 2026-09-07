@@ -50,6 +50,11 @@ New-Item -ItemType Directory -Path $stageRoot | Out-Null
 try {
   Copy-Item -LiteralPath $indexPath -Destination (Join-Path $stageRoot 'index.html')
   Copy-Item -LiteralPath (Join-Path $projectRoot 'assets') -Destination (Join-Path $stageRoot 'assets') -Recurse
+  $excludedPdf = Join-Path $stageRoot 'assets\reports\mianyang-2025-city-health-report.pdf'
+  if (Test-Path -LiteralPath $excludedPdf) {
+    Remove-Item -LiteralPath $excludedPdf -Force
+    Write-Host 'Excluded private reference PDF from public deployment.'
+  }
   Get-ChildItem -LiteralPath $stageRoot -File -Recurse | ForEach-Object { $_.IsReadOnly = $false }
   tcb hosting deploy $stageRoot --env-id $target.envId --json
   if ($LASTEXITCODE -ne 0) { throw 'Index upload failed.' }
