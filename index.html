@@ -768,6 +768,20 @@ body.project-overview-drawer-open{overflow:hidden}
 .project-scope-builder{margin-top:22px;border:1px solid var(--editorial-line);background:#f7f5f0;padding:20px}
 .project-scope-toolbar{display:grid;grid-template-columns:minmax(240px,1fr) auto auto;gap:10px;align-items:center;margin-bottom:12px}
 .project-scope-map{height:440px;background:#e8e4dc;border:1px solid var(--editorial-line)}
+.project-scope-map-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,1fr);gap:12px}
+.project-scope-map-layout .project-scope-map{min-width:0;height:640px}
+.scope-map-sidebar{height:640px;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px solid var(--editorial-line);background:transparent}
+.scope-map-sidebar-heading{padding:14px;border-bottom:1px solid var(--editorial-line)}.scope-map-sidebar-heading strong{display:block}.scope-map-sidebar-heading span{font-size:.75rem;color:var(--editorial-muted)}
+.scope-map-sidebar .scope-inventory{margin:0;border:0;padding:12px;flex:1;min-height:0;overflow:auto;background:transparent}
+.scope-map-sidebar .scope-inventory-summary{position:sticky;top:-12px;z-index:3;background:var(--editorial-bg);padding:12px 0;border-bottom:1px solid var(--editorial-line);font-size:.8rem}
+.scope-map-sidebar .scope-inventory-actions{flex-direction:row;flex-wrap:wrap;gap:6px}.scope-map-sidebar .scope-inventory-actions .btn{padding:8px 10px;font-size:.72rem}
+.scope-map-sidebar .scope-inventory-scroll{max-height:none;overflow:visible}.scope-map-sidebar .scope-inventory-table{display:block;min-width:0;width:100%}.scope-map-sidebar .scope-inventory-table thead{display:none}.scope-map-sidebar .scope-inventory-table tbody{display:block}
+.scope-map-sidebar .scope-inventory-table tr{display:grid;grid-template-columns:22px 24px minmax(0,1fr) minmax(0,1fr);gap:6px;border:1px solid var(--editorial-line);margin-bottom:10px;padding:10px}
+.scope-map-sidebar .scope-inventory-table td{padding:0;border:0;min-width:0;overflow-wrap:anywhere}.scope-map-sidebar .scope-inventory-table td:nth-child(3){grid-column:3 / -1}.scope-map-sidebar .scope-inventory-table td:nth-child(4){grid-column:3}.scope-map-sidebar .scope-inventory-table td:nth-child(4)::before{content:'楼栋数';display:block;margin:6px 0}.scope-map-sidebar .scope-inventory-table td:nth-child(5)::before{content:'户数';display:block;margin:6px 0}.scope-map-sidebar .scope-inventory-table td:nth-child(6){grid-column:3 / -1}
+.scope-map-sidebar .scope-inventory-table input:not([type=checkbox]){width:100%;box-sizing:border-box}.scope-map-sidebar .scope-member-row{display:block}.scope-map-sidebar .scope-data-note{overflow-wrap:anywhere}
+.scope-map-sidebar tr:not(.scope-draft-expanded) td:nth-child(3)>:not(.scope-map-item),.scope-map-sidebar tr:not(.scope-draft-expanded) td:nth-child(n+4){display:none}.scope-map-sidebar .scope-map-item{margin-bottom:0}.scope-map-sidebar .scope-draft-expanded .scope-map-item{margin-bottom:6px}
+.scope-map-item{display:block;width:100%;text-align:left;padding:8px;margin-bottom:6px;border:1px solid var(--editorial-line);background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;overflow-wrap:anywhere}.scope-map-item:hover,.scope-map-item[aria-pressed="true"]{border-color:#c99454;background:rgba(201,148,84,.13)}.scope-map-item:focus-visible{outline:2px solid #c99454;outline-offset:1px}.scope-map-item:disabled{opacity:.65;cursor:default}.scope-map-empty{padding:16px;font-size:.8rem;color:var(--editorial-muted)}
+@media(max-width:720px){.project-scope-map-layout{grid-template-columns:1fr}.project-scope-map-layout .project-scope-map{height:360px}.scope-map-sidebar{height:520px}}
 .project-scope-status{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:.78rem;color:var(--editorial-muted)}
 .project-scope-status strong{color:var(--editorial-ink)}
 .scope-inventory{margin-top:16px;background:#fff;border:1px solid var(--editorial-line);padding:16px}
@@ -1021,9 +1035,8 @@ body.home-step-2 .home-capability-stage{opacity:1;pointer-events:auto;transform:
 <button type="button" class="btn btn-outline" onclick="locateProjectScope()">定位</button>
 <button type="button" class="btn btn-primary" onclick="startProjectScopeDraw()">开始框选</button>
 </div>
-<div class="project-scope-map" id="projectScopeMap"></div>
+<div class="project-scope-map-layout"><div class="project-scope-map" id="projectScopeMap"></div><aside class="scope-map-sidebar" aria-label="小区台账与合并操作"><div class="scope-map-sidebar-heading"><strong>小区台账与合并</strong><span>点击名称展开并定位 · 勾选对比合并</span></div><div class="scope-inventory" id="projectScopeInventory"><p class="scope-map-empty">框选范围后显示识别的小区</p></div></aside></div>
 <div class="project-scope-status" id="projectScopeStatus"><strong>尚未框选</strong><span>项目创建前必须完成范围框选</span></div>
-<div class="scope-inventory" id="projectScopeInventory" style="display:none;"></div>
 </div>
 <div class="text-center mt-8"><button class="btn btn-primary btn-lg" id="projectCreateSubmit" onclick="createInspectionProject()">创建项目并设为当前项目</button></div>
 </div>
@@ -1838,7 +1851,7 @@ var toolbar='<div class="scope-ledger-toolbar"><span style="font-size:.76rem;col
 var rows=items.map(function(item,index){var merged=Array.isArray(item.members)&&item.members.length>1,nameHtml=merged?'<input class="scope-name-input" value="'+escapeHtml(item.name||'合并小区')+'" aria-label="合并后小区名称"><span class="scope-merge-badge">已合并 '+item.members.length+' 项</span>':'<strong>'+escapeHtml(item.name||'未命名住宅小区')+'</strong>',memberHtml=merged?'<details class="scope-member-details"><summary>展开分区（'+item.members.length+'）</summary><div class="scope-member-list">'+item.members.map(function(member,memberIndex){return'<div class="scope-member-row"><span>'+escapeHtml(member.name||'原始小区')+'</span><select class="scope-zone-select" data-member-index="'+memberIndex+'" aria-label="'+escapeHtml(member.name||'原始小区')+'分区">'+scopeZoneOptions(member.zone||inferCommunityZone(member.name))+'</select></div>';}).join('')+'</div></details>':'',buildingHtml=scopeBuildingDetailsHtml(project.id,item,index),hasBuildingDetails=Array.isArray(item.buildings)&&item.buildings.some(function(building){return building.status!=='deleted';}),totals=scopeItemTotals(item),rowActions='<div class="scope-row-actions">'+(merged?'<button class="btn btn-outline" onclick="splitScopeCommunity('+project.id+','+index+')">拆分</button>':'')+'<button class="btn btn-outline" style="color:var(--red-500);" onclick="deleteScopeCommunity('+project.id+','+index+')">删除</button></div>';return'<tr data-scope-index="'+index+'"><td><input class="scope-select" type="checkbox" value="'+index+'" aria-label="选择 '+escapeHtml(item.name||'小区')+'"></td><td>'+(index+1)+'</td><td>'+nameHtml+'<div style="color:var(--editorial-muted);margin-top:3px;">'+escapeHtml(item.address||'地址未返回')+'</div>'+memberHtml+buildingHtml+'</td><td><input class="scope-building-input" type="number" min="0" step="1" placeholder="待补录" '+(hasBuildingDetails?'readonly title="已由楼栋明细自动统计"':'')+' value="'+(totals.buildingCount==null?'':escapeHtml(String(totals.buildingCount)))+'"></td><td><input class="scope-household-input" type="number" min="0" step="1" placeholder="待补录" '+(hasBuildingDetails?'readonly title="已由楼栋明细自动统计"':'')+' value="'+(totals.householdCount==null?'':escapeHtml(String(totals.householdCount)))+'"></td><td>'+rowActions+'</td></tr>';}).join('');
 return metrics+actions+toolbar+'<div class="project-record-table-wrap scope-inventory-scroll"><table class="scope-inventory-table" style="min-width:980px;"><thead><tr><th><input type="checkbox" onchange="toggleAllScopeCommunities(this.checked)" aria-label="全选小区"></th><th>序号</th><th>小区名称、地址与分区</th><th>楼栋数</th><th>户数</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="scope-data-note">合并和删除操作会立即保存。删除项进入项目回收站；未核实的数据保持“待补录”，系统不进行估算。</p>'+projectScopeRecycleHtml(project.id,deletedItems);
 }
-function scopeZoneOptions(selected){var options=['未指定','A区','B区','C区','D区','东区','西区','南区','北区','一期','二期','三期','其他分区'];return options.map(function(option){return'<option value="'+option+'" '+(option===selected?'selected':'')+'>'+option+'</option>';}).join('');}
+function scopeZoneOptions(selected){var options=['未指定','A区','B区','C区','D区','东区','西区','南区','北区','一期','二期','三期','其他分区'];if(selected&&options.indexOf(selected)<0)options.push(selected);return options.map(function(option){return'<option value="'+escapeHtml(option)+'" '+(option===selected?'selected':'')+'>'+escapeHtml(option)+'</option>';}).join('');}
 function scopeBuildingDetailsHtml(projectId,item,itemIndex){
 var allBuildings=Array.isArray(item.buildings)?item.buildings:[],buildings=allBuildings.filter(function(building){return building.status!=='deleted';});
 var rows=buildings.map(function(building){return scopeBuildingDetailRowHtml(projectId,itemIndex,building);}).join('');
@@ -2601,6 +2614,24 @@ return projectReadCache[projectId];
 
 var projectScopeMap=null,projectScopeMouseTool=null,projectScopePolygon=null,projectScopeGeocoder=null,projectScopeSearchToken=0,projectScopeEditingProjectId=null;
 var projectScopeDraft={boundary:null,areaSqKm:0,center:null,inventory:[],identifiedAt:null};
+var projectScopeFocusMarker=null,projectScopeFocusedId=null;
+function clearScopeCommunityFocus(){if(projectScopeFocusMarker&&projectScopeMap)projectScopeMap.remove(projectScopeFocusMarker);projectScopeFocusMarker=null;projectScopeFocusedId=null;}
+function scopeCommunityPosition(item){var candidates=[item].concat(scopeCommunityLeaves(item));for(var i=0;i<candidates.length;i++){var candidate=candidates[i];if(Number.isFinite(scopeCommunityDistance(candidate,candidate)))return[Number(candidate.lng),Number(candidate.lat)];}return null;}
+function renderScopeMapList(message){
+clearScopeCommunityFocus();var root=document.getElementById('projectScopeInventory');if(!root)return;
+if(message||!(projectScopeDraft.inventory||[]).length){root.style.display='block';root.innerHTML='<p class="scope-map-empty">'+escapeHtml(message||'框选范围后显示识别的小区')+'</p>';}
+}
+function toggleScopeCommunityDetails(index){
+var button=document.querySelector('#projectScopeInventory [data-scope-map-index="'+index+'"]');if(!button)return;
+var row=button.closest('tr'),expanded=row.classList.toggle('scope-draft-expanded');button.setAttribute('aria-expanded',String(expanded));
+var item=(projectScopeDraft.inventory||[])[index];if(expanded&&item&&scopeCommunityPosition(item))focusScopeCommunity(index);
+}
+function focusScopeCommunity(index){
+var item=(projectScopeDraft.inventory||[])[index],position=item&&scopeCommunityPosition(item);if(!projectScopeMap||!position){showToast('该小区暂无可定位坐标','info');return;}
+clearScopeCommunityFocus();projectScopeFocusedId=item.id;
+projectScopeFocusMarker=new AMap.Marker({position:position,title:item.name||'小区',zIndex:200});projectScopeMap.add(projectScopeFocusMarker);projectScopeMap.setZoomAndCenter(17,position);
+document.querySelectorAll('#projectScopeInventory .scope-map-item').forEach(function(button){button.setAttribute('aria-pressed',String(Number(button.getAttribute('data-scope-map-index'))===index));});
+}
 async function initProjectScopeMap(){
 if(typeof AMap==='undefined'){var status=document.getElementById('projectScopeStatus');if(status)status.innerHTML='<strong style="color:var(--red-500);">地图加载失败</strong><span>请检查网络后重新进入页面</span>';return;}
 if(projectScopeMap){projectScopeMap.resize();renderProjectScopeDraftOnMap();return;}
@@ -2616,6 +2647,7 @@ if(areaInput&&locationInput&&!locationInput.value)locationInput.value=areaInput.
 renderProjectScopeDraftOnMap();
 }
 function renderProjectScopeDraftOnMap(){
+renderScopeMapList();
 if(!projectScopeMap||!projectScopeDraft.boundary||projectScopeDraft.boundary.length<3)return;
 if(projectScopePolygon){try{projectScopeMap.remove(projectScopePolygon);}catch(e){}}
 projectScopePolygon=new AMap.Polygon({path:projectScopeDraft.boundary,strokeColor:'#2563eb',strokeWeight:3,strokeOpacity:.9,fillColor:'#2563eb',fillOpacity:.12});projectScopeMap.add(projectScopePolygon);projectScopeMap.setFitView([projectScopePolygon]);
@@ -2634,7 +2666,8 @@ async function startProjectScopeDraw(){
 await initProjectScopeMap();if(!projectScopeMouseTool){showToast('地图绘制工具尚未加载','error');return;}
 if(projectScopePolygon){try{projectScopeMap.remove(projectScopePolygon);}catch(e){}projectScopePolygon=null;}
 projectScopeDraft={boundary:null,areaSqKm:0,center:null,inventory:[],identifiedAt:null};
-var inventory=document.getElementById('projectScopeInventory');if(inventory)inventory.style.display='none';
+projectScopeSearchToken++;renderScopeMapList('正在框选，完成后自动识别小区');
+var inventory=document.getElementById('projectScopeInventory');if(inventory)inventory.style.display='block';
 var status=document.getElementById('projectScopeStatus');if(status)status.innerHTML='<strong>正在框选</strong><span>依次点击边界节点，双击结束绘制</span>';
 projectScopeMouseTool.polygon({strokeColor:'#2563eb',strokeWeight:3,strokeOpacity:.9,fillColor:'#2563eb',fillOpacity:.12});
 }
@@ -2653,25 +2686,96 @@ function latNumber(point){return typeof point.getLat==='function'?point.getLat()
 function fallbackPolygonArea(path){var avgLat=path.reduce(function(sum,p){return sum+p[1];},0)/path.length*Math.PI/180,metersPerLng=111320*Math.cos(avgLat),metersPerLat=110540,area=0;for(var i=0,j=path.length-1;i<path.length;j=i++){area+=(path[j][0]*metersPerLng)*(path[i][1]*metersPerLat)-(path[i][0]*metersPerLng)*(path[j][1]*metersPerLat);}return Math.abs(area/2);}
 function formatScopeArea(value){if(!value)return'待框选';return value<1?Math.round(value*1000000).toLocaleString('zh-CN')+' ㎡':value.toFixed(2)+' km²';}
 function pointInsideBoundary(lng,lat,path){var inside=false;for(var i=0,j=path.length-1;i<path.length;j=i++){var xi=path[i][0],yi=path[i][1],xj=path[j][0],yj=path[j][1],hit=((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi);if(hit)inside=!inside;}return inside;}
+// Scope recognition keeps source records in members so every merge can be reversed.
+function scopeCommunityNameParts(value){
+var name=String(value||'').normalize('NFKC').replace(/\s+/g,'').toLowerCase(),plain=name.replace(/[()（）·•\-—_]/g,''),base=plain,parts=[];
+var suffix=/(?:([东西南北中][东西南北]?区|第?[一二三四五六七八九十百0-9]+期)|((?:[东西南北][东西南北]?)?门(?:入口|出口)?|出入口|入口|出口|第?[一二三四五六七八九十百0-9]+(?:号楼|号栋|栋|幢)))(?:出入口)?$/;
+for(var i=0;i<4;i++){var match=base.match(suffix);if(!match)break;parts.unshift(match[0]);base=base.slice(0,match.index);}
+// Only strip suffixes from an unambiguous residential name.
+if(!/(小区|花园|家园|公寓|新村|苑|住宅区|社区|山庄|雅居|府|城|湾)$/.test(base)||base.length<3){base=plain;parts=[];}
+return{full:plain,base:base,zone:parts.filter(function(part){return /区$|期$/.test(part);}).join(' / '),detail:parts.join(' / ')};
+}
+function scopeCommunityAddress(value){return String(value||'').normalize('NFKC').replace(/\s+/g,'').replace(/[，,。；;]/g,'');}
+function scopeCommunityDistance(a,b){
+if([a.lng,a.lat,b.lng,b.lat].some(function(value){return value==null||String(value).trim()==='';}))return Infinity;
+var coords=[a.lng,a.lat,b.lng,b.lat].map(Number);if(!coords.every(Number.isFinite)||Math.abs(coords[0])>180||Math.abs(coords[2])>180||Math.abs(coords[1])>90||Math.abs(coords[3])>90)return Infinity;
+if((coords[0]===0&&coords[1]===0)||(coords[2]===0&&coords[3]===0))return Infinity;
+var rad=Math.PI/180,dlat=(coords[3]-coords[1])*rad,dlng=(coords[2]-coords[0])*rad,h=Math.sin(dlat/2)**2+Math.cos(coords[1]*rad)*Math.cos(coords[3]*rad)*Math.sin(dlng/2)**2;
+return 6371000*2*Math.asin(Math.sqrt(Math.min(1,h)));
+}
+function scopeCommunityPair(a,b){
+var na=scopeCommunityNameParts(a.name),nb=scopeCommunityNameParts(b.name),distance=scopeCommunityDistance(a,b),aa=scopeCommunityAddress(a.address),ab=scopeCommunityAddress(b.address);
+if(!na.base||!nb.base)return null;
+var sameAddress=!!aa&&aa===ab,sameFamily=na.base===nb.base;
+if(sameFamily&&sameAddress&&distance<=(na.full===nb.full?120:(na.zone||nb.zone?600:350)))return{automatic:true,reason:na.full===nb.full?'同名、同址且位置一致':(na.zone||nb.zone?'同一小区分期／分区，已保留':'同一小区楼栋／出入口')};
+if(distance<=30)return{automatic:true,needsReview:true,reason:'位置基本重合（30米内），名称或地址存在差异'};
+var related=sameFamily||(Math.min(na.base.length,nb.base.length)>=4&&(na.base.indexOf(nb.base)>=0||nb.base.indexOf(na.base)>=0));
+if(related&&(distance<=1000||(sameAddress&&!Number.isFinite(distance))))return{automatic:true,needsReview:true,reason:sameFamily?'名称指向同一小区，地址或位置需核对':'名称相近且位置／地址相关，需核对'};
+return null;
+}
+function scopeCommunityLeaves(item){return Array.isArray(item.members)&&item.members.length?item.members.reduce(function(all,member){return all.concat(scopeCommunityLeaves(member));},[]):[item];}
+function makeScopeDraftMerge(selected,automatic,reason){
+var originals=JSON.parse(JSON.stringify(selected)),leaves=originals.reduce(function(all,item){return all.concat(scopeCommunityLeaves(item));},[]),parts=leaves.map(function(item){return scopeCommunityNameParts(item.name);}),common=parts.every(function(part){return part.base===parts[0].base;}),anchor=leaves.find(function(item){var part=scopeCommunityNameParts(item.name);return part.full===part.base;})||leaves[0];
+originals.forEach(function(item){if(!item.zone)item.zone=scopeCommunityNameParts(item.name).zone;});
+return{id:'scope-merged-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),name:common?(leaves.find(function(item){return scopeCommunityNameParts(item.name).full===parts[0].base;})||{}).name||parts[0].base:selected[0].name,address:Array.from(new Set(leaves.map(function(item){return item.address;}).filter(Boolean))).join('；'),lng:anchor.lng,lat:anchor.lat,buildingCount:null,householdCount:null,dataSource:automatic?'高德地图范围检索＋自动归并':'人工合并',mergeReason:reason,mergedAt:new Date().toISOString(),members:originals};
+}
+function consolidateScopeCommunities(items){
+var groups=[];
+items.forEach(function(item){var group=groups.find(function(entries){return entries.every(function(other){var pair=scopeCommunityPair(item,other);return pair&&pair.automatic;});});if(group)group.push(item);else groups.push([item]);});
+return groups.map(function(group){
+if(group.length===1)return group[0];
+var reasons=[],needsReview=false;
+for(var i=0;i<group.length;i++)for(var j=i+1;j<group.length;j++){var pair=scopeCommunityPair(group[i],group[j]);if(reasons.indexOf(pair.reason)<0)reasons.push(pair.reason);if(pair.needsReview)needsReview=true;}
+var merged=makeScopeDraftMerge(group,true,reasons.join('；'));merged.mergeNeedsReview=needsReview;return merged;
+});
+}
+function scopeDraftSuspicions(items){
+var matches=items.map(function(){return[];});
+for(var i=0;i<items.length;i++)for(var j=i+1;j<items.length;j++){var related=scopeCommunityLeaves(items[i]).some(function(a){return scopeCommunityLeaves(items[j]).some(function(b){return !!scopeCommunityPair(a,b);});});if(related){matches[i].push(j+1);matches[j].push(i+1);}}
+return matches;
+}
+function mergeSelectedScopeDraft(){
+var indexes=Array.from(document.querySelectorAll('#projectScopeInventory .scope-draft-select:checked')).map(function(input){return Number(input.value);}),items=projectScopeDraft.inventory||[];
+if(indexes.length<2){showToast('请勾选至少两个确认属于同一小区的条目','info');return;}
+var selected=indexes.map(function(index){return items[index];});if(selected.some(function(item){return !String(item.name||'').trim();})){showToast('请先填写小区名称','info');return;}
+var merged=makeScopeDraftMerge(selected,false,'用户确认属于同一小区');projectScopeDraft.inventory=items.reduce(function(next,item,index){if(index===indexes[0])next.push(merged);if(indexes.indexOf(index)<0)next.push(item);return next;},[]);renderProjectScopeInventoryDraft();showToast('已合并，原始条目已保留；请核实总楼栋数和户数','success');
+}
+function splitScopeDraft(index){
+var items=projectScopeDraft.inventory||[],item=items[index];if(!item||!Array.isArray(item.members))return;
+if((item.buildingCount!=null||item.householdCount!=null)&&!confirm('拆回将恢复各原始条目的数量，合并后填写的总楼栋数和户数不会分摊。确定拆回？'))return;
+items.splice.apply(items,[index,1].concat(JSON.parse(JSON.stringify(item.members))));renderProjectScopeInventoryDraft();
+}
 function identifyResidentialCommunities(){
-if(!projectScopeDraft.boundary||!projectScopePolygon)return;var manualItems=(projectScopeDraft.inventory||[]).filter(function(item){return item.source==='manual'||item.dataSource==='人工补录';}),token=++projectScopeSearchToken,bounds=projectScopePolygon.getBounds(),keywords=['住宅小区','小区','家园','花园'],results={},pending=keywords.length;
+if(!projectScopeDraft.boundary||!projectScopePolygon)return;var manualItems=(projectScopeDraft.inventory||[]).reduce(function(all,item){return all.concat(scopeCommunityLeaves(item));},[]).filter(function(item){return item.source==='manual'||item.dataSource==='人工补录';}),token=++projectScopeSearchToken,bounds=projectScopePolygon.getBounds(),keywords=['住宅小区','小区','家园','花园'],results={},pending=keywords.length;
 var inventory=document.getElementById('projectScopeInventory');if(inventory){inventory.style.display='block';inventory.innerHTML='<div style="padding:18px;text-align:center;color:var(--editorial-muted);">正在检索并核对边界内住宅小区…</div>';}
-function finishOne(){pending--;if(pending<=0&&token===projectScopeSearchToken){var items=Object.keys(results).map(function(key){return results[key];}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),'zh-CN');});projectScopeDraft.inventory=items.concat(manualItems);projectScopeDraft.identifiedAt=new Date().toISOString();renderProjectScopeInventoryDraft();}}
+renderScopeMapList('正在识别并归并范围内小区…');
+function finishOne(){pending--;if(pending<=0&&token===projectScopeSearchToken){var items=Object.keys(results).map(function(key){return results[key];}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),'zh-CN');});projectScopeDraft.inventory=consolidateScopeCommunities(items).concat(manualItems);projectScopeDraft.identifiedAt=new Date().toISOString();renderProjectScopeInventoryDraft();}}
 function searchPage(keyword,pageIndex){var search=new AMap.PlaceSearch({type:'120300',pageSize:50,pageIndex:pageIndex,autoFitView:false,citylimit:false});search.searchInBounds(keyword,bounds,function(status,result){if(token!==projectScopeSearchToken){finishOne();return;}var list=(status==='complete'&&result.poiList&&result.poiList.pois)||[];for(var i=0;i<list.length;i++){var poi=list[i];if(!poi.location)continue;var lng=lngNumber(poi.location),lat=latNumber(poi.location),text=(poi.name||'')+' '+(poi.type||'');if(!pointInsideBoundary(lng,lat,projectScopeDraft.boundary)||!/小区|家园|花园|公寓|住宅|社区/.test(text))continue;if(/酒店|写字楼|商场|售楼处|公司|产业园/.test(text))continue;var key=poi.id||((poi.name||'')+'_'+lng.toFixed(5)+'_'+lat.toFixed(5));if(!results[key])results[key]={id:String(key),name:poi.name||'未命名住宅小区',address:poi.address||'',lng:lng,lat:lat,buildingCount:null,householdCount:null,dataSource:'高德地图范围检索'};}
 var total=(result&&result.poiList&&parseInt(result.poiList.count,10))||0;if(list.length===50&&pageIndex<5&&pageIndex*50<total)searchPage(keyword,pageIndex+1);else finishOne();});}
 for(var k=0;k<keywords.length;k++)searchPage(keywords[k],1);
 }
 function renderProjectScopeInventoryDraft(){
+renderScopeMapList();
 var root=document.getElementById('projectScopeInventory'),status=document.getElementById('projectScopeStatus'),items=projectScopeDraft.inventory||[];
 if(status)status.innerHTML='<strong>范围已框选 · '+formatScopeArea(projectScopeDraft.areaSqKm)+'</strong><span>识别到 '+items.length+' 个住宅小区</span>';
 if(!root)return;root.style.display='block';
-var actions='<div class="scope-inventory-actions"><button type="button" class="btn btn-outline btn-sm" onclick="identifyResidentialCommunities()">重新识别</button><button type="button" class="btn btn-primary btn-sm" onclick="addManualScopeCommunity()">手动添加小区</button></div>';
+var actions='<div class="scope-inventory-actions"><button type="button" class="btn btn-outline btn-sm" onclick="if(confirm(\'重新识别会重建识别清单，覆盖合并、拆分和数量编辑。是否继续？\'))identifyResidentialCommunities()">重新识别</button><button type="button" class="btn btn-primary btn-sm" onclick="addManualScopeCommunity()">手动添加小区</button><button type="button" class="btn btn-outline btn-sm" onclick="mergeSelectedScopeDraft()">将勾选项合并为同一小区</button></div>';
 if(!items.length){root.innerHTML='<div class="scope-inventory-summary"><strong>范围内暂未检索到住宅小区</strong>'+actions+'</div><p class="scope-data-note">可手动补录实际存在的小区；系统不会虚构小区、楼栋或户数。</p>';return;}
-var rows=items.map(function(item,index){var manual=item.source==='manual'||item.dataSource==='人工补录',detail=manual?'<input type="text" class="scope-name-input" placeholder="请输入小区名称" value="'+escapeHtml(item.name||'')+'" onchange="updateScopeDraftText('+index+',\'name\',this.value)"><input type="text" class="scope-address-input" placeholder="请输入小区地址（可选）" value="'+escapeHtml(item.address||'')+'" onchange="updateScopeDraftText('+index+',\'address\',this.value)">':'<strong>'+escapeHtml(item.name)+'</strong><div style="color:var(--editorial-muted);margin-top:3px;">'+escapeHtml(item.address||'地址未返回')+'</div>';return'<tr data-scope-draft-id="'+escapeHtml(item.id||'')+'"><td>'+(index+1)+'</td><td>'+detail+'</td><td><input type="number" min="0" step="1" placeholder="待补录" value="'+(item.buildingCount==null?'':item.buildingCount)+'" onchange="updateScopeDraftCount('+index+',\'buildingCount\',this.value)"></td><td><input type="number" min="0" step="1" placeholder="待补录" value="'+(item.householdCount==null?'':item.householdCount)+'" onchange="updateScopeDraftCount('+index+',\'householdCount\',this.value)"></td></tr>';}).join('');
-root.innerHTML='<div class="scope-inventory-summary"><strong>已录入 '+items.length+' 个住宅小区</strong>'+actions+'</div><div class="project-record-table-wrap scope-inventory-scroll"><table class="scope-inventory-table"><thead><tr><th>序号</th><th>小区名称与地址</th><th>楼栋数</th><th>户数</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="scope-data-note">自动识别项来自高德地图范围检索；人工添加项可直接编辑，楼栋数、户数未填写时保存为“待补录”。</p>';
+var suspicions=scopeDraftSuspicions(items),sourceCount=items.reduce(function(sum,item){return sum+scopeCommunityLeaves(item).length;},0);
+var rows=items.map(function(item,index){
+var merged=Array.isArray(item.members)&&item.members.length>0,editable=merged||item.source==='manual'||item.dataSource==='人工补录';
+var position=scopeCommunityPosition(item),locate='<button type="button" class="scope-map-item" data-scope-map-index="'+index+'" aria-pressed="false" aria-expanded="false" onclick="toggleScopeCommunityDetails('+index+')">'+escapeHtml(item.name||'未命名小区')+'</button>';
+var detail=editable?'<input type="text" class="scope-name-input" aria-label="小区名称" placeholder="请输入小区名称" value="'+escapeHtml(item.name||'')+'" onchange="updateScopeDraftText('+index+',\'name\',this.value)"><input type="text" class="scope-address-input" aria-label="小区地址" placeholder="请输入小区地址（可选）" value="'+escapeHtml(item.address||'')+'" onchange="updateScopeDraftText('+index+',\'address\',this.value)">':'<strong>'+escapeHtml(item.name)+'</strong><div style="color:var(--editorial-muted);margin-top:3px;">'+escapeHtml(item.address||'地址未返回')+'</div>';
+detail=locate+(editable?'<details><summary>编辑名称与地址</summary>'+detail+'</details>':'<div style="color:var(--editorial-muted)">'+escapeHtml(item.address||'地址未返回')+'</div>')+(!position?'<p class="scope-data-note">暂无坐标，无法在地图定位</p>':'');
+if(merged)detail+='<span class="scope-merge-badge">'+escapeHtml(item.dataSource||'已合并')+' · '+scopeCommunityLeaves(item).length+' 个原始条目</span><details class="scope-member-details"><summary>查看原始条目与分区</summary><p>'+escapeHtml(item.mergeReason||'人工确认合并')+'</p>'+scopeCommunityLeaves(item).map(function(member){var part=scopeCommunityNameParts(member.name);return'<div class="scope-member-row"><span>'+escapeHtml(member.name||'未命名')+(member.zone||part.zone?' · 分区：'+escapeHtml(member.zone||part.zone):'')+'<br>'+escapeHtml(member.address||'地址未返回')+'<br>来源：'+escapeHtml(member.dataSource||'高德地图范围检索')+' · '+escapeHtml(member.id||'')+'</span></div>';}).join('')+'</details>';
+if(item.mergeNeedsReview)detail+='<p class="scope-data-note" style="color:#9a6700;">疑似同一小区，已自动合并 · 待核对。'+escapeHtml(item.mergeReason||'')+'；如有误可拆回。</p>';
+if(suspicions[index].length)detail+='<p class="scope-data-note" style="color:#9a6700;">与第 '+suspicions[index].join('、')+' 项中的部分条目相关，但整组归并依据不足或已被拆回；可核对后勾选合并。</p>';
+return'<tr data-scope-draft-id="'+escapeHtml(item.id||'')+'"><td><input class="scope-draft-select" type="checkbox" value="'+index+'" aria-label="选择第 '+(index+1)+' 项 '+escapeHtml(item.name||'小区')+'"></td><td>'+(index+1)+'</td><td>'+detail+'</td><td><input type="number" min="0" step="1" placeholder="待补录" value="'+(item.buildingCount==null?'':item.buildingCount)+'" onchange="updateScopeDraftCount('+index+',\'buildingCount\',this.value)"></td><td><input type="number" min="0" step="1" placeholder="待补录" value="'+(item.householdCount==null?'':item.householdCount)+'" onchange="updateScopeDraftCount('+index+',\'householdCount\',this.value)"></td><td>'+(merged?'<button type="button" class="btn btn-outline btn-sm" onclick="splitScopeDraft('+index+')">拆回原始条目</button>':'')+'</td></tr>';
+}).join('');
+root.innerHTML='<div class="scope-inventory-summary"><strong>'+sourceCount+' 个原始条目 → '+items.length+' 个小区条目（含待核对项）</strong>'+actions+'</div><div class="project-record-table-wrap scope-inventory-scroll"><table class="scope-inventory-table"><thead><tr><th>选择</th><th>序号</th><th>小区名称、地址与分区</th><th>楼栋数</th><th>户数</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="scope-data-note">明确重复与疑似同一小区自动归并；位置基本重合（30米内）的不同名称也归并，疑似结果附待核对提示。分期、分区与原始条目保留，可拆回。合并后楼栋数、户数不累加，需核实补录。</p>';
 }
-function addManualScopeCommunity(){if(!Array.isArray(projectScopeDraft.inventory))projectScopeDraft.inventory=[];var id='MANUAL-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase();projectScopeDraft.inventory.push({id:id,name:'',address:'',lng:null,lat:null,buildingCount:null,householdCount:null,dataSource:'人工补录',source:'manual'});renderProjectScopeInventoryDraft();setTimeout(function(){var input=document.querySelector('[data-scope-draft-id="'+id+'"] .scope-name-input');if(input)input.focus();},0);}
-function updateScopeDraftText(index,field,value){var item=projectScopeDraft.inventory[index];if(!item)return;item[field]=String(value||'').trim();}
+function addManualScopeCommunity(){if(!Array.isArray(projectScopeDraft.inventory))projectScopeDraft.inventory=[];var id='MANUAL-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase();projectScopeDraft.inventory.push({id:id,name:'',address:'',lng:null,lat:null,buildingCount:null,householdCount:null,dataSource:'人工补录',source:'manual'});renderProjectScopeInventoryDraft();setTimeout(function(){var input=document.querySelector('[data-scope-draft-id="'+id+'"] .scope-name-input');if(input){var row=input.closest('tr');if(row){row.classList.add('scope-draft-expanded');var button=row.querySelector('.scope-map-item');if(button)button.setAttribute('aria-expanded','true');}var details=input.closest('details');if(details)details.open=true;input.focus();}},0);}
+function updateScopeDraftText(index,field,value){var item=projectScopeDraft.inventory[index];if(!item)return;item[field]=String(value||'').trim();if(field==='name'){var button=document.querySelector('#projectScopeInventory [data-scope-map-index="'+index+'"]');if(button)button.textContent=item.name||'未命名小区';if(projectScopeFocusedId===item.id&&projectScopeFocusMarker)projectScopeFocusMarker.setTitle(item.name||'小区');}}
 function updateScopeDraftCount(index,field,value){var item=projectScopeDraft.inventory[index];if(!item)return;item[field]=value===''?null:Math.max(0,parseInt(value,10)||0);}
 async function captureProjectScopeMap(){
 var target=document.getElementById('projectScopeMap');if(!target||typeof html2canvas!=='function')return null;
