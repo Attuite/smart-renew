@@ -1,0 +1,23 @@
+services:
+  urban-health-business:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./config/production.env
+    ports:
+      - "127.0.0.1:4182:4182"
+    volumes:
+      - urban-health-data:/var/lib/urban-health
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+
+volumes:
+  urban-health-data:

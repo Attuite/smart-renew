@@ -1,0 +1,64 @@
+城市数智体检 Demo 正式版文件清单
+版本号: V9.1
+正式基线: V9.1 Beta1 Hotfix1
+生成时间(UTC): 2026-07-16T12:21:00.191Z
+基线冻结检查: 45/45文件相对路径、大小与SHA-256保持不变
+正式版一致性: CSS与基线字节一致；HTML、JavaScript、构建脚本排除正式文件名及允许版本标签后字节一致
+六阶段检查: 01—06共6个一级阶段；无第七阶段；抽屉Header/Body/Footer和固定CTA保持
+空间采集检查: 186张；EXIF 174；缺失12；候选12；人工补绑12；最终186/186；SURVEY-ROUTE-01；8个节点；路线关联186/186
+空间流程条检查: 位于Header与地图画布之间；无地图内spatial-workflow-overlay；四步与7种状态保持
+业务数据检查: AI候选43；有效问题42；排除1；风险6/18/18；GIS绑定42/42；78/84/82.4；未达标3
+报告检查: 三类报告；标准页数8/5/6；编辑、校验、快照、生成及离线输出函数与基线一致
+输出检查: 自包含HTML；Word兼容.doc；浏览器打印/另存为PDF；report-manifest.json
+自动演示检查: DEMO_DURATION=60.0；14—18秒空间演示、02—06、时间轴、seek、暂停、重播和重置逻辑与基线一致
+静态一致性检查: 70项结构、数据、逻辑、输出、字体和外部资源断言通过
+单文件检查: 工程JS与单文件还原JS一致；唯一二进制资源34项；woff2字体23项；图片11项；无assets/残留路径
+工程版检查: JavaScript及构建脚本语法通过；HTML ID 413/413唯一；本地运行路径15/15闭合
+外部资源检查: HTTP/HTTPS运行资源0项；在线地图、真实GPS、CDN和外部API 0项
+浏览器检查: 单次探测未发现可用Chromium、Chrome或Playwright；未安装、未重试、未生成截图；待用户本机最终验收
+ZIP说明: ZIP自身不纳入包内manifest闭环；ZIP大小与SHA-256在生成后追加到ZIP外manifest。
+条目格式: 相对路径<TAB>字节数<TAB>SHA-256
+
+README-v9.1.md	8056	8fd260ae6bb7ddeb8857593cd15d6697471f548ef809961657a148ce0bc212c3
+app-v9.1.js	455621	6343e29b0d71d31df45d4765726579b39a4273cca4e1e4d2508fa1e8da425783
+assets/fonts/noto-sans-sc-100-400-normal.woff2	34360	dc46c4ecb20ce5616c434b35fd2bf2c606e6550dd185de8afa58383742b36c3b
+assets/fonts/noto-sans-sc-101-400-normal.woff2	31096	3c09b2d87471efdea4bb83926df5f0166a36065b8c327b140cb246a7056f1571
+assets/fonts/noto-sans-sc-103-400-normal.woff2	33940	b9cf2fa4628b1f234dfb3584d4b6d4271a3331c513ab7449d4d48101c941f83f
+assets/fonts/noto-sans-sc-104-400-normal.woff2	32596	5d9d31ed73f6bddbef48279f1f94326d0a5b8117468b65ff3a1c87d33261adaa
+assets/fonts/noto-sans-sc-105-400-normal.woff2	32844	a00d5f9077c22294ef7349743206eead6209feeaa40ad10313767d8d3a634e6d
+assets/fonts/noto-sans-sc-106-400-normal.woff2	33300	4fe7d16fe5334e757441e909bc77ea0a461a9fa612a858072931de4973c13248
+assets/fonts/noto-sans-sc-107-400-normal.woff2	32464	23c64fdcd61b7dd2aaea692252effbde21106622c7dfdd8995f23321c1f93ea9
+assets/fonts/noto-sans-sc-108-400-normal.woff2	34160	f3d3e586d96989412dfaf90172d2a31e754b7495181c3bcca6e8aa949358cee9
+assets/fonts/noto-sans-sc-109-400-normal.woff2	32068	43327b5de92fd7f9d6e555d5de9628021ce00766dfa07ba8cf9f33172ec0ac66
+assets/fonts/noto-sans-sc-110-400-normal.woff2	32536	41d06a0391f09c5adb5c05e01b349b501ff1ea55b704a35532594082046c5e41
+assets/fonts/noto-sans-sc-111-400-normal.woff2	33232	878b5a5f468001af407b4198a80450ac717888ee2e5b48fd7e9f32ea05f0d332
+assets/fonts/noto-sans-sc-112-400-normal.woff2	30496	a09597d61239d7810de82267c4337991a0716353b3e4d68a10a42351024941cc
+assets/fonts/noto-sans-sc-113-400-normal.woff2	31072	30f7ff2ea85c87be4e577e532cfdc0a524321e1b12f02e48b8100907d11dcdcb
+assets/fonts/noto-sans-sc-114-400-normal.woff2	30780	7bfac406b34c8a16f53513e23e6a294a9e8cca4af54558753de4cdc0f7e97801
+assets/fonts/noto-sans-sc-115-400-normal.woff2	29872	0e433937eff848fb25dc553655581ad23f69765e787f2b3bfde4767908118032
+assets/fonts/noto-sans-sc-116-400-normal.woff2	28216	79bb760c71ec87a5d65ccd803fab5f3e07a3a25b1b5f003a5f4369cb0d0c9e15
+assets/fonts/noto-sans-sc-117-400-normal.woff2	27900	8c43f0888f19ef989e652f1c9959202541131e83638ecf44ad77122a45e0dc64
+assets/fonts/noto-sans-sc-118-400-normal.woff2	24744	ccdf2802e3658939bf385880c4bb540b905c4cb40d83b2b002c9ff6de72edc95
+assets/fonts/noto-sans-sc-119-400-normal.woff2	41284	c91cb4aabdaf7cc10bb2d999d685ab7cd048bcaea4f87f2bbe29b00d5956b22f
+assets/fonts/noto-sans-sc-27-400-normal.woff2	25452	4e11937fc408384ab286bf76fc4b1aaac525135906cf48cd76e528b4a40b56ac
+assets/fonts/noto-sans-sc-57-400-normal.woff2	29652	86f7d1f1d0a5eb227a362c353086e8157852ffb29f427406c2b67c173dc41de0
+assets/fonts/noto-sans-sc-60-400-normal.woff2	22276	ea2ad85ab44ee0ddc5e8cb20838fd5ea5d16fc3fd3af271050fcb27f8981d2a8
+assets/fonts/noto-sans-sc-69-400-normal.woff2	29632	4799b8efa143d2fc459868b8dfdb2122b2760f85fecef3c0ed433c6f3e176e98
+assets/fonts/noto-sans-sc.css	31590	095bb1d8b9bbc894a7f9c05b7fc41ee990ce13a56712cdcdf7581e95e3b327fc
+assets/gis/gis-source-registry.json	1802	f9dc10c94e19164f4454137e9d33f97b57a6bca9af8f7858eb0d3b9cd502bebc
+assets/gis/spatial-demo-data.json	1066	3900c79fc697623643f80faba623c729747bed5f345d9628a2a2cca76a447411
+assets/project-thumbnails/01_建筑立面.png	1764470	727fd95d107632d3a4c49c75b4e1ab5f9381106824c36ceba9d1bba2fcae3f2f
+assets/project-thumbnails/02_社区全景.png	2015063	00e5e17ad30a6cd8b4df593f44dcbfd79ac528a84a11ad136f5a1da3b6416e82
+assets/project-thumbnails/03_设施核验.png	528979	cacabc5af789af53b00dd5317aea621e83a8ecaab8ee35337a7704028c1456b1
+assets/project-thumbnails/04_项目边界.png	1719015	e8b772abc25d5b66c85289df8f024a256f465ae3e920f7881c92e91575ab0c66
+assets/recognition/01-facade-damage.jpg	519795	a61c116c5f115c92fc5a86e3b7ff0609e76be55774e68c40cf284380bcdb4887
+assets/recognition/02-exposed-pipes.jpg	529819	b960634ef9490135d408a541332f31d9da341917ec757df47aeab4a65958ecb2
+assets/recognition/03-ac-disorder.jpg	626483	1942749ba96d4e5ddb142000a892ec6a79cd2312da120687e378e7228a453e0f
+assets/recognition/04-road-damage.jpg	677226	7a918b2eea561734636b5191f23a1d671f24d1e98817e0156bd32a677c4d714b
+assets/recognition/05-facility-damage.jpg	512538	d8512ce6e529f7384cbab46e2f9d7973f25749d02e5f6284c3e2490ce5ad0a7f
+assets/recognition/06-illegal-construction.jpg	576102	2a09ef6b4500a1d668b86c085d95fe5bf3bc26093b2769c41701768ad534ef66
+assets/xian-city-map.jpg	881216	984986e918daaf01945ecd53c0650bbc0c19d06b205c56fe8bb7a24f1a2af2bb
+build-v9.1.mjs	2468	b08cfe04813bbcbf81cf4534702bf571dfe29b63b94342fe5ff25f613e63c4ac
+index-v9.1.html	82791	35c72715f75b9a0e16f2e08b4346131c130efacb5f22d0cc46236c821e5e2758
+preview-v9.1.html	23615037	3b6178e9dcc12d57d3dfb96f3348d643cf696bc89c753a7a4e2fa712b1af90f5
+styles-v9.1.css	243466	d353a70cc705738005c8b8ec80f7a7430d3d194dc64f2cb291f93d40d5a98a1e
