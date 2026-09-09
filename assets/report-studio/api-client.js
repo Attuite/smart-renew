@@ -122,6 +122,10 @@
       return request('POST', '/drafts/' + encodeURIComponent(draftId) + '/sections/' + encodeURIComponent(sectionId) + '/lock', { lockedBy: lockedBy });
     },
 
+    unlockSection: function (draftId, sectionId, unlockedBy) {
+      return request('POST', '/drafts/' + encodeURIComponent(draftId) + '/sections/' + encodeURIComponent(sectionId) + '/unlock', { unlockedBy: unlockedBy });
+    },
+
     /**
      * 全文校验
      * @param {string} draftId

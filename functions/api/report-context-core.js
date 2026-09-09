@@ -56,10 +56,11 @@ function activeBuildings(community) {
 /**
  * 区分原始现场照片和标注图
  */
-function classifyPhotos(photos) {
+function classifyPhotos(photos, projectId) {
   const original = [];
   const annotated = [];
   for (const photo of photos) {
+    if (!photo || String(photo.projectId) !== String(projectId)) continue;
     if (photo?.status === 'deleted') continue;
     const name = String(photo?.name || '').toLowerCase();
     const desc = String(photo?.description || '').toLowerCase();
@@ -124,6 +125,7 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
   const allBuildings = [];
   const buildingsWithDetail = [];
   let totalHouseholdFromBuildings = 0;
+  let householdComplete = true;
 
   for (const community of communities) {
     const buildings = activeBuildings(community);
@@ -131,7 +133,8 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
       buildingsWithDetail.push(community);
       for (const b of buildings) {
         allBuildings.push({ ...b, communityId: community.id, communityName: community.name || '' });
-        totalHouseholdFromBuildings += number(b.householdCount);
+        if (b.householdCount === '' || b.householdCount === null || b.householdCount === undefined || !Number.isFinite(Number(b.householdCount))) householdComplete = false;
+        else totalHouseholdFromBuildings += number(b.householdCount);
       }
     }
   }
@@ -143,14 +146,15 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
     const detailBuildings = activeBuildings(c);
     if (detailBuildings.length === 0) {
       summaryBuildingCount += number(c.buildingCount);
-      summaryHouseholdCount += number(c.householdCount);
+      if (c.householdCount === '' || c.householdCount === null || c.householdCount === undefined || !Number.isFinite(Number(c.householdCount))) householdComplete = false;
+      else summaryHouseholdCount += number(c.householdCount);
     }
   }
   const buildingCount = allBuildings.length + summaryBuildingCount;
-  const householdCount = totalHouseholdFromBuildings + summaryHouseholdCount;
+  const householdCount = householdComplete ? totalHouseholdFromBuildings + summaryHouseholdCount : null;
 
   // 2. 照片分类
-  const { original: originalPhotos, annotated: annotatedPhotos } = classifyPhotos(photos);
+  const { original: originalPhotos, annotated: annotatedPhotos } = classifyPhotos(photos, projectId);
   const { byCommunity: photosByCommunity, byBuilding: photosByBuilding } = groupPhotosByLocation(originalPhotos);
 
   const communitiesWithPhotos = new Set(originalPhotos.filter((p) => p.communityId).map((p) => p.communityId));
@@ -163,9 +167,11 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
   const archivedAnalyses = validAnalyses.filter((a) => a.status === 'archived');
 
   // 4. 正式问题（只保留活跃状态）
-  const validIssues = (Array.isArray(officialIssues) ? officialIssues : []).filter(
-    (i) => i && String(i.projectId) === projectId && i.status !== 'deleted'
-  );
+  const issueIds = new Set();
+  const validIssues = (Array.isArray(officialIssues) ? officialIssues : []).filter((i) => {
+    if (!i || String(i.projectId) !== projectId || i.status === 'deleted') return false;
+    const id = String(i.id || ''); if (!id || issueIds.has(id)) return false; issueIds.add(id); return true;
+  });
 
   // 5. 指标编码映射
   const INDICATOR_NAMES = {
@@ -251,13 +257,7 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
   // 9. 内容哈希
   const hashInput = stableStringify({
     projectId,
-    communityCount: communities.length,
-    buildingCount,
-    householdCount,
-    photoCount: originalPhotos.length,
-    issueCount: validIssues.length,
-    issueStats,
-    updatedAt: project.updatedAt || now
+    project, communities, originalPhotos, annotatedPhotos, validAnalyses, validIssues
   });
   const contextHash = fvn32(hashInput);
 
@@ -285,7 +285,7 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
       buildingCount,
       householdCount,
       communitiesWithBuildingDetail: buildingsWithDetail.length,
-      communitiesWithHouseholdData: communities.filter((c) => number(c.householdCount) > 0).length,
+      communitiesWithHouseholdData: communities.filter((c) => c.householdCount !== '' && c.householdCount !== null && c.householdCount !== undefined && Number.isFinite(Number(c.householdCount))).length,
       communities: communities.map((c) => ({
         id: c.id,
         name: clean(c.name, 200),
@@ -361,7 +361,7 @@ export function buildReportContext({ project, photos, analyses, officialIssues }
       projectIds: [projectId],
       communityIds: communities.map((c) => c.id),
       buildingIds: allBuildings.map((b) => b.id),
-      photoIds: photos.map((p) => String(p.id)),
+      photoIds: originalPhotos.concat(annotatedPhotos).map((p) => String(p.id)),
       analysisIds: validAnalyses.map((a) => String(a.id)),
       issueIds: validIssues.map((i) => i.id)
     }

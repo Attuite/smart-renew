@@ -111,7 +111,7 @@ export function validateReportContent({ text, paragraphs, projectCity, allowedNu
   }
 
   // 4. 无来源数字检测
-  if (allowedNumbers && allowedNumbers.length) {
+  if (allowedNumbers) {
     // 提取正文中的阿拉伯数字和百分比
     const numberPattern = /\d+\.?\d*%?/g;
     const textNumbers = new Set();
@@ -138,10 +138,10 @@ export function validateReportContent({ text, paragraphs, projectCity, allowedNu
     if (unauthorized.length) {
       issues.push({
         type: 'unauthorized-number',
-        severity: 'warning',
+        severity: 'error',
         message: '检测到无来源数字',
         details: unauthorized.slice(0, 20),
-       阻塞导出: false
+       阻塞导出: true
       });
     }
   }

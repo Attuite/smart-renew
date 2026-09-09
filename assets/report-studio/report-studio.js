@@ -131,19 +131,22 @@
     if (currentDraft) return Promise.resolve(currentDraft);
     return NS.apiClient.listDrafts(currentContext.projectId).then(function (res) {
       if (res.items && res.items.length) {
-        currentDraft = res.items[0];
+        currentDraft = res.items.find(function (draft) { return (draft.sections || []).some(function (section) { return section.sectionKey === 'template-paragraph'; }); }) || null;
+        if (!currentDraft) return NS.apiClient.createDraft(currentContext.projectId, {
+          title: (currentContext.projectName || '城市体检') + '报告（段落草稿）', templateId: 'TPL-WORD-V1', contextSnapshotId: reportContext ? reportContext.contextHash : '', calculationSnapshotId: calcSnapshot ? calcSnapshot.id : '', createdBy: '用户'
+        });
         return NS.apiClient.getDraft(currentDraft.id);
       }
       return NS.apiClient.createDraft(currentContext.projectId, {
         title: (currentContext.projectName || '城市体检') + '报告',
         templateId: 'TPL-WORD-V1',
         contextSnapshotId: reportContext ? reportContext.contextHash : '',
-        calculationSnapshotId: calcSnapshot ? calcSnapshot.contextHash : '',
+        calculationSnapshotId: calcSnapshot ? calcSnapshot.id : '',
         createdBy: '用户'
       });
     }).then(function (res) {
       currentDraft = res.draft || res.item || res;
-      // 加载段落
+      currentSections = currentDraft.sections || [];
       return currentDraft;
     });
   }
@@ -155,6 +158,9 @@
       console.error('[ReportStudio] open() requires projectId');
       return;
     }
+    ['dataReadiness', 'calculationView', 'sectionEditor', 'reportPreview'].forEach(function (name) {
+      if (NS[name] && typeof NS[name].init === 'function') NS[name].init();
+    });
     currentContext = { projectId: String(options.projectId), projectName: options.projectName || '' };
     reportContext = null;
     calcSnapshot = null;

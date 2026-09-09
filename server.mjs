@@ -34,6 +34,7 @@ import {
   auditLegacyData,
   inferLegacyProblemCode
 } from './functions/api/legacy-migration-core.js';
+import { handleReportStudioRoute } from './functions/api/report-studio-routes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -63,6 +64,10 @@ const photoFileStorage = path.join(storageRoot, 'photo-files');
 const officialIssueStorage = path.join(storageRoot, 'official-issues');
 const reportSnapshotStorage = path.join(storageRoot, 'report-snapshots');
 const reportTemplateStorage = path.join(storageRoot, 'report-templates');
+const reportDraftStorage = path.join(storageRoot, 'report-studio-drafts');
+const reportSectionStorage = path.join(storageRoot, 'report-studio-sections');
+const reportCalculationStorage = path.join(storageRoot, 'report-studio-calculations');
+const reportArtifactStorage = path.join(storageRoot, 'report-studio-artifacts');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const appUsername = process.env.APP_USERNAME || 'admin';
@@ -77,6 +82,14 @@ const groupVisionModel = process.env.GROUP_VISION_MODEL || 'qwen3-vl-plus';
 const arkApiKey = String(process.env.ARK_API_KEY || '').trim();
 const arkBaseUrl = String(process.env.ARK_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3').replace(/\/$/, '');
 const arkModel = String(process.env.ARK_MODEL || 'doubao-seed-2-0-lite-260215').trim();
+// Formal report text generation may use a separate OpenAI-compatible provider
+// locally. Leave these unset to retain the existing Ark configuration.
+const reportTextApiKey = String(process.env.REPORT_TEXT_API_KEY || arkApiKey).trim();
+const reportTextBaseUrl = String(process.env.REPORT_TEXT_BASE_URL || arkBaseUrl).replace(/\/$/, '');
+const reportTextModel = String(process.env.REPORT_TEXT_MODEL || arkModel).trim();
+const reportTextApiStyle = String(process.env.REPORT_TEXT_API_STYLE || 'responses').trim().toLowerCase();
+const reportTextProvider = String(process.env.REPORT_TEXT_API_KEY || '').trim() ? 'configured-report-text-provider' : 'volcengine-ark';
+const reportTextIsMiMo = /(?:^|\.)xiaomimimo\.com$/i.test(new URL(reportTextBaseUrl).hostname);
 const cloudbaseApiOrigin = (process.env.CLOUDBASE_API_ORIGIN || 'https://smart-renew-d2gamusvr1b96ce95.service.tcloudbase.com').replace(/\/$/, '');
 const cloudbaseWebOrigin = 'https://smart-renew-d2gamusvr1b96ce95-1456348363.tcloudbaseapp.com';
 const proxyCloudbaseApis = /^(1|true|yes)$/i.test(process.env.SMART_RENEW_USE_CLOUDBASE_API || '');
@@ -308,25 +321,36 @@ function reportDraftInput(body) {
 async function generateCommunitySummary(req, res) {
   if (proxyCloudbaseApis) return proxyCloudBaseApi(req, res);
   try {
-    if (!arkApiKey) return json(res, 503, { message: '服务端尚未配置 ARK_API_KEY' });
     const body = await readJson(req, 128 * 1024);
-    const requestedModel = String(body.model || '').trim();
-    const model = /^[A-Za-z0-9._:-]{1,128}$/.test(requestedModel) ? requestedModel : arkModel;
     const reportDraft = body.task === 'report-draft';
-    const upstream = await fetch(`${arkBaseUrl}/responses`, {
+    // The local REPORT_TEXT_* settings are deliberately limited to report-draft
+    // testing. Community summaries retain the existing Ark/UI-key behavior.
+    const useLocalReportText = reportDraft && Boolean(String(process.env.REPORT_TEXT_API_KEY || '').trim());
+    const apiKey = useLocalReportText ? reportTextApiKey : arkApiKey;
+    if (!apiKey) return json(res, 503, { message: useLocalReportText ? '服务端尚未配置 REPORT_TEXT_API_KEY' : '服务端尚未配置 ARK_API_KEY' });
+    const requestedModel = String(body.model || '').trim();
+    const model = useLocalReportText
+      ? reportTextModel
+      : (/^[A-Za-z0-9._:-]{1,128}$/.test(requestedModel) ? requestedModel : arkModel);
+    const prompt = reportDraft ? reportDraftInput(body) : communitySummaryInput(body);
+    const useChatCompletions = useLocalReportText && reportTextApiStyle === 'chat-completions';
+    const baseUrl = useLocalReportText ? reportTextBaseUrl : arkBaseUrl;
+    const upstream = await fetch(`${baseUrl}/${useChatCompletions ? 'chat/completions' : 'responses'}`, {
       method: 'POST',
       signal: AbortSignal.timeout(60000),
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${arkApiKey}` },
-      body: JSON.stringify({ model, input: reportDraft ? reportDraftInput(body) : communitySummaryInput(body), max_output_tokens: 16000, thinking: { type: 'disabled' } })
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(useChatCompletions
+        ? { model, messages: [{ role: 'user', content: prompt }], [reportTextIsMiMo ? 'max_completion_tokens' : 'max_tokens']: 16000, stream: false }
+        : { model, input: prompt, max_output_tokens: 16000, thinking: { type: 'disabled' } })
     });
     const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) return json(res, upstream.status, { message: data?.error?.message || data?.message || `方舟请求失败: HTTP ${upstream.status}` });
-    const content = extractArkResponseText(data);
-    if (!content) return json(res, 502, { message: '方舟模型没有返回有效总结' });
-    return json(res, 200, { content, model: data.model || model, requestId: data.id || '', provider: 'volcengine-ark' });
+    if (!upstream.ok) return json(res, upstream.status, { message: data?.error?.message || data?.message || `文字模型请求失败: HTTP ${upstream.status}` });
+    const content = useChatCompletions ? String(data?.choices?.[0]?.message?.content || '').trim() : extractArkResponseText(data);
+    if (!content) return json(res, 502, { message: '文字模型没有返回有效总结' });
+    return json(res, 200, { content, model: data.model || model, requestId: data.id || '', provider: useLocalReportText ? reportTextProvider : 'volcengine-ark' });
   } catch (error) {
-    if (error.name === 'TimeoutError' || error.name === 'AbortError') return json(res, 504, { message: '方舟总结响应超时，请稍后重试' });
-    return json(res, 500, { message: error.message || '方舟总结生成失败' });
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') return json(res, 504, { message: '文字模型响应超时，请稍后重试' });
+    return json(res, 500, { message: error.message || '文字模型生成失败' });
   }
 }
 
@@ -358,6 +382,10 @@ async function ensureStorage() {
   await fs.mkdir(officialIssueStorage, { recursive: true });
   await fs.mkdir(reportSnapshotStorage, { recursive: true });
   await fs.mkdir(reportTemplateStorage, { recursive: true });
+  await fs.mkdir(reportDraftStorage, { recursive: true });
+  await fs.mkdir(reportSectionStorage, { recursive: true });
+  await fs.mkdir(reportCalculationStorage, { recursive: true });
+  await fs.mkdir(reportArtifactStorage, { recursive: true });
 }
 
 function safeId(value) {
@@ -829,6 +857,57 @@ async function handleReportSnapshotApi(req, res, url) {
   }
 }
 
+async function generateFormalReportText(prompt) {
+  if (!reportTextApiKey) throw new Error('服务端尚未配置 REPORT_TEXT_API_KEY（或 ARK_API_KEY），不能生成正式报告正文');
+  const useChatCompletions = reportTextApiStyle === 'chat-completions';
+  const upstream = await fetch(`${reportTextBaseUrl}/${useChatCompletions ? 'chat/completions' : 'responses'}`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${reportTextApiKey}` },
+    body: JSON.stringify(useChatCompletions
+      ? { model: reportTextModel, messages: [{ role: 'system', content: prompt.systemPrompt }, { role: 'user', content: prompt.userPrompt }], [reportTextIsMiMo ? 'max_completion_tokens' : 'max_tokens']: 4000, thinking: { type: 'disabled' }, stream: false }
+      : { model: reportTextModel, input: `${prompt.systemPrompt}\n\n${prompt.userPrompt}`, max_output_tokens: 4000, thinking: { type: 'disabled' } })
+  });
+  const payload = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) throw new Error(payload?.error?.message || payload?.message || `文字模型请求失败: HTTP ${upstream.status}`);
+  const text = useChatCompletions ? String(payload?.choices?.[0]?.message?.content || '').trim() : extractArkResponseText(payload);
+  if (!text) throw new Error('文字模型未返回有效正文');
+  return text;
+}
+
+async function handleLocalReportStudioApi(req, res, url) {
+  await ensureStorage();
+  return handleReportStudioRoute({
+    req, res, url, readJson, writeJson: json,
+    loadProject: (id) => readStoredJson(path.join(projectStorage, `${safeId(id)}.json`)),
+    loadPhotos: async (id) => filterPhotoRecords(await listStoredJson(photoRecordStorage), new URLSearchParams({ projectId: String(id) })),
+    loadAnalyses: async (id) => (await listStoredJson(analysisStorage)).filter((item) => String(item.projectId) === String(id)),
+    loadIssues: async (id) => filterOfficialIssues(await listStoredJson(officialIssueStorage), new URLSearchParams({ projectId: String(id) })),
+    loadDrafts: async (id) => (await listStoredJson(reportDraftStorage)).filter((item) => String(item.projectId) === String(id)),
+    loadDraft: (id) => readStoredJson(path.join(reportDraftStorage, `${safeDataId(id)}.json`)),
+    saveDraft: (item) => writeStoredJson(path.join(reportDraftStorage, `${safeDataId(item.id)}.json`), item),
+    loadSections: async (draftId) => (await listStoredJson(reportSectionStorage)).filter((item) => String(item.draftId) === String(draftId)),
+    saveSection: (item) => writeStoredJson(path.join(reportSectionStorage, `${safeDataId(item.id)}.json`), item),
+    loadCalculation: (id) => readStoredJson(path.join(reportCalculationStorage, `${safeDataId(id)}.json`)),
+    saveCalculation: (item) => writeStoredJson(path.join(reportCalculationStorage, `${safeDataId(item.id)}.json`), item),
+    loadTemplateBlocks: async () => (await readStoredJson(path.join(root, 'assets', 'report-templates', 'report-template-v1.json')))?.blocks || [],
+    saveArtifact: async ({ draft, buffer, edition, generatedBy, validation }) => {
+      const id = `RPA-${draft.projectId}-${Date.now()}`;
+      const fileName = `${String(draft.title || '城市体检报告').replace(/[\\/:*?"<>|]/g, '_')}-${edition === 'formal' ? '正式版' : '审核稿'}-${new Date().toISOString().slice(0, 10)}.docx`;
+      await fs.writeFile(path.join(reportArtifactStorage, `${id}.docx`), buffer);
+      const item = { id, projectId: draft.projectId, draftId: draft.id, fileName, edition, generatedBy, generatedAt: new Date().toISOString(), validation, schemaVersion: '1.0.0' };
+      await writeStoredJson(path.join(reportArtifactStorage, `${id}.json`), item);
+      return { ...item, downloadUrl: `/api/report-studio/artifacts/${encodeURIComponent(id)}/content` };
+    },
+    getArtifact: async (id) => {
+      const item = await readStoredJson(path.join(reportArtifactStorage, `${safeDataId(id)}.json`));
+      if (!item) return null;
+      return { ...item, buffer: await fs.readFile(path.join(reportArtifactStorage, `${safeDataId(id)}.docx`)) };
+    },
+    generateText: generateFormalReportText
+  });
+}
+
 async function storeMigratedLocalPhoto(project, analysis, dataUrl, meta, imageIndex, variant) {
   const decoded = decodePhotoDataUrl(dataUrl);
   const record = normalizePhotoUpload({
@@ -955,6 +1034,10 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/api/vision/analyze')) return analyze(req, res);
   if (req.method === 'POST' && url.pathname === '/api/community/summary') return generateCommunitySummary(req, res);
   if (url.pathname.startsWith('/api/report-templates')) return handleReportTemplateApi(req, res, url);
+  if (url.pathname.startsWith('/api/report-studio')) {
+    if (proxyCloudbaseApis) return proxyCloudBaseApi(req, res);
+    return handleLocalReportStudioApi(req, res, url);
+  }
   if (proxyCloudbaseApis && url.pathname.startsWith('/api/')) return proxyCloudBaseApi(req, res);
   if (req.method === 'POST' && req.url.startsWith('/api/config/key')) return configureKey(req, res);
   if (url.pathname.startsWith('/api/project-data') || /^\/api\/projects\/\d+\/data-/.test(url.pathname)) return handleProjectDataApi(req, res, url);

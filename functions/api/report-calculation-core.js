@@ -65,7 +65,9 @@ const RULES = [
     unit: '户',
     rounding: 'integer',
     missingPolicy: 'not-computable',
-    compute: (ctx) => ({ value: ctx.housing.householdCount })
+    compute: (ctx) => ctx.housing.householdCount === null
+      ? { status: CalcStatus.NOT_COMPUTABLE, inputs: { reason: '存在未核实户数' } }
+      : ({ value: ctx.housing.householdCount })
   },
   {
     id: 'CALC-HOUSING-COMMUNITY-DETAIL-RATE',

@@ -118,7 +118,8 @@
     container.querySelectorAll('.rs-review-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var sid = btn.dataset.id;
-        api.reviewSection(draft.id, sid, '审核人').then(function () {
+        api.reviewSection(draft.id, sid, '审核人').then(function (res) {
+          replaceSection(sections, res.section);
           alert('审核通过');
           render(container, draft, sections, onNext, onBack);
         }).catch(function (e) { alert('审核失败：' + e.message); });
@@ -132,7 +133,8 @@
         var section = sections.find(function (s) { return s.id === sid; });
         if (!section) return;
         var action = section.locked ? '解锁' : '锁定';
-        api.lockSection(draft.id, sid, '操作人').then(function () {
+        (section.locked ? api.unlockSection(draft.id, sid, '操作人') : api.lockSection(draft.id, sid, '操作人')).then(function (res) {
+          replaceSection(sections, res.section);
           alert(action + '成功');
           render(container, draft, sections, onNext, onBack);
         }).catch(function (e) { alert(action + '失败：' + e.message); });
@@ -144,7 +146,8 @@
       btn.addEventListener('click', function () {
         var sid = btn.dataset.id;
         btn.disabled = true; btn.textContent = '生成中…';
-        api.generateSection(draft.id, sid, 'regenerate').then(function () {
+        api.generateSection(draft.id, sid, 'regenerate').then(function (res) {
+          replaceSection(sections, res.section);
           alert('重新生成完成');
           render(container, draft, sections, onNext, onBack);
         }).catch(function (e) { btn.disabled = false; btn.textContent = '重新生成'; alert('生成失败：' + e.message); });
@@ -158,7 +161,7 @@
         var textarea = document.getElementById('rs-edit-textarea');
         if (!textarea || !sid) return;
         api.saveSection(draft.id, sid, { text: textarea.value }, parseInt(btn.dataset.version || '0', 10))
-          .then(function () { alert('保存成功'); render(container, draft, sections, onNext, onBack); })
+          .then(function (res) { replaceSection(sections, res.section); alert('保存成功'); render(container, draft, sections, onNext, onBack); })
           .catch(function (e) { alert('保存失败：' + e.message); });
       });
     });
@@ -196,6 +199,12 @@
       saveBtn.dataset.sectionId = section.id;
       saveBtn.dataset.version = section.version;
     }
+  }
+
+  function replaceSection(sections, next) {
+    if (!next) return;
+    var index = sections.findIndex(function (item) { return item.id === next.id; });
+    if (index >= 0) sections[index] = next;
   }
 
   NS.sectionEditor = { init: init, render: render };

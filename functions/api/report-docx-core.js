@@ -188,7 +188,10 @@ export async function generateDocx({
   // 遍历模板块，生成 docx 元素
   const children = [];
 
-  for (const block of (templateBlocks || [])) {
+  // Never copy the extracted mother-template body directly: it contains
+  // project-specific historical text and images. The reviewed draft is the
+  // only source of project-specific Word content.
+  for (const block of []) {
     const style = block.style || '';
 
     // 标题块
@@ -261,21 +264,19 @@ export async function generateDocx({
     }
   }
 
-  // 如果有草稿段落但模板块中未匹配到，追加到末尾
+  // 草稿是唯一正文来源；按审核后的章节顺序渲染，缺图直接省略。
   for (const sec of sections || []) {
-    if (sec.content?.paragraphs) {
-      const alreadyUsed = sections.some((s) => s.id === sec.id);
-      // 检查是否已有覆盖（避免重复）
-      const hasOverride = (templateBlocks || []).some((b) => findOverrideForBlock(b.id, [sec]));
-      if (!hasOverride) {
-        for (const p of sec.content.paragraphs) {
-          if (p.text) {
-            children.push(new Paragraph({
-              children: [new TextRun({ text: p.text, font: fontConfig.bodyFont, size: fontConfig.bodySize })],
-              spacing: { after: 200, line: 360 }
-            }));
-          }
-        }
+    const title = clean(sec.content?.title || sec.sectionKey, 200);
+    if (title) children.push(new Paragraph({
+      children: [new TextRun({ text: title, font: fontConfig.heading1Font, size: fontConfig.heading2Size, bold: true })],
+      spacing: { before: 280, after: 180 }
+    }));
+    for (const p of (sec.content?.paragraphs || [])) {
+      if (p.text) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: p.text, font: fontConfig.bodyFont, size: fontConfig.bodySize })],
+          spacing: { after: 200, line: 360 }
+        }));
       }
     }
   }

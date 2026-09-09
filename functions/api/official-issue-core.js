@@ -37,6 +37,7 @@ export function normalizeOfficialIssue(issue, analysis, reviewerName) {
     analysisId: String(analysis.id),
     originalPhotoId,
     annotatedPhotoId,
+    imageIndex,
     problemCode,
     indicatorCode,
     categoryCode: clean(issue?.categoryCode, 50),

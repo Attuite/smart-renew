@@ -12,6 +12,7 @@
     window.SmartRenewReportStudioModules || {};
 
   var api = null;
+  var paragraphGroup = 0;
 
   function init() { api = NS.apiClient; }
 
@@ -72,11 +73,11 @@
     if (genAllBtn) genAllBtn.addEventListener('click', function () {
       genAllBtn.disabled = true; genAllBtn.textContent = '生成中…';
       // 逐个生成未锁定章节
-      var toGen = sections.filter(function (s) { return !s.locked && s.status !== 'locked'; });
+      var toGen = sections.filter(function (s) { return !s.locked && (s.status === 'not-generated' || s.status === 'error'); });
       var chain = Promise.resolve();
       toGen.forEach(function (s) {
         chain = chain.then(function () {
-          return api.generateSection(draft.id, s.id, 'generate');
+          return api.generateSection(draft.id, s.id, 'generate').then(function (res) { replaceSection(sections, res.section); });
         });
       });
       chain.then(function () {
@@ -91,7 +92,10 @@
     container.querySelectorAll('.rs-gen-single').forEach(function (btn) {
       btn.addEventListener('click', function () {
         btn.disabled = true; btn.textContent = '生成中…';
-        api.generateSection(draft.id, btn.dataset.key, 'generate').then(function () {
+        var section = sections.find(function (item) { return item.sectionKey === btn.dataset.key; });
+        if (!section) { alert('章节尚未初始化'); return; }
+        api.generateSection(draft.id, section.id, 'generate').then(function (res) {
+          replaceSection(sections, res.section);
           alert('生成完成');
           if (onNext) onNext();
         }).catch(function (e) { btn.disabled = false; btn.textContent = '生成'; alert(e.message); });
@@ -181,9 +185,33 @@
     if (backBtn && onBack) backBtn.addEventListener('click', onBack);
   }
 
+  /* Word 母版式的段落工作台。新草稿以 blockId 为单位，而不是以整章为单位。 */
+  function renderStep3(container, draft, sections, onNext, onBack) {
+    var groups = [
+      ['封面与目录', 0, 5], ['一、工作概述', 6, 57], ['二、指标体系与评价方法', 58, 86],
+      ['三、总体结论', 87, 96], ['四、指标分析评价', 97, 916], ['五、城市治理建议', 917, 985],
+      ['六、行动建议', 986, 1117], ['附录', 1118, 1166]
+    ];
+    function numberOf(section) { var m = String(section.blockId || '').match(/p-(\d+)/); return m ? Number(m[1]) : -1; }
+    var visible = sections.filter(function (section) { var n = numberOf(section), group = groups[paragraphGroup] || groups[0]; return n >= group[1] && n <= group[2]; });
+    var nav = groups.map(function (group, index) { var count = sections.filter(function (s) { var n = numberOf(s); return n >= group[1] && n <= group[2] && !s.locked; }).length; return '<button class="word-template-section-btn ' + (index === paragraphGroup ? 'active' : '') + '" data-rs-group="' + index + '">' + esc(group[0]) + '<span>' + count + ' 段未冻结</span></button>'; }).join('');
+    var rows = visible.map(function (section) { var text = section.content && section.content.paragraphs && section.content.paragraphs[0] ? section.content.paragraphs[0].text : (section.content && section.content.templateText || ''); var locked = section.locked; var status = locked ? '已人工冻结' : ({ generated: '已生成', edited: '已人工修改', approved: '已审核', 'not-generated': '待生成' }[section.status] || section.status); return '<section class="word-block ' + (locked ? 'approved-review' : 'pending-review') + '"><div class="word-editable" contenteditable="' + (locked ? 'false' : 'true') + '" data-rs-text="' + esc(section.id) + '">' + esc(text) + '</div><div class="word-review-actions"><span>' + esc(section.blockId || '') + ' · ' + esc(status) + '</span>' + (locked ? '<span class="word-lock-status">已人工冻结</span>' : '<button data-rs-action="generate" data-rs-id="' + esc(section.id) + '">AI 生成</button><button data-rs-action="freeze" data-rs-id="' + esc(section.id) + '">人工修改冻结</button>') + '</div></section>'; }).join('') || '<div class="word-template-empty">本章没有需要替换的模板段落</div>';
+    container.innerHTML = '<div class="word-template-shell"><aside class="word-template-sidebar"><div class="word-template-summary"><h3>分章报告工作台</h3><p>逐段生成、人工修改与冻结</p></div><nav class="word-template-sections">' + nav + '</nav></aside><main class="word-template-main"><div class="word-template-toolbar"><div class="word-template-toolbar-group"><strong>' + esc((groups[paragraphGroup] || groups[0])[0]) + '</strong><span class="word-saved">每次只生成当前点击段落</span></div><div class="word-template-toolbar-group"><button class="btn btn-outline btn-sm" id="rs-back-calc">返回指标计算</button>' + (onNext ? '<button class="btn btn-primary btn-sm" id="rs-to-review">进入编辑审核</button>' : '') + '</div></div><article class="word-page">' + rows + '</article></main></div>';
+    container.querySelectorAll('[data-rs-group]').forEach(function (button) { button.addEventListener('click', function () { paragraphGroup = Number(button.dataset.rsGroup); renderStep3(container, draft, sections, onNext, onBack); }); });
+    container.querySelectorAll('[data-rs-action="generate"]').forEach(function (button) { button.addEventListener('click', function () { var section = sections.find(function (s) { return s.id === button.dataset.rsId; }); if (!section) return; button.disabled = true; button.textContent = '生成中…'; api.generateSection(draft.id, section.id).then(function (res) { replaceSection(sections, res.section); renderStep3(container, draft, sections, onNext, onBack); }).catch(function (err) { button.disabled = false; button.textContent = 'AI 生成'; alert('段落生成失败：' + err.message); }); }); });
+    container.querySelectorAll('[data-rs-action="freeze"]').forEach(function (button) { button.addEventListener('click', function () { var section = sections.find(function (s) { return s.id === button.dataset.rsId; }); var editor = container.querySelector('[data-rs-text="' + button.dataset.rsId + '"]'); var actor = window.prompt('请输入人工修改／审核人员：', localStorage.getItem('smart_renew_reviewer_name') || ''); if (!section || !actor) return; localStorage.setItem('smart_renew_reviewer_name', actor); api.saveSection(draft.id, section.id, { text: editor ? editor.innerText.trim() : '' }, section.version).then(function (saved) { replaceSection(sections, saved.section); return api.reviewSection(draft.id, saved.section.id, actor); }).then(function (reviewed) { replaceSection(sections, reviewed.section); return api.lockSection(draft.id, reviewed.section.id, actor); }).then(function (locked) { replaceSection(sections, locked.section); renderStep3(container, draft, sections, onNext, onBack); }).catch(function (err) { alert('冻结失败：' + err.message); }); }); });
+    var review = document.getElementById('rs-to-review'); if (review && onNext) review.addEventListener('click', onNext); var back = document.getElementById('rs-back-calc'); if (back && onBack) back.addEventListener('click', onBack);
+  }
+
   NS.reportPreview = {
     init: init,
     renderStep3: renderStep3,
     renderStep5: renderStep5
   };
+
+  function replaceSection(sections, next) {
+    if (!next) return;
+    var index = sections.findIndex(function (item) { return item.id === next.id; });
+    if (index >= 0) sections[index] = next;
+  }
 })();
