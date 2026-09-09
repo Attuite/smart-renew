@@ -144,6 +144,33 @@
      */
     exportDocx: function (draftId, edition, generatedBy) {
       return request('POST', '/drafts/' + encodeURIComponent(draftId) + '/exports/docx', { edition: edition, generatedBy: generatedBy });
+    },
+
+    // ============ 新版 AI 叙述生成接口 ============
+
+    /**
+     * 获取报告叙述文档（组装后的完整文档）
+     * @param {string} reportId
+     * @returns {Promise<{document: object}>}
+     */
+    getNarrativeDocument: function (reportId) {
+      return request('GET', '/reports/' + encodeURIComponent(reportId) + '/narrative/document');
+    },
+
+    /**
+     * 生成 AI 叙述（按小节或全部）
+     * @param {string} reportId
+     * @param {string[]} subsectionIds - 要生成的小节 ID，空数组表示全部
+     * @param {object} options - 可选参数 {model, requestId, usage}
+     * @returns {Promise<{draft: object, generatedBlocks: number}>}
+     */
+    generateNarrative: function (reportId, subsectionIds, options) {
+      return request('POST', '/reports/' + encodeURIComponent(reportId) + '/narrative/generate', {
+        subsectionIds: subsectionIds || [],
+        model: options && options.model || '',
+        requestId: options && options.requestId || '',
+        usage: options && options.usage || null
+      });
     }
   };
 

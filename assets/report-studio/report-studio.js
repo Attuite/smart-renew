@@ -1,4 +1,4 @@
-/**
+﻿/**
  * report-studio.js
  * 报告工作台唯一公开入口。
  *
@@ -24,6 +24,7 @@
   var currentSections = [];
   var currentValidation = null;
   var currentStep = 0;
+  var currentReportId = null;
 
   function ensureContainer() {
     var el = document.getElementById(CONTAINER_ID);
@@ -92,9 +93,12 @@
 
   function goToStep3() {
     currentStep = 3;
-    ensureOrCreateDraft().then(function () {
+    // 尝试获取或创建报告快照（用于新版 AI 叙述生成）
+    ensureReportSnapshot().then(function () {
+      return ensureOrCreateDraft();
+    }).then(function () {
       var el = renderStep('');
-      NS.reportPreview.renderStep3(el, currentDraft, currentSections, goToStep4, function () { goToStep2(); });
+      NS.reportPreview.renderStep3(el, currentDraft, currentSections, goToStep4, function () { goToStep2(); }, currentReportId);
     }).catch(function (err) {
       renderStep('<div class="rs-step-content"><div class="rs-card rs-card-warn"><p>创建草稿失败：' + esc(err.message) + '</p></div></div>');
     });
