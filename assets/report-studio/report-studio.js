@@ -1,4 +1,4 @@
-﻿/**
+/**
  * report-studio.js
  * 报告工作台唯一公开入口。
  *
@@ -129,6 +129,31 @@
     }
   }
 
+  // === 报告快照 ===
+
+  function ensureReportSnapshot() {
+    if (currentReportId) return Promise.resolve();
+    var projectId = currentContext.projectId;
+    return fetch('/api/reports?projectId=' + encodeURIComponent(projectId), { credentials: 'same-origin' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var items = data.items || [];
+        if (items.length) {
+          currentReportId = items[0].id;
+          return;
+        }
+        return fetch('/api/reports/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ projectId: projectId, generatedBy: '用户' })
+        }).then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data.item) currentReportId = data.item.id;
+          });
+      });
+  }
+
   // === 草稿管理 ===
 
   function ensureOrCreateDraft() {
@@ -171,6 +196,7 @@
     currentDraft = null;
     currentSections = [];
     currentValidation = null;
+    currentReportId = null;
     currentStep = 1;
 
     var container = ensureContainer();
@@ -198,6 +224,7 @@
     currentDraft = null;
     currentSections = [];
     currentValidation = null;
+    currentReportId = null;
     currentStep = 0;
   }
 
