@@ -1,0 +1,44 @@
+{
+  "id": "mianyang-001",
+  "name": "绵阳市科技城新区重点片区体检",
+  "administrativeArea": "四川省绵阳市科技城新区",
+  "area": "residential",
+  "type": "重点片区更新",
+  "stage": "survey",
+  "scope": "科技城新区华瑞汽车厂及路南工业园重点片区范围内住宅建筑",
+  "scopeAreaSqKm": 4.8,
+  "desc": "对科技城新区重点片区进行城市体检。",
+  "responsibleUnit": "绵阳市科技城新区住房和城乡建设局",
+  "plannedPeriod": "2026-2030",
+  "updatedAt": "2026-09-01T00:00:00Z",
+  "residentialInventory": {
+    "items": [
+      {
+        "id": "my-comm-1", "name": "虹苑路社区小区", "buildingCount": 12, "householdCount": 960,
+        "buildings": [
+          {"id": "my-bld-1", "name": "1号楼", "householdCount": 80, "status": "active"},
+          {"id": "my-bld-2", "name": "2号楼", "householdCount": 80, "status": "active"},
+          {"id": "my-bld-3", "name": "3号楼", "householdCount": 80, "status": "active"}
+        ]
+      },
+      {
+        "id": "my-comm-2", "name": "金祥寺社区小区", "buildingCount": 8, "householdCount": 640,
+        "buildings": []
+      },
+      {
+        "id": "my-comm-3", "name": "张家营村安置房", "buildingCount": 6, "householdCount": 480,
+        "buildings": []
+      }
+    ]
+  },
+  "communityAnalysis": {
+    "categories": [
+      {"label": "养老服务", "count": 2, "names": ["科技城养老中心", "社区日间照料"]},
+      {"label": "幼儿园", "count": 3, "names": ["虹苑幼儿园", "金祥幼儿园", "张家营幼儿园"]},
+      {"label": "停车场", "count": 5, "names": ["虹苑停车场", "金祥停车场", "张家营停车场", "P4", "P5"]}
+    ],
+    "conclusion": "科技城新区养老服务设施不足，停车泊位存在缺口。",
+    "spaceTotal": 10,
+    "rawTotal": 12
+  }
+}

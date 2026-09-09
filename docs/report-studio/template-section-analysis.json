@@ -1,0 +1,4409 @@
+{
+  "templateId": "TPL-WORD-V1",
+  "stats": {
+    "totalBlocks": 1166,
+    "totalParagraphs": 1133,
+    "totalTables": 33,
+    "totalImages": 68,
+    "totalSections": 10,
+    "totalH2": 33,
+    "totalH3": 113,
+    "oldProjectHits": 185,
+    "heading1Count": 10
+  },
+  "sections": [
+    {
+      "id": "p-0006",
+      "title": "一、工作概述",
+      "h2s": [
+        {
+          "id": "p-0007",
+          "title": "1.1工作背景",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 6,
+          "blockRange": [
+            6,
+            11
+          ]
+        },
+        {
+          "id": "p-0013",
+          "title": "1.2工作目标",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 12,
+          "blockRange": [
+            12,
+            13
+          ]
+        },
+        {
+          "id": "p-0015",
+          "title": "1.3工作原则",
+          "h3s": [
+            {
+              "id": "p-0016",
+              "title": "1.3.1精准定位城市病源",
+              "blocks": [],
+              "startIndex": 15,
+              "blockRange": [
+                15,
+                16
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0018",
+              "title": "1.3.2建立体检更新协同机制",
+              "blocks": [],
+              "startIndex": 17,
+              "blockRange": [
+                17,
+                18
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0020",
+              "title": "1.3.3细化服务层级破解民生难题",
+              "blocks": [],
+              "startIndex": 19,
+              "blockRange": [
+                19,
+                20
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 14,
+          "blockRange": [
+            14,
+            20
+          ]
+        },
+        {
+          "id": "p-0022",
+          "title": "1.3体检评估范围",
+          "h3s": [
+            {
+              "id": "p-0024",
+              "title": "1.3.1住房维度",
+              "blocks": [],
+              "startIndex": 23,
+              "blockRange": [
+                23,
+                24
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0026",
+              "title": "1.3.2小区（社区）维度",
+              "blocks": [],
+              "startIndex": 25,
+              "blockRange": [
+                25,
+                28
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 4,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0030",
+              "title": "1.3.5街区维度",
+              "blocks": [],
+              "startIndex": 29,
+              "blockRange": [
+                29,
+                32
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 4,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0034",
+              "title": "1.3.6城市（城区）维度",
+              "blocks": [],
+              "startIndex": 33,
+              "blockRange": [
+                33,
+                36
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 4,
+                "tables": 0,
+                "images": 1
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 21,
+          "blockRange": [
+            21,
+            36
+          ]
+        },
+        {
+          "id": "p-0038",
+          "title": "1.4工作组织和技术路线",
+          "h3s": [
+            {
+              "id": "p-0039",
+              "title": "1.4.1工作组织",
+              "blocks": [],
+              "startIndex": 38,
+              "blockRange": [
+                38,
+                52
+              ],
+              "stats": {
+                "total": 15,
+                "paragraphs": 15,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0054",
+              "title": "1.4.2技术路线",
+              "blocks": [],
+              "startIndex": 53,
+              "blockRange": [
+                53,
+                56
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 4,
+                "tables": 0,
+                "images": 1
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 37,
+          "blockRange": [
+            37,
+            56
+          ]
+        }
+      ],
+      "startIndex": 5,
+      "blockRange": [
+        5,
+        56
+      ]
+    },
+    {
+      "id": "p-0058",
+      "title": "二、构建指标体系与评价方法",
+      "h2s": [
+        {
+          "id": "p-0059",
+          "title": "2.1指标体系构建",
+          "h3s": [
+            {
+              "id": "p-0061",
+              "title": "2.1.1片区特色指标",
+              "blocks": [],
+              "startIndex": 60,
+              "blockRange": [
+                60,
+                64
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0065",
+              "title": "2.1.2住房维度指标体系",
+              "blocks": [],
+              "startIndex": 65,
+              "blockRange": [
+                65,
+                69
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0069",
+              "title": "2.1.3小区（社区）维度指标体系",
+              "blocks": [],
+              "startIndex": 70,
+              "blockRange": [
+                70,
+                74
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0073",
+              "title": "2.1.4街区维度指标体系",
+              "blocks": [],
+              "startIndex": 75,
+              "blockRange": [
+                75,
+                79
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0077",
+              "title": "2.1.5城区（城市）维度指标体系",
+              "blocks": [],
+              "startIndex": 80,
+              "blockRange": [
+                80,
+                84
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 58,
+          "blockRange": [
+            58,
+            84
+          ]
+        },
+        {
+          "id": "p-0081",
+          "title": "2.2指标评价方法",
+          "h3s": [
+            {
+              "id": "p-0082",
+              "title": "2.2.1住房、小区（社区）、街区维度",
+              "blocks": [],
+              "startIndex": 86,
+              "blockRange": [
+                86,
+                87
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0084",
+              "title": "2.2.2城区（城市）维度",
+              "blocks": [],
+              "startIndex": 88,
+              "blockRange": [
+                88,
+                91
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 85,
+          "blockRange": [
+            85,
+            91
+          ]
+        }
+      ],
+      "startIndex": 57,
+      "blockRange": [
+        57,
+        91
+      ]
+    },
+    {
+      "id": "p-0087",
+      "title": "三、总体结论",
+      "h2s": [
+        {
+          "id": "p-0088",
+          "title": "3.1工作成效",
+          "h3s": [
+            {
+              "id": "p-0089",
+              "title": "（1）生态宜居建设具备扎实基础",
+              "blocks": [],
+              "startIndex": 94,
+              "blockRange": [
+                94,
+                96
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0092",
+              "title": "（2）历史文化保护利用体系日趋完善",
+              "blocks": [],
+              "startIndex": 97,
+              "blockRange": [
+                97,
+                99
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0095",
+              "title": "（3）安全韧性水平实现稳步提升",
+              "blocks": [],
+              "startIndex": 100,
+              "blockRange": [
+                100,
+                102
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0098",
+              "title": "（4）智慧高效建设成效持续凸显",
+              "blocks": [],
+              "startIndex": 103,
+              "blockRange": [
+                103,
+                105
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0101",
+              "title": "（5）街区通勤配套持续优化",
+              "blocks": [],
+              "startIndex": 106,
+              "blockRange": [
+                106,
+                108
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0104",
+              "title": "（6）住房居住品质稳步升级",
+              "blocks": [],
+              "startIndex": 109,
+              "blockRange": [
+                109,
+                111
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 93,
+          "blockRange": [
+            93,
+            111
+          ]
+        },
+        {
+          "id": "p-0107",
+          "title": "3.2存在问题",
+          "h3s": [
+            {
+              "id": "p-0108",
+              "title": "（1）基础设施建设仍有提升完善空间",
+              "blocks": [],
+              "startIndex": 113,
+              "blockRange": [
+                113,
+                114
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0110",
+              "title": "（2）公服配套布局仍有较大提升空间",
+              "blocks": [],
+              "startIndex": 115,
+              "blockRange": [
+                115,
+                116
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0112",
+              "title": "（3）滨水生态与土地集约利用存在短板",
+              "blocks": [],
+              "startIndex": 117,
+              "blockRange": [
+                117,
+                118
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0114",
+              "title": "（4）街区运行与社区管理水平需进一步提升",
+              "blocks": [],
+              "startIndex": 119,
+              "blockRange": [
+                119,
+                120
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0116",
+              "title": "（5）老旧空间及住房品质亟待提质优化",
+              "blocks": [],
+              "startIndex": 121,
+              "blockRange": [
+                121,
+                122
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 112,
+          "blockRange": [
+            112,
+            122
+          ]
+        }
+      ],
+      "startIndex": 92,
+      "blockRange": [
+        92,
+        122
+      ]
+    },
+    {
+      "id": "p-0118",
+      "title": "四、指标分析评价",
+      "h2s": [
+        {
+          "id": "p-0119",
+          "title": "4.1城区（城市）维度",
+          "h3s": [
+            {
+              "id": "p-0120",
+              "title": "4.1.1总体指标分析",
+              "blocks": [],
+              "startIndex": 125,
+              "blockRange": [
+                125,
+                128
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0123",
+              "title": "人均体育场地面积（平方米/人）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 129,
+              "blockRange": [
+                129,
+                139
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0134",
+              "title": "人均公共文化设施面积（平方米/人）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 140,
+              "blockRange": [
+                140,
+                148
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0143",
+              "title": "城市道路网密度（公里/平方公里）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 149,
+              "blockRange": [
+                149,
+                157
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0152",
+              "title": "滨河岸线生态化比例（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 158,
+              "blockRange": [
+                158,
+                166
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0161",
+              "title": "片区慢行交通友好指数",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 167,
+              "blockRange": [
+                167,
+                175
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0170",
+              "title": "滨水游憩指数",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 176,
+              "blockRange": [
+                176,
+                184
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0179",
+              "title": "城市人均公园绿地面积（平方米/人）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 185,
+              "blockRange": [
+                185,
+                195
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0190",
+              "title": "新建建筑中绿色建筑占比（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 196,
+              "blockRange": [
+                196,
+                204
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0199",
+              "title": "安昌河防洪达标区覆盖率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 205,
+              "blockRange": [
+                205,
+                213
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0208",
+              "title": "历史文化街区、历史建筑挂牌建档率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 214,
+              "blockRange": [
+                214,
+                222
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0217",
+              "title": "历史文化资源遭受破坏的负面事件数（起）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 223,
+              "blockRange": [
+                223,
+                231
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0226",
+              "title": "擅自拆除历史文化街区内建筑物、构筑物的数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 232,
+              "blockRange": [
+                232,
+                240
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0235",
+              "title": "房屋市政工程生产安全事故死亡率",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 241,
+              "blockRange": [
+                241,
+                249
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0244",
+              "title": "城市消防站服务半径覆盖率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 250,
+              "blockRange": [
+                250,
+                260
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0255",
+              "title": "严重易涝积水点数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 261,
+              "blockRange": [
+                261,
+                267
+              ],
+              "stats": {
+                "total": 7,
+                "paragraphs": 7,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0262",
+              "title": "具有\"平急两用\"潜力设施数量(个)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 268,
+              "blockRange": [
+                268,
+                276
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0271",
+              "title": "老旧小区改造完成率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 277,
+              "blockRange": [
+                277,
+                287
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0282",
+              "title": "闲置土地及低效用地面积比例",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 288,
+              "blockRange": [
+                288,
+                299
+              ],
+              "stats": {
+                "total": 12,
+                "paragraphs": 12,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0294",
+              "title": "城中村改造完成率(%)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 300,
+              "blockRange": [
+                300,
+                310
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0305",
+              "title": "建筑施工危险性较大的分部分项工程安全监测覆盖率(%)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 311,
+              "blockRange": [
+                311,
+                319
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0314",
+              "title": "高层民用建筑智能化火灾监测预警覆盖率(%)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 320,
+              "blockRange": [
+                320,
+                328
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0323",
+              "title": "城市运行管理服务智慧化水平（件/平方千米）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 329,
+              "blockRange": [
+                329,
+                337
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0332",
+              "title": "4.1.2问题分析",
+              "blocks": [],
+              "startIndex": 338,
+              "blockRange": [
+                338,
+                355
+              ],
+              "stats": {
+                "total": 18,
+                "paragraphs": 18,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 124,
+          "blockRange": [
+            124,
+            355
+          ]
+        },
+        {
+          "id": "p-0350",
+          "title": "4.2街区维度",
+          "h3s": [
+            {
+              "id": "p-0351",
+              "title": "4.2.1总体指标分析",
+              "blocks": [],
+              "startIndex": 357,
+              "blockRange": [
+                357,
+                360
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0354",
+              "title": "中学服务半径覆盖率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 361,
+              "blockRange": [
+                361,
+                376
+              ],
+              "stats": {
+                "total": 16,
+                "paragraphs": 15,
+                "tables": 1,
+                "images": 2
+              }
+            },
+            {
+              "id": "p-0369",
+              "title": "十五分钟生活圈公共服务配套达标率(%)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 377,
+              "blockRange": [
+                377,
+                424
+              ],
+              "stats": {
+                "total": 48,
+                "paragraphs": 47,
+                "tables": 1,
+                "images": 5
+              }
+            },
+            {
+              "id": "p-0416",
+              "title": "未达标配建的多功能运动场地数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 425,
+              "blockRange": [
+                425,
+                433
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0425",
+              "title": "未达标配建的文化活动中心数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 434,
+              "blockRange": [
+                434,
+                442
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0434",
+              "title": "公园绿化活动场地服务半径覆盖率（%）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 443,
+              "blockRange": [
+                443,
+                456
+              ],
+              "stats": {
+                "total": 14,
+                "paragraphs": 13,
+                "tables": 1,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0447",
+              "title": "存在乱停乱放车辆问题的道路数量（条）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 457,
+              "blockRange": [
+                457,
+                467
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0458",
+              "title": "跨河通道便捷度评分(分)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 468,
+              "blockRange": [
+                468,
+                491
+              ],
+              "stats": {
+                "total": 24,
+                "paragraphs": 24,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0482",
+              "title": "通勤平均时耗(分钟)",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 492,
+              "blockRange": [
+                492,
+                514
+              ],
+              "stats": {
+                "total": 23,
+                "paragraphs": 23,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0505",
+              "title": "需要更新改造的老旧商业街区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 515,
+              "blockRange": [
+                515,
+                527
+              ],
+              "stats": {
+                "total": 13,
+                "paragraphs": 13,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0518",
+              "title": "需要进行更新改造的老旧厂区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 528,
+              "blockRange": [
+                528,
+                543
+              ],
+              "stats": {
+                "total": 16,
+                "paragraphs": 16,
+                "tables": 0,
+                "images": 1
+              }
+            },
+            {
+              "id": "p-0534",
+              "title": "需要进行更新改造的老旧生活街区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 544,
+              "blockRange": [
+                544,
+                558
+              ],
+              "stats": {
+                "total": 15,
+                "paragraphs": 14,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0548",
+              "title": "4.2.2问题分析",
+              "blocks": [],
+              "startIndex": 559,
+              "blockRange": [
+                559,
+                560
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0550",
+              "title": "中学覆盖率需进一步加强",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 561,
+              "blockRange": [
+                561,
+                562
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0552",
+              "title": "十五分钟生活圈公共服务配套达标率缺位或不足",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 563,
+              "blockRange": [
+                563,
+                564
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0554",
+              "title": "多功能运动场地不满足需求",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 565,
+              "blockRange": [
+                565,
+                566
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0556",
+              "title": "文化活动中心不满足需求",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 567,
+              "blockRange": [
+                567,
+                568
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0558",
+              "title": "公园绿化活动场地覆盖率不足",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 569,
+              "blockRange": [
+                569,
+                570
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0560",
+              "title": "车辆乱停乱放问题仍需改善",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 571,
+              "blockRange": [
+                571,
+                572
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0562",
+              "title": "跨河通道便捷度一般",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 573,
+              "blockRange": [
+                573,
+                574
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0564",
+              "title": "通勤平均时耗有待提升",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 575,
+              "blockRange": [
+                575,
+                576
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0566",
+              "title": "老旧空间改造活力不足",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 577,
+              "blockRange": [
+                577,
+                578
+              ],
+              "stats": {
+                "total": 2,
+                "paragraphs": 2,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 356,
+          "blockRange": [
+            356,
+            578
+          ]
+        },
+        {
+          "id": "p-0568",
+          "title": "4.3小区（社区）维度",
+          "h3s": [
+            {
+              "id": "p-0569",
+              "title": "4.3.1总体指标分析",
+              "blocks": [],
+              "startIndex": 580,
+              "blockRange": [
+                580,
+                584
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0573",
+              "title": "未达标配建的养老服务设施的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 585,
+              "blockRange": [
+                585,
+                598
+              ],
+              "stats": {
+                "total": 14,
+                "paragraphs": 14,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0587",
+              "title": "未达标配建婴幼儿照护服务设施的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 599,
+              "blockRange": [
+                599,
+                611
+              ],
+              "stats": {
+                "total": 13,
+                "paragraphs": 13,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0600",
+              "title": "未达标配建的幼儿园的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 612,
+              "blockRange": [
+                612,
+                624
+              ],
+              "stats": {
+                "total": 13,
+                "paragraphs": 13,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0613",
+              "title": "小学学位存在问题的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 625,
+              "blockRange": [
+                625,
+                635
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0624",
+              "title": "未达标配建便民商业服务设施的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 636,
+              "blockRange": [
+                636,
+                646
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0635",
+              "title": "存在停车泊位缺口的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 647,
+              "blockRange": [
+                647,
+                656
+              ],
+              "stats": {
+                "total": 10,
+                "paragraphs": 10,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0645",
+              "title": "存在新能源汽车充电桩缺口的小区数量",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 657,
+              "blockRange": [
+                657,
+                667
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0656",
+              "title": "未配建电动自行车充电设施的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 668,
+              "blockRange": [
+                668,
+                677
+              ],
+              "stats": {
+                "total": 10,
+                "paragraphs": 10,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0666",
+              "title": "未达标配建社区综合服务站的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 678,
+              "blockRange": [
+                678,
+                688
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0677",
+              "title": "未达标配建社区卫生服务站的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 689,
+              "blockRange": [
+                689,
+                698
+              ],
+              "stats": {
+                "total": 10,
+                "paragraphs": 10,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0687",
+              "title": "未达标配建公共活动场地的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 699,
+              "blockRange": [
+                699,
+                711
+              ],
+              "stats": {
+                "total": 13,
+                "paragraphs": 13,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0700",
+              "title": "未实施生活垃圾分类的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 712,
+              "blockRange": [
+                712,
+                723
+              ],
+              "stats": {
+                "total": 12,
+                "paragraphs": 12,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0712",
+              "title": "未实施物业管理的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 724,
+              "blockRange": [
+                724,
+                735
+              ],
+              "stats": {
+                "total": 12,
+                "paragraphs": 12,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0724",
+              "title": "需要进行智慧化改造的小区数量（个）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 736,
+              "blockRange": [
+                736,
+                746
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0735",
+              "title": "4.3.2问题分析",
+              "blocks": [],
+              "startIndex": 747,
+              "blockRange": [
+                747,
+                792
+              ],
+              "stats": {
+                "total": 46,
+                "paragraphs": 46,
+                "tables": 0,
+                "images": 26
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 579,
+          "blockRange": [
+            579,
+            792
+          ]
+        },
+        {
+          "id": "p-0781",
+          "title": "4.4住房维度",
+          "h3s": [
+            {
+              "id": "p-0782",
+              "title": "4.4.1总体指标分析",
+              "blocks": [],
+              "startIndex": 794,
+              "blockRange": [
+                794,
+                798
+              ],
+              "stats": {
+                "total": 5,
+                "paragraphs": 4,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0786",
+              "title": "存在使用安全隐患的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 799,
+              "blockRange": [
+                799,
+                807
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0795",
+              "title": "存在燃气安全隐患的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 808,
+              "blockRange": [
+                808,
+                817
+              ],
+              "stats": {
+                "total": 10,
+                "paragraphs": 10,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0805",
+              "title": "存在楼道安全隐患的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 818,
+              "blockRange": [
+                818,
+                832
+              ],
+              "stats": {
+                "total": 15,
+                "paragraphs": 15,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0820",
+              "title": "存在围护安全隐患的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 833,
+              "blockRange": [
+                833,
+                844
+              ],
+              "stats": {
+                "total": 12,
+                "paragraphs": 12,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0832",
+              "title": "住宅性能不达标的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 845,
+              "blockRange": [
+                845,
+                851
+              ],
+              "stats": {
+                "total": 7,
+                "paragraphs": 7,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0839",
+              "title": "存在管线管道破损的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 852,
+              "blockRange": [
+                852,
+                861
+              ],
+              "stats": {
+                "total": 10,
+                "paragraphs": 10,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0849",
+              "title": "入户水质水压不达标的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 862,
+              "blockRange": [
+                862,
+                870
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0858",
+              "title": "需要进行适老化改造的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 871,
+              "blockRange": [
+                871,
+                881
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0869",
+              "title": "需要进行节能改造的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 882,
+              "blockRange": [
+                882,
+                888
+              ],
+              "stats": {
+                "total": 7,
+                "paragraphs": 7,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0876",
+              "title": "需要进行数字化改造的住宅数量（栋）",
+              "blocks": [],
+              "isIndicator": true,
+              "startIndex": 889,
+              "blockRange": [
+                889,
+                931
+              ],
+              "stats": {
+                "total": 43,
+                "paragraphs": 41,
+                "tables": 2,
+                "images": 16
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 793,
+          "blockRange": [
+            793,
+            931
+          ]
+        }
+      ],
+      "startIndex": 123,
+      "blockRange": [
+        123,
+        931
+      ]
+    },
+    {
+      "id": "p-0917",
+      "title": "五、城市治理建议",
+      "h2s": [
+        {
+          "id": "p-0918",
+          "title": "5.1住房维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 933,
+          "blockRange": [
+            933,
+            944
+          ]
+        },
+        {
+          "id": "p-0930",
+          "title": "5.2小区（社区）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 945,
+          "blockRange": [
+            945,
+            962
+          ]
+        },
+        {
+          "id": "p-0948",
+          "title": "5.3街区维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 963,
+          "blockRange": [
+            963,
+            975
+          ]
+        },
+        {
+          "id": "p-0961",
+          "title": "5.4城区维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 976,
+          "blockRange": [
+            976,
+            1000
+          ]
+        }
+      ],
+      "startIndex": 932,
+      "blockRange": [
+        932,
+        1000
+      ]
+    },
+    {
+      "id": "p-0986",
+      "title": "六、行动建议",
+      "h2s": [
+        {
+          "id": "p-0987",
+          "title": "6.1行动计划",
+          "h3s": [
+            {
+              "id": "p-0989",
+              "title": "6.1.1 加强既有建筑改造利用",
+              "blocks": [],
+              "startIndex": 1004,
+              "blockRange": [
+                1004,
+                1012
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-0998",
+              "title": "6.1.2 推进城镇老旧小区整治改造",
+              "blocks": [],
+              "startIndex": 1013,
+              "blockRange": [
+                1013,
+                1023
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1009",
+              "title": "6.1.3 开展完整社区建设",
+              "blocks": [],
+              "startIndex": 1024,
+              "blockRange": [
+                1024,
+                1040
+              ],
+              "stats": {
+                "total": 17,
+                "paragraphs": 17,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1026",
+              "title": "6.1.4 推进“老旧街区、老旧厂区、城中村”等更新改造",
+              "blocks": [],
+              "startIndex": 1041,
+              "blockRange": [
+                1041,
+                1047
+              ],
+              "stats": {
+                "total": 7,
+                "paragraphs": 7,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1033",
+              "title": "6.1.5 完善城市功能",
+              "blocks": [],
+              "startIndex": 1048,
+              "blockRange": [
+                1048,
+                1056
+              ],
+              "stats": {
+                "total": 9,
+                "paragraphs": 9,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1042",
+              "title": "6.1.6 加强城市基础设施建设改造",
+              "blocks": [],
+              "startIndex": 1057,
+              "blockRange": [
+                1057,
+                1067
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1053",
+              "title": "6.1.7 修复城市生态系统",
+              "blocks": [],
+              "startIndex": 1068,
+              "blockRange": [
+                1068,
+                1070
+              ],
+              "stats": {
+                "total": 3,
+                "paragraphs": 3,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 1002,
+          "blockRange": [
+            1002,
+            1070
+          ]
+        },
+        {
+          "id": "p-1056",
+          "title": "6.2机制建设建议",
+          "h3s": [
+            {
+              "id": "p-1057",
+              "title": "6.2.1 项目储备及生成机制",
+              "blocks": [],
+              "startIndex": 1072,
+              "blockRange": [
+                1072,
+                1082
+              ],
+              "stats": {
+                "total": 11,
+                "paragraphs": 11,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1068",
+              "title": "6.2.2 项目资金安排和筹措机制",
+              "blocks": [],
+              "startIndex": 1083,
+              "blockRange": [
+                1083,
+                1090
+              ],
+              "stats": {
+                "total": 8,
+                "paragraphs": 8,
+                "tables": 0,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1076",
+              "title": "6.2.3 具体项目内机制",
+              "blocks": [],
+              "startIndex": 1091,
+              "blockRange": [
+                1091,
+                1105
+              ],
+              "stats": {
+                "total": 15,
+                "paragraphs": 15,
+                "tables": 0,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 1071,
+          "blockRange": [
+            1071,
+            1105
+          ]
+        },
+        {
+          "id": "p-1091",
+          "title": "6.3项目建设时序",
+          "h3s": [
+            {
+              "id": "p-1092",
+              "title": "6.3.1 2025年-2026年：安全筑基与急迫民生补缺",
+              "blocks": [],
+              "startIndex": 1107,
+              "blockRange": [
+                1107,
+                1110
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1095",
+              "title": "6.3.2 2027年-2028年：功能完善与设施攻坚",
+              "blocks": [],
+              "startIndex": 1111,
+              "blockRange": [
+                1111,
+                1114
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            },
+            {
+              "id": "p-1098",
+              "title": "6.3.3 2028年-2030年：品质提升与长效运营",
+              "blocks": [],
+              "startIndex": 1115,
+              "blockRange": [
+                1115,
+                1118
+              ],
+              "stats": {
+                "total": 4,
+                "paragraphs": 3,
+                "tables": 1,
+                "images": 0
+              }
+            }
+          ],
+          "blocks": [],
+          "startIndex": 1106,
+          "blockRange": [
+            1106,
+            1118
+          ]
+        },
+        {
+          "id": "p-1101",
+          "title": "6.4资金来源建议",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1119,
+          "blockRange": [
+            1119,
+            1136
+          ]
+        }
+      ],
+      "startIndex": 1001,
+      "blockRange": [
+        1001,
+        1136
+      ]
+    },
+    {
+      "id": "p-1118",
+      "title": "附录2：指标分析评价结果统计表",
+      "h2s": [
+        {
+          "id": "p-1119",
+          "title": "2-1住房维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1138,
+          "blockRange": [
+            1138,
+            1139
+          ]
+        },
+        {
+          "id": "p-1120",
+          "title": "2-2小区（社区）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1140,
+          "blockRange": [
+            1140,
+            1141
+          ]
+        },
+        {
+          "id": "p-1121",
+          "title": "2-3街区维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1142,
+          "blockRange": [
+            1142,
+            1143
+          ]
+        },
+        {
+          "id": "p-1122",
+          "title": "2-4城区（城市）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1144,
+          "blockRange": [
+            1144,
+            1145
+          ]
+        }
+      ],
+      "startIndex": 1137,
+      "blockRange": [
+        1137,
+        1145
+      ]
+    },
+    {
+      "id": "p-1123",
+      "title": "附录3：问题清单及台账一览表",
+      "h2s": [
+        {
+          "id": "p-1124",
+          "title": "3-1住房维度问题清单一览表",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1147,
+          "blockRange": [
+            1147,
+            1148
+          ]
+        },
+        {
+          "id": "p-1125",
+          "title": "3-2小区（社区）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1149,
+          "blockRange": [
+            1149,
+            1150
+          ]
+        },
+        {
+          "id": "p-1126",
+          "title": "3-3街区维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1151,
+          "blockRange": [
+            1151,
+            1152
+          ]
+        },
+        {
+          "id": "p-1127",
+          "title": "3-4城区（城市）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1153,
+          "blockRange": [
+            1153,
+            1154
+          ]
+        }
+      ],
+      "startIndex": 1146,
+      "blockRange": [
+        1146,
+        1154
+      ]
+    },
+    {
+      "id": "p-1128",
+      "title": "附录4：治理建议清单一览表",
+      "h2s": [
+        {
+          "id": "p-1129",
+          "title": "4-1：住房维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1156,
+          "blockRange": [
+            1156,
+            1157
+          ]
+        },
+        {
+          "id": "p-1130",
+          "title": "4-2小区（社区）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1158,
+          "blockRange": [
+            1158,
+            1159
+          ]
+        },
+        {
+          "id": "p-1131",
+          "title": "4-3街区维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1160,
+          "blockRange": [
+            1160,
+            1161
+          ]
+        },
+        {
+          "id": "p-1132",
+          "title": "4-4城区（城市）维度",
+          "h3s": [],
+          "blocks": [],
+          "startIndex": 1162,
+          "blockRange": [
+            1162,
+            1163
+          ]
+        }
+      ],
+      "startIndex": 1155,
+      "blockRange": [
+        1155,
+        1163
+      ]
+    },
+    {
+      "id": "p-1133",
+      "title": "附录5：城市更新项目库",
+      "h2s": [],
+      "startIndex": 1164,
+      "blockRange": [
+        1164,
+        1165
+      ]
+    }
+  ],
+  "allImages": [
+    {
+      "blockId": "p-0028",
+      "src": "assets/report-templates/v1/media/image1.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0032",
+      "src": "assets/report-templates/v1/media/image2.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0036",
+      "src": "assets/report-templates/v1/media/image3.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0056",
+      "src": "assets/report-templates/v1/media/image4.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0132",
+      "src": "assets/report-templates/v1/media/image5.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0188",
+      "src": "assets/report-templates/v1/media/image6.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0253",
+      "src": "assets/report-templates/v1/media/image7.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0269",
+      "src": "assets/report-templates/v1/media/image8.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0280",
+      "src": "assets/report-templates/v1/media/image9.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0292",
+      "src": "assets/report-templates/v1/media/image10.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0303",
+      "src": "assets/report-templates/v1/media/image11.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0365",
+      "src": "assets/report-templates/v1/media/image12.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0367",
+      "src": "assets/report-templates/v1/media/image13.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0397",
+      "src": "assets/report-templates/v1/media/image13.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0401",
+      "src": "assets/report-templates/v1/media/image14.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0404",
+      "src": "assets/report-templates/v1/media/image15.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0407",
+      "src": "assets/report-templates/v1/media/image16.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0410",
+      "src": "assets/report-templates/v1/media/image17.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0445",
+      "src": "assets/report-templates/v1/media/image17.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0456",
+      "src": "assets/report-templates/v1/media/image18.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0516",
+      "src": "assets/report-templates/v1/media/image19.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0532",
+      "src": "assets/report-templates/v1/media/image20.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "t-012",
+      "row": 0,
+      "col": 0,
+      "src": "assets/report-templates/v1/media/image21.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "t-012",
+      "row": 0,
+      "col": 1,
+      "src": "assets/report-templates/v1/media/image22.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0738",
+      "src": "assets/report-templates/v1/media/image23.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0742",
+      "src": "assets/report-templates/v1/media/image24.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0745",
+      "src": "assets/report-templates/v1/media/image25.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0748",
+      "src": "assets/report-templates/v1/media/image26.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0751",
+      "src": "assets/report-templates/v1/media/image27.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0751",
+      "src": "assets/report-templates/v1/media/image28.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0752",
+      "src": "assets/report-templates/v1/media/image29.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0752",
+      "src": "assets/report-templates/v1/media/image30.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0755",
+      "src": "assets/report-templates/v1/media/image31.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0755",
+      "src": "assets/report-templates/v1/media/image32.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0758",
+      "src": "assets/report-templates/v1/media/image33.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0758",
+      "src": "assets/report-templates/v1/media/image34.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0759",
+      "src": "assets/report-templates/v1/media/image35.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0759",
+      "src": "assets/report-templates/v1/media/image36.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0762",
+      "src": "assets/report-templates/v1/media/image37.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0765",
+      "src": "assets/report-templates/v1/media/image38.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0769",
+      "src": "assets/report-templates/v1/media/image39.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0769",
+      "src": "assets/report-templates/v1/media/image40.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0770",
+      "src": "assets/report-templates/v1/media/image41.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0770",
+      "src": "assets/report-templates/v1/media/image42.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0773",
+      "src": "assets/report-templates/v1/media/image43.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0773",
+      "src": "assets/report-templates/v1/media/image44.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0774",
+      "src": "assets/report-templates/v1/media/image45.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0774",
+      "src": "assets/report-templates/v1/media/image46.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0778",
+      "src": "assets/report-templates/v1/media/image47.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0778",
+      "src": "assets/report-templates/v1/media/image48.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "t-015",
+      "row": 0,
+      "col": 0,
+      "src": "assets/report-templates/v1/media/image49.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "t-016",
+      "row": 0,
+      "col": 0,
+      "src": "assets/report-templates/v1/media/image50.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0894",
+      "src": "assets/report-templates/v1/media/image51.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0894",
+      "src": "assets/report-templates/v1/media/image52.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0896",
+      "src": "assets/report-templates/v1/media/image53.png",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0896",
+      "src": "assets/report-templates/v1/media/image54.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0899",
+      "src": "assets/report-templates/v1/media/image55.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0899",
+      "src": "assets/report-templates/v1/media/image56.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0901",
+      "src": "assets/report-templates/v1/media/image57.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0901",
+      "src": "assets/report-templates/v1/media/image58.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0905",
+      "src": "assets/report-templates/v1/media/image59.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0905",
+      "src": "assets/report-templates/v1/media/image60.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0907",
+      "src": "assets/report-templates/v1/media/image61.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0907",
+      "src": "assets/report-templates/v1/media/image62.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0911",
+      "src": "assets/report-templates/v1/media/image63.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0911",
+      "src": "assets/report-templates/v1/media/image64.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0915",
+      "src": "assets/report-templates/v1/media/image65.jpeg",
+      "alt": "Word 模板图片"
+    },
+    {
+      "blockId": "p-0915",
+      "src": "assets/report-templates/v1/media/image66.jpeg",
+      "alt": "Word 模板图片"
+    }
+  ],
+  "oldContentHits": [
+    {
+      "blockId": "p-0001",
+      "style": "Normal",
+      "textPreview": "绵阳市科技城新区华瑞汽车厂及路南工业园重点片区",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "重点片区",
+        "华瑞汽车厂",
+        "路南工业园",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0002",
+      "style": "Normal",
+      "textPreview": "2026年城市体检报告",
+      "keywords": [
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0003",
+      "style": "Normal",
+      "textPreview": "绵阳市科技城新区住房和城乡建设局",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0004",
+      "style": "Normal",
+      "textPreview": "2026年07月",
+      "keywords": [
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0010",
+      "style": "Normal",
+      "textPreview": "四川省住房和城乡建设厅提出，城市体检工作应向群众身边延伸、在“实”上下功夫，将城市体检出来的问题，作为城市更新的重点。根据《关于开展2025年城市体检工作的通知》，要求城市重点更新片区体检和专项体检与本年度城市体检工作统一部署，统筹安排。并",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0011",
+      "style": "Normal",
+      "textPreview": "绵阳市作为四川省首批城市体检和首批城市更新城市之一，将城市体检作为城市更新的重要抓手，以体检促更新，体系化制定城市体检和城市更新实施方案，已连续开展5年的城市体检工作，2026年绵阳将进一步按照住建部的要求，畅通“城市体检-项目储备-城市更",
+      "keywords": [
+        "绵阳",
+        "绵阳市",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0012",
+      "style": "Normal",
+      "textPreview": "绵阳科技城新区管委会严格遵循国家、省、市三级政策要求，探索构建“体检发现问题—更新规划制定系统方案—生成实施项目—评估实施效果—推动巩固提升”工作机制。此次重点聚焦问题突出、紧迫度高、更新潜力大的绵兴东路以南华瑞汽车厂区周边565.63公顷",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "华瑞汽车厂"
+      ]
+    },
+    {
+      "blockId": "p-0025",
+      "style": "Normal",
+      "textPreview": "住房维度体检对象为张家营村社区、虹苑路社区、金祥寺社区内所有居住建筑，共采集191栋居住建筑。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0027",
+      "style": "Normal",
+      "textPreview": "小区（社区）维度体检涉及张家营村社区、虹苑路社区、金祥寺社区三个社区，以社区实际管理范围为基本单元。共计采集34个小区（包含7个自建房小区）。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0031",
+      "style": "Normal",
+      "textPreview": "街区维度体检涉及普明街道与永兴镇两个行政单元。",
+      "keywords": [
+        "普明街道",
+        "永兴镇"
+      ]
+    },
+    {
+      "blockId": "p-0035",
+      "style": "Normal",
+      "textPreview": "城区（城市）维度统筹街道行政管辖范围、河流等地理要素界限、道路划分，结合要素发展关联性划定565.63公顷，北至绵兴东路、南至曹溪河与安昌河、西至兴华南路、东至双碑中街。",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0041",
+      "style": "Normal",
+      "textPreview": "以国家标准-2025年城市体检基础指标体系中的60项指标体系为基础，结合片区实际，围绕住房、小区(社区)、街区、城区(城市)四个维度，结合片区发展诉求、资源禀赋特色、现状建设短板、人民急难愁盼，形成片区城市体检指标体系。",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0044",
+      "style": "Normal",
+      "textPreview": "城区（城市）维度：由绵阳市科技城新区管委会统筹，各部门分工负责的工作方式对数据进行采集，数据由责任单位汇总至管委会住建局，管委会住建局审查合格后送至市领导小组办公室。",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0047",
+      "style": "Normal",
+      "textPreview": "住房维度：由张家营村社区、虹苑路社区、金祥寺社区内小区物业服务企业、社区网格员组成联合工作组，成员信息上报至管委会住建局。工作组开展现场调研与数据采集工作，街道对数据进行审查，第三方技术团队对数据进行辅助校核。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0053",
+      "style": "Normal",
+      "textPreview": "强化体检结果应用，加强问题整改督办，对限时解决问题，明确问题情况、风险等级、可能造成的后果以及整治建议，督促相关责任主体制定整改方案，做到立行立改、限时解决。对尽力解决类问题开展深入研究，坚持尽力而为、量力而行，开展专项课题研究，衔接相关规",
+      "keywords": [
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0060",
+      "style": "Normal",
+      "textPreview": "结合片区实际，在住建部2025年城市体检基础指标体系中的基础上，删除14项指标；并进一步结合区域发展诉求、资源禀赋特色、现状建设短板、人民急难愁盼，增加12项片区特色指标，最终形成58项片区城市体检指标体系。",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0062",
+      "style": "Normal",
+      "textPreview": "片区共增设12项特色指标，小区（社区）维度3项，均为设施完善专项，分别为便民商业服务设施达标率（%）、未达标配建社区综合服务站的数量(个)、未达标配建社区卫生服务站的数量(个)；街区维度3项，其中功能完善专项1项，为十五分钟生活圈公共服务配",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0100",
+      "style": "Normal",
+      "textPreview": "一是危大工程智慧监管全覆盖。紧跟全市 “互联网 + 工程监管” 建设部署，片区所有在建危大分项工程全部接入市级工程安全监管平台，依托物联网传感设备实现施工过程全天候在线监测，危大工程安全监测覆盖率稳定 100%。二是高层消防智能预警全域布设",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0113",
+      "style": "Normal",
+      "textPreview": "一是滨水空间建设成效不足。片区滨河岸线生态化比例 26.7%，远低于≥70% 的规划标准，硬质渠化岸线占比偏高；滨水游憩指数仅 8.7%，大量岸线被地块圈占封闭，便民步道、休闲配套缺失，连续滨水游憩环线尚未成型。 二是存量土地盘活难度较大。",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0151",
+      "style": "Normal",
+      "textPreview": "片区内道路总长度30.35公里，体检范围5.66平方公里，城市道路网密度为5.36公里/平方公里，远低于标准。主要源于片区内存在大量闲置用地与低效厂区，导致路网密度较低。此外，安昌河西岸未建设滨河道路，形成大量断头路，导致道路通达性不足，亦",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0154",
+      "style": "Normal",
+      "textPreview": "指科技城新区重点片区范围内露天天然河道、人工水系、滨河渠系等合规统计滨水岸线中，采用自然原生、生态护坡等生态化形式建设的岸线长度，占片区全部滨河岸线总长度的百分比。该指标用于核查城市滨水生态修复、河湖岸线整治、蓝绿空间营建成效，精准查找片区",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0156",
+      "style": "Normal",
+      "textPreview": "滨河岸线生态化比例（%）=辖区内重点片区生态化滨河岸线长度（km）/辖区内重点片区合规统计滨河岸线总长度（km）×100%。",
+      "keywords": [
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0158",
+      "style": "Normal",
+      "textPreview": "参照《四川省城市体检技术导则》《四川省2025年河湖管理保护工作要点》《绵阳市海绵城市专项规划》相关要求，结合绵阳市科技城新区国土空间规划及城市更新管控目标，优质建设目标为滨河岸线生态化比例达到70%及以上，最优达标标准为全面实现片区重点河",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市",
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0160",
+      "style": "Normal",
+      "textPreview": "辖区内重点片区生态化滨河岸线长度为1.32km，总长度为4.94km，滨河岸线生态化比例为26.7%，远低于所定标准的70%，故该指标表现不足。",
+      "keywords": [
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0163",
+      "style": "Normal",
+      "textPreview": "指反映科技城新区重点片区步行、非机动车骑行等慢行系统的连续性、安全性、舒适度、通达性及环境品质的综合评价指数，涵盖慢行路网覆盖、路权保障、设施完善、环境适配等维度。该指标用于核查片区慢行交通体系建设水平，精准查找城市慢行空间缺失、路权被挤占",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0167",
+      "style": "Normal",
+      "textPreview": "参照住建部《城市步行和自行车交通系统规划设计标准》《四川省城市体检技术导则》及绵阳市科技城新区慢行系统专项规划要求，全面推行以人为本的城市交通建设模式，预期片区慢行交通友好指数达标率趋近100%，实现慢行路网连贯、路权独立、设施完善、接驳便",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0172",
+      "style": "Normal",
+      "textPreview": "指反映科技城新区重点片区滨水岸线空间开放度、游憩可达性、景观舒适性、配套完整性及公共服务能力的综合性评价指数，涵盖滨水步道贯通、公共空间开放、休闲设施配套、景观环境营造等维度。该指标用于核查片区滨水公共空间利用与宜居建设水平，精准查找滨水空",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0174",
+      "style": "Normal",
+      "textPreview": "滨水游憩指数（%）=辖区内重点片区达标开放滨水游憩岸线长度（km）/辖区内重点片区可利用滨水岸线总长度（km）×100%。其中达标滨水游憩岸线指岸线对外开放、通行连贯、配套休闲及便民设施、具备公共游憩功能的滨水段落。",
+      "keywords": [
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0176",
+      "style": "Normal",
+      "textPreview": "参照住建部《城市绿地设计规范》及《四川省城市体检技术导则》、绵阳市科技城新区国土空间规划相关要求，全面推进滨水公共空间开放共享与品质提升，预期片区滨水游憩指数趋近100%，实现滨水岸线全面开放、游憩功能完善、人居环境优质的蓝绿公共空间体系。",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0178",
+      "style": "Normal",
+      "textPreview": "辖区内重点片区达标开放滨水游憩岸线长度为0.43km辖区内重点片区可利用滨水岸线总长度为4.94km，滨水游憩指数为8.7%，远低于趋近100%的要求，故该指标表现不足。",
+      "keywords": [
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0187",
+      "style": "Normal",
+      "textPreview": "片区内公园绿地面积共154677.89平方米，其中生态性绿地95523.63平方米，游憩性绿地59154.26平方米。区域内常住人口65300人，人均享有绿地面积2.37，游憩性绿地主要集中在安昌河北岸以及绵兴东路沿线，生态绿地普遍绿化覆盖",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0196",
+      "style": "Normal",
+      "textPreview": "参照《绿色建筑评价标准》、住建部绿色建筑推广政策、四川省城市体检导则及绵阳市绿色建筑管控要求，持续提升新建建筑绿色化水平，城镇新建民用建筑全面执行绿色建筑标准，预期新建建筑中绿色建筑占比达到 100%。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0199",
+      "style": "Heading 4",
+      "textPreview": "安昌河防洪达标区覆盖率（%）",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0201",
+      "style": "Normal",
+      "textPreview": "指科技城新区重点片区范围内，符合安昌河规划防洪设防标准、防洪工程设施完备、防洪安全体系健全的达标区域面积，占片区安昌河涉河管控区域总面积的百分比。该指标用于核查片区河道防洪工程建设成效、流域水安全保障能力，精准查找防洪设施短板、设防标准不足",
+      "keywords": [
+        "科技城新区",
+        "重点片区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0203",
+      "style": "Normal",
+      "textPreview": "安昌河防洪达标区覆盖率（%）=辖区内科技城新区重点片区安昌河防洪达标区域面积（㎡）/辖区内科技城新区重点片区安昌河涉河管控区域总面积（㎡）×100%。其中防洪达标区域指堤防、护岸、排涝等防洪设施完整，满足法定防洪设防标准、无防洪安全隐患的管",
+      "keywords": [
+        "科技城新区",
+        "重点片区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0205",
+      "style": "Normal",
+      "textPreview": "参照《防洪标准》（GB 50201-2014）、《四川省城市体检技术导则》及绵阳市安昌河防洪治理专项规划相关要求，全面筑牢城市流域防洪安全屏障，预期安昌河防洪达标区覆盖率达到100%，全面保障片区城市建设、居民生产生活的防洪安全。",
+      "keywords": [
+        "绵阳",
+        "安昌河",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0214",
+      "style": "Normal",
+      "textPreview": "参照住建部、文物局历史建筑保护管理相关规定、《四川省城市体检技术导则》及绵阳市历史文化保护专项管控要求，规范落实历史遗存建档挂牌管理制度，预期历史文化街区、历史建筑挂牌建档率达到 100%。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0250",
+      "style": "Normal",
+      "textPreview": "根据2022年《城市体检工作手册（试行）》住建部要求，要求城市标准消防站及小型普通消防站覆盖率每年提高5个百分点，2025年大于75%。",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0252",
+      "style": "Normal",
+      "textPreview": "片区可用消防站为绵阳市消防救援支队火炬街特勤站，覆盖片区280.1公顷，覆盖率49.52%，指标表现不足。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0257",
+      "style": "Normal",
+      "textPreview": "“严重易涝积水点”定义是依据《城镇内涝治理系统化实施方案编制》标准，界定积水深度大于等于60cm以及对生活生产的严重程度来判别易涝积水点的风险等级，并结合其他城市经验以及绵阳地方实际，综合判定积水深度大于40cm或积水时间大于60min的积",
+      "keywords": [
+        "绵阳"
+      ]
+    },
+    {
+      "blockId": "p-0259",
+      "style": "Normal",
+      "textPreview": "根据《国务院办公厅关于加强城市内涝治理的实施意见》（国办发（2021）11号）要求，到2025年，历史上严重影响生产生活秩序的易涝积水点全面消除。根据《国务院办公厅关于加强城市内涝治理的实施意见》（国办发（2021）11号），提出“到202",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0261",
+      "style": "Normal",
+      "textPreview": "市住建委等相关部门在完成《城市内涝治理三年攻坚行动方案（2022-2024）》既定任务基础上，2024 至 2025年，持续聚焦老城区积水排干、低洼地区防洪排涝能力提升及历史易涝点消除等核心目标。实现了老城区雨后及时排干、大幅提升低洼地区防",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0268",
+      "style": "Normal",
+      "textPreview": "已查找出重点片区内现有10处具有\"平急两用\"潜力设施，包括不限于仓储场馆、公共服务、市政配套等，整体潜力设施数量可观，但安昌河以东设施数量偏少。该指标评价结果表现一般。",
+      "keywords": [
+        "重点片区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0277",
+      "style": "Normal",
+      "textPreview": "参照住建部城镇老旧小区改造相关工作要求、《四川省城市体检技术导则》及绵阳市城市更新专项工作方案，全力推进建成年代在2004年之前的老旧小区，进行提质改造、补齐城市民生短板，预期老旧小区改造完成率达到100%，全面完成既定改造任务。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0300",
+      "style": "Normal",
+      "textPreview": "参照住建部城市更新、城中村改造相关政策、《四川省城市体检技术导则》及绵阳市、科技城新区城中村改造专项实施方案，稳步有序推进城中村连片改造，规划目标中长期城中村改造完成率逐步趋近 100%，系统性消除城中村环境短板，完善片区基础设施配套。",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0311",
+      "style": "Normal",
+      "textPreview": "依据住建部《关于启用全国工程质量安全监管信息平台的通知》、《危险性较大的分部分项工程安全管理规定》（住房和城乡建设部令第37 号）及四川省、绵阳市住建行业监管与城市体检相关要求，全面落实危大工程在线动态监测，预期建筑施工危险性较大的分部分项",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0320",
+      "style": "Normal",
+      "textPreview": "依据《高层民用建筑消防安全管理规定》（应急管理部令第 5 号）、《建筑消防设施远程监控系统技术规程》（T/CFPA 052—2026）及四川省、绵阳市消防安全管理与城市体检相关要求，全面推进高层民用建筑智慧消防建设，预期高层民用建筑智能化火",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0329",
+      "style": "Normal",
+      "textPreview": "参照住建部《城市运行管理服务平台建设技术导则》、四川省城市体检及绵阳市智慧城市建设相关要求，持续推进城市管理数字化转型，远期目标城市运行管理服务智慧化水平达到 100%。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0331",
+      "style": "Normal",
+      "textPreview": "辖区内城市运行管理服务智慧化水平符合四川省、绵阳市体检相关要求，故评价为优良。",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0334",
+      "style": "Normal",
+      "textPreview": "一是人均体育场地与公共文化设施供给缺口突出。科技城新区重点片区人均体育场地面积 0.35 平方米 / 人，对照《“十五五” 体育发展规划》2030 年≥3.2 平方米 / 人的建设标准差距巨大；片区无任何建成投用的公共文化设施，人均公共文化",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0335",
+      "style": "Normal",
+      "textPreview": "二是人均公园绿地指标远低于国标、空间分布不均衡。片区人均公园绿地面积 2.37 平方米 / 人，对照《国家园林城市申报与评选管理办法（2022）》≥12㎡/ 人的标准缺口显著；游憩性绿地高度集中在安昌河北岸、绵兴东路沿线，其余居住片区绿地配",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0338",
+      "style": "Normal",
+      "textPreview": "一是城市道路网体系不完善、路网密度不达标。科技城新区重点片区城市道路网密度 5.36 公里 / 平方公里，对照国家《关于进一步加强城市规划建设管理工作的若干意见》建成区平均 8 公里 / 平方公里的硬性标准存在较大差距。 主要成因：片区存量",
+      "keywords": [
+        "科技城新区",
+        "重点片区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0343",
+      "style": "Normal",
+      "textPreview": "一是滨河岸线生态化改造推进缓慢，生态岸线占比偏低。片区滨河岸线生态化比例 26.7%，远低于四川省、绵阳市相关规划≥70% 的优质建设标准，大面积岸线仍为硬质渠化形式。 主要问题：安昌河沿线早期河道建设以防洪硬化渠化为主，存量硬质岸线改造项",
+      "keywords": [
+        "绵阳",
+        "安昌河",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0346",
+      "style": "Normal",
+      "textPreview": "一是 “平急两用” 设施空间分布不均衡，片区应急保障韧性有待补强。片区现有 10 处具备平急两用改造潜力的公共设施，整体存量数量尚可，但安昌河以东片区潜力设施稀缺，区域配置失衡。 主要问题：安昌河东片区以新建居住、产业用地为主，前期规划未统",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0347",
+      "style": "Normal",
+      "textPreview": "补充：安昌河防洪达标区覆盖率数据尚在统计阶段，暂不开展问题剖析。",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0362",
+      "style": "Normal",
+      "textPreview": "截至2026年6月，绵阳市科技城新区范围内无初级中学，片区外附近有2所初级中学，学位共141个班级。其中永兴镇街道绵阳外国语创新中学36个班级，建筑面积21635㎡。普明街道普明中学105个班级，建筑面积60000㎡。基本满足学生实际就学需",
+      "keywords": [
+        "绵阳",
+        "科技城新区",
+        "普明街道",
+        "永兴镇",
+        "绵阳市",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0364",
+      "style": "Caption",
+      "textPreview": "表04-2-2科技城新区重点片区初级中学统计表",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0366",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-1 科技城新区重点片区现状初中位置示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0368",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-2科技城新区重点片区现状初中服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0398",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-3科技城新区重点片区现状初中服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0400",
+      "style": "Normal",
+      "textPreview": "养老院：街区内有1家大型养老院，为德善颐家康养院，建筑面积5674.52㎡，床位数126个。街区外周边有1家大型养老院，为绵阳市涪城区老年养护院，服务半径能辐射到片区内；覆盖居住用地面积 175424.95平方米，总居住用地面积107695",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0402",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-4科技城新区重点片区现状养老院服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0403",
+      "style": "Normal",
+      "textPreview": "社区医院：街区内有3家社区医院，为顾连康复医院、绵阳爱贝尔妇产医院、绵阳德康疼痛医院，顾连康复医院总建筑面积3000㎡，8000床位，绵阳爱贝尔妇产医院功能不符合社区医院的功能要求，故剔除，绵阳德康疼痛医院建筑面积2000㎡；片区外周边有2",
+      "keywords": [
+        "绵阳"
+      ]
+    },
+    {
+      "blockId": "p-0405",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-5科技城新区重点片区现状医院服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0408",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-6科技城新区重点片区现状商业设施服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0411",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-7科技城新区重点片区现状绿化活动场地服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0415",
+      "style": "Caption",
+      "textPreview": "表04-2-3科技城新区十五分钟生活圈公共服务配套达标率统计表",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0424",
+      "style": "Normal",
+      "textPreview": "科技城新区现状片区现状没有运动场地功能，其评价结果为“不足”，不具备全民健身发展要求。片区分为两个街道，为2个十五分钟生活圈居住区，未达标配建的多功能运动场地数量是2处，每处用地面积要求3150-5620平方米，后续将增补活动设施2处，丰富",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0433",
+      "style": "Normal",
+      "textPreview": "科技城新区现状片区现状没有文化活动中心，其评价结果为“不足”，不具备文化活动发展要求。片区分为两个街道，为2个十五分钟生活圈居住区，未达标配建的多功能运动场地数量是2处，每处建筑面积要求3000-6000平方米，后续将新增文化活动中心2处，",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0444",
+      "style": "Caption",
+      "textPreview": "表04-2-4 科技城新区重点片区公园绿化活动场地统计表",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0446",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-8科技城新区重点片区现状绿化活动场地服务半径示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0455",
+      "style": "Normal",
+      "textPreview": "科技城新区现状建成区存在乱停乱放车辆问题的道路数量为12条，其评价结果为“不足”。分别是：永昌路、永顺路、金祥中路、弘光路、虹苑北路、谢家巷、虹阳街、火炬南路、火炬东街、双碑中街、三河堰路、虹苑路。调研中亦发现车辆乱停乱放现象突出，机动车、",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0457",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-9科技城新区重点片区存在乱停乱放现象的道路示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0460",
+      "style": "Normal",
+      "textPreview": "“跨河通道便捷度评分（分）”指通过对体检范围内跨越河流（安昌河、草溪河）的桥梁、隧道等固定通道的布局密度、通行能力及交通组织状况进行综合评估，量化反映机动车、公共交通、非机动车及行人等不同出行方式利用跨河通道的方便、快捷与顺畅程度。评分越高",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0476",
+      "style": "Normal",
+      "textPreview": "根据现场调研与数据采集，绵阳市华瑞汽车片区跨越安昌河及草溪河的主要跨河通道共计2座（处），为普明大桥和飞云大道。经综合计算，片区跨河通道便捷度评分为 6分（满分10分）。具体分析如下：",
+      "keywords": [
+        "绵阳",
+        "安昌河",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0501",
+      "style": "Normal",
+      "textPreview": "结合绵阳科技新区产业布局、路网交通、居住配套及人口结构特征，结合片区通勤抽样调研数据、公交配套及路网通行现状，对本指标形成专项评价结果如下：",
+      "keywords": [
+        "绵阳"
+      ]
+    },
+    {
+      "blockId": "p-0504",
+      "style": "Normal",
+      "textPreview": "同时片区存在局部通勤短板，少量跨片区就业、居住在老旧小区及外围板块职工，受早晚高峰车流、部分支路拥堵、公交换乘频次影响，通勤时长超出45分钟，处于一般区间。整体来看，绵阳科技新区通勤品质良好，职住空间匹配度一般，公共交通配套对产业人群的支撑",
+      "keywords": [
+        "绵阳"
+      ]
+    },
+    {
+      "blockId": "p-0515",
+      "style": "Normal",
+      "textPreview": "根据现场调研，从业态集聚、出行环境、商业特色、智慧服务、功能匹配、运营服务、空间形象等方面综合评判，片区内共有2个老旧商业街区需要更新改造，为金祥寺社区-理想城邦步行街区、金祥寺社区-二组商业街。其中金祥寺社区-理想城邦步行街区用地面积为6",
+      "keywords": [
+        "金祥寺社区"
+      ]
+    },
+    {
+      "blockId": "p-0517",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-10科技城新区重点片区现状老旧商业街区位置示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0529",
+      "style": "Normal",
+      "textPreview": "主要包含永兴镇街道金祥寺社区-融达公司老旧厂区（产业类型及业态：商业、超市、餐饮）、燃气公司老旧厂区（产业类型及业态：出租汽修）、金祥寺社区老旧厂房（产业类型及业态：仓库）、康茂肠衣老旧厂房（产业类型及业态：建材零售）、张家营社区-华瑞汽车",
+      "keywords": [
+        "金祥寺社区",
+        "永兴镇"
+      ]
+    },
+    {
+      "blockId": "p-0530",
+      "style": "Normal",
+      "textPreview": "普明街道-路南工业园（共24个公司），主要问题为：现状用地类型与上位规划用地类型不符（现状为工业用地，规划为城镇住宅用地、仓储用地与留白用地）、整体空间利用不佳、用地开发强度低、亩均税收较低、市场效益不佳、无专业管理运营团队。",
+      "keywords": [
+        "普明街道",
+        "路南工业园"
+      ]
+    },
+    {
+      "blockId": "p-0531",
+      "style": "Normal",
+      "textPreview": "普明街道-电控厂买入后因房地产行业不景气，目前空置；玻钢厂厂区基本空置，厂区内的家属楼目前仍在有人居住使用；长虹厂产业类型及业态为运动健身，部分用作积力综合运动中心。",
+      "keywords": [
+        "普明街道",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0533",
+      "style": "Body Text Indent 2",
+      "textPreview": "图04-2-11科技城新区重点片区现状老旧厂区位置示意图",
+      "keywords": [
+        "科技城新区",
+        "重点片区"
+      ]
+    },
+    {
+      "blockId": "p-0547",
+      "style": "Normal",
+      "textPreview": "根据现场调研，从闲置空间资源利用、服务设施配置、基础设施配置、文化记忆塑造、功能业态转换潜力、人口活力提升等方面综合评判，片区内共有7个老旧生活街区需要更新改造，为永兴镇街道金祥寺社区一组、金祥寺社区二组、金祥寺社区三组、张家营村自建房小区",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村",
+        "普明街道",
+        "永兴镇"
+      ]
+    },
+    {
+      "blockId": "p-0551",
+      "style": "Normal",
+      "textPreview": "街区中学服务半径覆盖率仅为6.2%，远低于规范要求，评价为不足。问题主要反映在以下几点：一是片区行政范围内无在建、已投用初级中学，全部初中学位依托域外绵阳外国语创新中学、普明中学两所校区供给，空间布局先天缺位；二是现有两所中学1公里服务范围",
+      "keywords": [
+        "绵阳"
+      ]
+    },
+    {
+      "blockId": "p-0563",
+      "style": "Normal",
+      "textPreview": "片区仅依靠普明大桥、飞云大道两处构筑物跨越安昌河、草溪河，两处通道间距大于1.5公里，超出规范控制限值，片区腹地居民跨河出行绕行距离过长，步行与非机动车出行体验较差。普明大桥作为核心跨河通勤节点，早晚高峰机动车平均时速仅18.6km、21.",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0567",
+      "style": "Normal",
+      "textPreview": "片区现有2处老旧商业街区、32处老旧厂区、6处老旧生活街区，更新改造任务繁重。金祥寺理想城邦、二组两处商业街普遍业态低端单一，零售、小吃占比过高，缺少多元化业态，街区外立面破旧，慢行、无障碍、智慧安防配套不完善，整体商业活力低迷；32处老旧",
+      "keywords": [
+        "路南工业园"
+      ]
+    },
+    {
+      "blockId": "p-0570",
+      "style": "Normal",
+      "textPreview": "小区（社区）维度共采集完成张家营村社区、虹苑路社区、金祥寺社区三个社区内共34个小区（包含7个自建房小区）的数据。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0577",
+      "style": "Normal",
+      "textPreview": "按照《社区老年人日间照料中心建设标准》（建标143-2010）、《完整居住社区建设标准（试行）》和《城市居住区规划设计标准》（GB50180-2018）、《绵阳市配套社区办公服务与养老服务设施合用房规划建设和移交管理五条措施》要求主要评判以",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0579",
+      "style": "Normal",
+      "textPreview": "②查找养老服务设施是否达到《社区老年人日间照料中心建设标准》（建标143-2010）《完整居住社区建设标准（试行）》《绵阳市配套社区办公服务与养老服务设施合用房规划建设和移交管理五条措施》（绵府办发〔2022〕2号）《城市社区嵌入式服务设施",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0584",
+      "style": "Normal",
+      "textPreview": "根据现场调研，本次体检区域内共有2所社区养老服务设施，虹苑路社区和金祥寺社区社区各有1所。虹苑路社区的社区养老综合体位于布鲁斯国际新城小区，占地面积约300平方米，建筑面积约1300平方米，整体空间较为紧张，存在活动区域不足及床位不足的问题",
+      "keywords": [
+        "绵阳",
+        "虹苑路社区",
+        "金祥寺社区",
+        "永兴镇"
+      ]
+    },
+    {
+      "blockId": "p-0586",
+      "style": "Normal",
+      "textPreview": "经计算，现有养老服务设施500米步行可达范围覆盖居住用地面积353302.71平方米，占现状总居住用地面积（1076951.83平方米）的32.81%，居民可达性不足。因此，考虑在虹苑路社区东侧区域、张家营村补充建设面积不小于350平方米的",
+      "keywords": [
+        "虹苑路社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0597",
+      "style": "Normal",
+      "textPreview": "本次体检范围内，虹苑路社区、金祥寺社区及张家营村社区均存在婴幼儿照护服务设施缺位问题。经系统排查，未达标配建婴幼儿照护服务设施的小区数量为34个，问题小区占比达100.00%，指标表现为“不足”。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0610",
+      "style": "Normal",
+      "textPreview": "本次体检区域内，共计分布幼儿园7所（含公办与民办）。其中，虹苑路社区现有京师幼学、资恩国际、高新外国语幼稚园共3所；金祥寺社区现有育才、太阳雨、高新东辰第一、幸福泉幼儿园共4所；张家营村社区虽无独立配置的幼儿园，但依托与金祥寺社区的紧密空间",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0621",
+      "style": "Normal",
+      "textPreview": "根据现场调研，本次体检区域内共有1所小学，是绵阳高新区火炬第四小学（公办小学），该小学位于绵阳市涪城区虹苑路519号，属于虹苑路社区范围内，占地面积约19000平方米，建筑面积约9000平方米，可提供学位2516个，该小学设施相对完善，学位",
+      "keywords": [
+        "绵阳",
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0623",
+      "style": "Normal",
+      "textPreview": "经计算，现有小学500米步行可达范围覆盖居住用地面积65863.87平方米，占现状总居住用地面积（1076951.83平方米）的6.12%，居民可达性不足，且存在空间覆盖率不足的问题。因此，考虑在虹苑路社区东侧区域、张家营村补充小学，解决社",
+      "keywords": [
+        "虹苑路社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0632",
+      "style": "Normal",
+      "textPreview": "本次体检的三个社区中，共拥有建便民商业服务设施（聚焦于建筑面积大于等于300平方米的中大型综合超市核心指标）共8家。虹苑路社区依托好又多、老乡好（阳光西雅图店）2个大型卖场；金祥寺社区依托德麦盛生活超市(城市奥莱店)、一二四八特卖超市、志成",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0644",
+      "style": "Normal",
+      "textPreview": "本次体检区域的三个社区共34个老旧小区内现状小区内部停车泊位共计约16637个，综合考虑居民的停车需求，小区居民的停车泊位需求数共计23273个，存在缺口共6636个。目前现状建成区范围内停车位利用率不高，违停乱放现象突出，例如张家营村的3",
+      "keywords": [
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0651",
+      "style": "Normal",
+      "textPreview": "②小区内居民充电需求数应综合考虑小区内居民新能源汽车保有量、2025年预计保有量（未来增量）、小区公桩/私桩的建设条件等因素确定。现有新能源汽车充电桩数量统计应包括小区内私人充电桩数量与公共充电桩数量。",
+      "keywords": [
+        "2025年"
+      ]
+    },
+    {
+      "blockId": "p-0654",
+      "style": "Normal",
+      "textPreview": "本次体检区域三个社区中，新能源汽车充电桩整体配置起步较晚，供给能力与居民日益增长的充电需求存在显著差距。其中，虹苑路社区18个小区中，共4个小区充电桩配置达标，其余14个小区均存在缺口；金祥寺社区12个小区中，仅理想城邦小区硬性达标，其余1",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0664",
+      "style": "Normal",
+      "textPreview": "本次体检区域三个社区中，非机动车停放场地及电动自行车充电设施整体配置严重滞后。其中，虹苑路社区18个小区中，布鲁斯国际新城、中华苑、樊华广场、99号公馆、富临1886生活馆、九洲又一城、东辰星光汇及长虹城朗悦共8个小区基本满足需求，其余10",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "青片小区",
+        "广厦城"
+      ]
+    },
+    {
+      "blockId": "p-0665",
+      "style": "Normal",
+      "textPreview": "本次体检覆盖的34个居住小区中，未配建电动自行车充电设施的小区数量高达25个，问题小区数量占比达73.53%，故该指标评价结果为“不足”。从空间分布方面来看，充电设施供给呈现严重失衡状态，仅少数新建商品房零星达标，而金祥寺社区大部及张家营村",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0668",
+      "style": "Normal",
+      "textPreview": "按照《城市社区服务站建设标准》（建标167-2014）》《城市居住区规划设计标准》(GB50180-2018)、《绵阳市配套社区办公服务与养老服务设施合用房规划建设和移交管理五条措施》（绵府办发〔2022〕2号）《绵阳市社区治理促进条例》等",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0674",
+      "style": "Normal",
+      "textPreview": "本次体检的三个社区中，共拥有社区综合服务站共6个。虹苑路社区包括虹苑路社区服务中心1、虹苑路社区服务中心2；金祥寺社区包括金祥寺社区党群服务中心1、金祥寺社区党群服务中心2，以党建为主配以其他功能；张家营村社区包括张家营村党群服务中心和张家",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0676",
+      "style": "Normal",
+      "textPreview": "经计算，社区综合服务站覆盖居住用地562965.72平方米，占现状总居住用地面积（1076951.83平方米）的52.27%，覆盖了一半以上的居住组团，但虹苑路社区仍有一半以上的小区（长虹城朗悦、中华苑、布鲁斯国际新城、海德庄园等）处于服务",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0685",
+      "style": "Normal",
+      "textPreview": "本次体检区域内社区卫生服务站整体配置不足。三个社区中，虹苑路社区的卫生服务配套相对完善，拥有虹苑北路站（383㎡）与虹苑路站（331㎡）两处达标站点；金祥寺社区为服务盲区，片区内无任何社区卫生服务站；张家营村社区虽设有卫生室，但租用居民楼底",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0686",
+      "style": "Normal",
+      "textPreview": "经计算，现有社区卫生服务站500米步行可达范围覆盖居住用地373341.63平方米，占现状总居住用地面积（1076951.83平方米）的34.65%，居民可达性不足。本次体检区域内34个居住小区中，未达标配建社区卫生服务站的小区数量为19个",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0698",
+      "style": "Normal",
+      "textPreview": "根据现场调研，本次体检区域内公共活动场地整体配置参差不齐，部分小区存在面积不达标、设施陈旧及功能缺失等问题。三个社区中，虹苑路社区18个小区中，布鲁斯国际新城、海德庄园等12个小区配有达标的活动场地；其余6个小区（第5、6居民小组、太阳岛小",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "青片小区",
+        "太阳岛小区",
+        "广厦城"
+      ]
+    },
+    {
+      "blockId": "p-0711",
+      "style": "Normal",
+      "textPreview": "根据现场调研，未实施生活垃圾分类的小区大多集中在城中村区域。虹苑路社区中，第5居民小组、第6居民小组和太阳岛小区三个城中村有回收点，但还需要改造优化；金祥寺社区中，金祥寺社区一组、金祥寺社区二组和金祥寺社区三组有回收点，但还需要改造优化；张",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "太阳岛小区"
+      ]
+    },
+    {
+      "blockId": "p-0723",
+      "style": "Normal",
+      "textPreview": "未实施物业管理的小区总体上分为三类，第一类是城中村，包括第5居民小组、第6居民小组、太阳岛小区和张家营村；第二类是自管的小区，包括高新假日、玻钢厂（居民中老年人较多）和铭都公寓；第三类是成立物管会的小区，包括金祥寺社区一组、金祥寺社区二组、",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村",
+        "太阳岛小区",
+        "广厦城",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0737",
+      "style": "Normal",
+      "textPreview": "一是20个小区存在养老服务设施规模不足、功能不完善的问题，占比58.52%，指标评价为不足。其中虹苑路社区养老综合体空间较为紧张，存在活动区域及床位不足、缺乏上门照护和文化娱乐功能的问题；金祥寺社区养老设施因相关业务经营证件暂未办理完成，导",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区"
+      ]
+    },
+    {
+      "blockId": "p-0744",
+      "style": "Normal",
+      "textPreview": "四是29个小区存在小学学位服务半径不足、学生跨区域就读、接送及等候空间的问题，占比85.29%，指标评价为不足。现有小学500米步行可达范围覆盖居住用地仅占6.12%，金祥寺社区与张家营村社区内无小学，学生需前往非体检范围内的创新一小就读。",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0750",
+      "style": "Normal",
+      "textPreview": "六是15个小区存在停车泊位缺口大、乱停乱放严重的问题，占比44.12%，指标评价为不足。三个社区现状停车泊位总缺口达6636个，张家营村自建房区域房前屋后停车导致消防通道堵塞，人行道乱停车现象突出。后续应利用市政公共停车空间形成补充，缓解老",
+      "keywords": [
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0754",
+      "style": "Normal",
+      "textPreview": "七是29个小区存在新能源汽车充电桩缺口大、安装受限的问题，占比85.29%，指标评价为不足。仅少数新建商品房小区充电桩配置达标，金祥寺与张家营村社区覆盖面极低，普遍存在开发商政策限制、电路负荷老化、场地空间不足等问题。后续应结合老旧小区改造",
+      "keywords": [
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0761",
+      "style": "Normal",
+      "textPreview": "九是16个小区存在社区综合服务站覆盖不足、功能缺失的问题，占比47.06%，指标评价为不足。现有服务站覆盖居住用地仅占52.27%，虹苑路社区半数以上小区处于服务盲区，且金祥寺社区党群服务中心2、张家营村党群服务中心等建筑面积较小，不符合最",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0764",
+      "style": "Normal",
+      "textPreview": "十是19个小区存在社区卫生服务站配建缺失、面积不达标的问题，占比55.88%，指标评价为不足。金祥寺社区为服务盲区，张家营村卫生室租用居民楼且建筑面积仅90平方米，未达到120平方米标准。后续应在金祥寺社区通过新建或改扩建方式增补标准化站点",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0784",
+      "style": "Normal",
+      "textPreview": "从具体位置看，问题楼栋主要集中在玻钢厂、青片小区、中华苑、布鲁斯·海德庄园、布鲁斯国际新城、文泉理想城1、2、3期、九州·又一城、高新假日小区、尚高境界、竹凌星辰等小区。",
+      "keywords": [
+        "青片小区",
+        "高新假日小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0794",
+      "style": "Normal",
+      "textPreview": "科技城新区存在使用安全隐患的住宅数量为1栋，问题楼栋数量占比为0.52%，故该指标表现为优良",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0804",
+      "style": "Normal",
+      "textPreview": "科技城新区存在燃气安全隐患的住宅数量为1栋，问题楼栋数量占比为0.52%，故该指标表现为优良。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0819",
+      "style": "Normal",
+      "textPreview": "科技城新区存在楼道安全隐患的住宅数量为48栋，问题楼栋数量占比为25.13%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0831",
+      "style": "Normal",
+      "textPreview": "科技城新区存在围护安全隐患的住宅数量为90栋，问题楼栋数量占比为47.12%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0838",
+      "style": "Normal",
+      "textPreview": "科技城新区住宅性能不达标的住宅数量为0栋，问题楼栋数量占比为0.00%，故该指标表现为优良。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0848",
+      "style": "Normal",
+      "textPreview": "科技城新区存在管线管道破损的住宅数量为29栋，问题楼栋数量占比为15.18%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0857",
+      "style": "Normal",
+      "textPreview": "科技城新区入户水质水压不达标的住宅数量为5栋，问题楼栋数量占比为2.61%，故该指标表现为优良。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0866",
+      "style": "Normal",
+      "textPreview": "④纳入分散供养特困人员和建档立卡贫困人口范围的高龄、失能、残疾老年人等特殊困难老年人家庭未实施适老化改造。绵阳市依据《绵阳市养老服务体系建设第十四个五年规划》（绵府办发〔2021〕40号）及《关于开展老年人家庭适老化改造工作的通知》（绵民办",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0868",
+      "style": "Normal",
+      "textPreview": "科技城新区需要进行适老化改造的住宅数量为39栋，问题楼栋数量占比为20.41%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0875",
+      "style": "Normal",
+      "textPreview": "科技城新区需要进行节能改造的住宅数量为0栋，问题楼栋数量占比为0%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0886",
+      "style": "Normal",
+      "textPreview": "科技城新区需要进行数字化改造的住宅数量为88栋，问题楼栋数量占比为46.07%，故该指标表现为不足。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-0889",
+      "style": "Normal",
+      "textPreview": "一是存在使用安全隐患，主要体现在承重墙体、楼板、结构梁开裂，裂缝肉眼清晰可见，裂缝较深、户内违规承重墙体拆墙或开洞、底商违规拆除柱子、砖混结构拆除阳台承重墙垛、砖混结构墙体主体出现砖体缺棱掉角、表面存在裂缝和违规加建悬挑飘窗，问题楼栋1栋，",
+      "keywords": [
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0891",
+      "style": "Normal",
+      "textPreview": "二是存在燃气安全隐患，主要体现在燃气立管、引入管、水平平管存在锈蚀严重、破损等现象、燃气器具无熄火保护装置和未安装燃气报警器，问题楼栋1栋，占统计楼栋总数的0.52%，问题楼栋为玻钢厂小区。",
+      "keywords": [
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0893",
+      "style": "Normal",
+      "textPreview": "三是存在楼道安全隐患，主要体现在楼梯扶手松动损坏、照明损坏缺失、安全护栏松动损坏或缺失、消防门损坏及无法关闭、消火栓无日常维护及老化损坏、消防安全出口指示灯损坏及缺失、违规占用消防楼梯、楼道、管道井，用于堆放杂物和占用楼道存放自行车或电动自",
+      "keywords": [
+        "青片小区",
+        "高新假日小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0898",
+      "style": "Normal",
+      "textPreview": "四是存在围护安全隐患，主要体现在外墙装饰及保温材料开裂、损坏、脱落、外墙悬挂设施不规范、屋面漏水、外墙内侧渗水漏水和地下室渗水漏水，问题楼栋90栋，占统计楼栋总数的47.12%，主要集中在玻钢厂小区、布鲁斯国际新城小区、中华苑小区、广夏城小",
+      "keywords": [
+        "青片小区",
+        "广夏城",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0904",
+      "style": "Normal",
+      "textPreview": "一是住房内存在管线管道破损问题，主要体现在给排水管线跑冒滴漏、排水管线老化破损渗漏堵塞、采暖季温度不达标、电力管线老化破损及裸露、电力管线私搭乱接、电信管线老化破损及裸露和电信管线私搭乱接，问题楼栋29栋，占比15.18%,主要集中在青片小",
+      "keywords": [
+        "青片小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0910",
+      "style": "Normal",
+      "textPreview": "三是存在问题住房需要进行适老化改造，体现在建成时未安装电梯的多层住宅（4-7层）中具备加装电梯条件，但尚未加装改造、单元出入口和通道未进行无障碍改造、单元出入口和通道未进行地面防滑处理、楼梯间未沿墙加装扶手和纳入分散供养特困人员和建档立卡贫",
+      "keywords": [
+        "青片小区",
+        "高新假日小区",
+        "文泉凯旋小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0920",
+      "style": "Normal",
+      "textPreview": "一、住宅使用安全隐患治理：建议立即组织专业机构对玻钢厂等存在墙体、楼板、梁体开裂的房屋进行全面安全检测，重点核查裂缝深度及对承重能力的影响，对轻微裂缝采用高强材料填充加固，严重部位需局部拆除后重新浇筑；针对玻钢厂等小区墙体破损、裂缝等问题，",
+      "keywords": [
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0921",
+      "style": "Normal",
+      "textPreview": "二、住宅燃气安全隐患治理：排查玻钢厂小区燃气安全问题，建议更换腐蚀严重的立管、水平管，使用防锈耐用的新型管材，同步检查接口密封性并加固处理；对未安装熄火保护装置的燃气灶具，通过“以旧换新补贴”或强制更换等方式统一升级为安全合规产品，并免费为",
+      "keywords": [
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0922",
+      "style": "Normal",
+      "textPreview": "三、住宅楼道安全隐患治理：建议玻钢厂、布鲁斯国际新城小区、青片小区、铭都公寓、高新假日小区修复或更换损坏设施，包含楼梯扶手、照明设施、安全护栏，确保楼梯通道通行安全；对铭都公寓、高新假日小区内无法关闭的消防门、老化的消火栓及缺失的安全出口指",
+      "keywords": [
+        "青片小区",
+        "高新假日小区",
+        "广夏城",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0923",
+      "style": "Normal",
+      "textPreview": "四、住宅围护安全隐患治理：建议组织专业团队利用无人机及红外检测技术全面排查玻钢厂小区、中华苑小区、布鲁斯国际新城小区、广夏城小区、铭都公寓、青片小区外墙开裂、空鼓区域，优先铲除松动脱落的装饰和保温层，重新对墙面材料进行修复。针对钢厂小区、布",
+      "keywords": [
+        "青片小区",
+        "广夏城",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0925",
+      "style": "Normal",
+      "textPreview": "一、住宅管线管道破损问题治理：建议优先更换青片小区、竹凌星晨小区等问题小区的存在锈蚀渗漏的供水管道和破损堵塞的排水管，采用耐腐蚀材料重铺管线并疏通淤堵点；对玻钢厂小区电力管线老化破损及裸露，私搭乱接的电力、电信线缆统一规整，清除裸露飞线，套",
+      "keywords": [
+        "青片小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0927",
+      "style": "Normal",
+      "textPreview": "四、适老化改造问题治理：建议对青片小区、尚高境界、高新假日小区的楼栋优先推进电梯加装；同步对高新假日小区、世隆华都小区、玻钢厂小区、铭都公寓小区、尚高境界小区、文泉凯旋小区、青片小区等问题小区出入口进行坡道改造、铺设防滑地砖，楼梯间加装双侧",
+      "keywords": [
+        "青片小区",
+        "高新假日小区",
+        "文泉凯旋小区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0929",
+      "style": "Normal",
+      "textPreview": "一、数字化改造问题治理：建议在青片小区、尚高境界、高新假日小区及铭都公寓内问题小区出入口安装人脸识别门禁和车辆识别系统，单元楼、电梯厅及重点通道加装高清视频监控设备，住宅公共区域全覆盖烟感报警器，实现安防监控联网预警。针对老年人、残疾人等特",
+      "keywords": [
+        "青片小区",
+        "高新假日小区"
+      ]
+    },
+    {
+      "blockId": "p-0932",
+      "style": "Normal",
+      "textPreview": "一、补足养老服务设施规模并完善设施功能。盘活闲置资源，对3个社区内闲置的学校、厂房、商业设施等进行全面排查，优先改造为养老服务设施，鼓励社区通过租赁、置换等方式整合相邻社区的闲置用房，扩大养老服务半径；标准化服务配置，为虹苑路社区的社区养老",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "永兴镇"
+      ]
+    },
+    {
+      "blockId": "p-0935",
+      "style": "Body Text Indent 2",
+      "textPreview": "四、补齐小学配置短板，提升教育教学质量，保障义务教育资源均衡。进行合理化调规，对张家营村社区、虹苑路社区的东侧片区（阳光西雅图1期2期、九州又一城、三汇金府等小区周边区域）等缺乏小学教育资源的区域，补充建设小学，满足适龄学生入学需求，提升居",
+      "keywords": [
+        "虹苑路社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0937",
+      "style": "Normal",
+      "textPreview": "六、补足停车位缺口并改善停车管理。一是进一步核实停车位缺口情况，针对竹凌星晨小区、青片小区、张家营村等停车严重不足的小区分地分策提出相应整改措施，采用公共停车、统筹停车、立体停车多方式逐步解决停车缺口问题。二是改善停车管理，对张家营村等小区",
+      "keywords": [
+        "张家营村",
+        "青片小区"
+      ]
+    },
+    {
+      "blockId": "p-0940",
+      "style": "Normal",
+      "textPreview": "九、推进社区综合服务站改扩建及新建项目。针对布鲁斯国际新城、海德庄园等16个小区未配建综合服务站问题，建议通过挖掘存量资源或结合新建项目落实配建要求，优先利用社区内可用公共空间，限期完成服务站基础建设；针对金祥寺社区党群服务中心2、张家营村",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-0943",
+      "style": "Normal",
+      "textPreview": "一、补足公共活动场地并优化场地环境。一是小区内部挖潜、盘活闲置空间，完成虹苑路社区中6个小区（第5、6居民小组、太阳岛小区等）、金祥寺社区中道奇商住小区、青片小区，张家营村社区中铭都公寓与广厦城小区的闲置空间普查，并结合现状活动场地与闲置空",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "青片小区",
+        "太阳岛小区",
+        "广厦城"
+      ]
+    },
+    {
+      "blockId": "p-0944",
+      "style": "Normal",
+      "textPreview": "二、提高垃圾分类管理水平，提升环境卫生品质。一是补齐富临1886生活馆、道奇商住小区、都市绿洲小区和万兴公爵府桂苑4个小区的垃圾分类收集设施，清理堆放垃圾；二是推进落实虹苑路社区第5居民小组、第6居民小组、太阳岛小区、金祥寺社区一组、二组、",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村",
+        "太阳岛小区"
+      ]
+    },
+    {
+      "blockId": "p-0946",
+      "style": "Normal",
+      "textPreview": "一、加强物业管理，提升基层服务水平。一是对无专门化物业管理的小区进行宣传动员，通过集体社会组织以及市场化物业管理服务综合解决好社区居民管理服务问题；二是健全物业管理机制，动员高新假日、玻钢厂、铭都公寓3个小区党员干部，完善基层党组织和自管体",
+      "keywords": [
+        "金祥寺社区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-0954",
+      "style": "Normal",
+      "textPreview": "对标国家园林城市绿地建设标准，把片区绿地系统纳入安昌河、草溪河滨水生态廊道市级统筹建设项目，依托全市口袋公园三年行动计划，整合片区拆违地块、边角闲置地、河道滩涂资源，成片连片打造小微绿地与口袋公园，串联现状零散绿化场地，形成滨水绿廊+社区游",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0958",
+      "style": "Normal",
+      "textPreview": "依托绵阳市城市更新专项政策，将片区2处老旧商业街、32处老旧厂区、6处老旧生活街区统一纳入区级更新项目库，实行分类统筹改造。老旧商业纳入全市步行街提质改造工程，统筹文旅、商务资源优化业态、完善智慧配套；老旧厂区按照全市工业用地转型升级政策，",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    },
+    {
+      "blockId": "p-0969",
+      "style": "Normal",
+      "textPreview": "针对滨河岸线生态化比例远低于省级管控指标的问题，一是编制安昌河岸线分期改造方案，分年度对硬质渠化岸线实施生态护坡、本土植被修复，积极对接上级部门争取河湖治理专项建设资金。二是建立多部门岸线统筹协调机制，破解沿岸地块权属割裂难题，落实常态化河",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0979",
+      "style": "Normal",
+      "textPreview": "针对平急两用公共基础设施区域配置失衡的问题，一是优化安昌河以东片区控规内容，在新建居住、产业地块规划阶段提前预留平急两用配套用地，补充应急避难载体资源。二是对现有 10 处潜力设施分类实施标准化改造，补齐应急配套硬件，建立平急转换、日常运维",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-0991",
+      "style": "Normal",
+      "textPreview": "针对玻钢厂小区等存在安全隐患的住房，进行全面安全评估，制定加固及维修方案。对玻钢厂、青片小区、布鲁斯国际新城等小区的楼道踏步、墙面、照明设施和楼梯扶手等进行全面排查改造。对文泉凯旋小区、铭都公寓、高新假日小区等住宅建筑消防隐患进行排查整治，",
+      "keywords": [
+        "科技城新区",
+        "青片小区",
+        "高新假日小区",
+        "文泉凯旋小区",
+        "玻钢厂",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0993",
+      "style": "Normal",
+      "textPreview": "对青片小区、竹凌星辰、玻钢厂等存在管线管道破损的住宅进行更新改造。针对公爵府桂苑小区居民反映水压不足、存在沙尘问题，由专业机构评估后更新整改，计划于2025-2026年实施。对玻钢厂、布鲁斯国际新城等具备加装电梯条件的小区，结合居民意愿于2",
+      "keywords": [
+        "科技城新区",
+        "青片小区",
+        "玻钢厂",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-0995",
+      "style": "Normal",
+      "textPreview": "针对东辰星光荟、世隆华都、玻钢厂等未进行适老化改造的小区，在住宅楼单元出入口增设无障碍坡道，确保弱势群体行动便利。项目由科技城新区残联、住建局共同牵头，计划于2029-2030年实施。",
+      "keywords": [
+        "科技城新区",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-1000",
+      "style": "Normal",
+      "textPreview": "开展片区内青片小区、玻钢厂小区两处老旧小区改造，改造内容包括排水改造、燃气改造、道路改造、绿化改造、照明改造、屋面改造等。项目由科技城新区住建局牵头，计划于2025-2026年实施，建成后将全面改善老旧小区居住环境。",
+      "keywords": [
+        "科技城新区",
+        "青片小区",
+        "玻钢厂",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1002",
+      "style": "Normal",
+      "textPreview": "对需要进行智慧化改造的小区，增设智能快递柜、智能安防监控（人脸识别、车辆识别）、智能门禁、智慧停车系统等。项目由科技城新区住建局牵头，计划于2029-2030年实施，建成后将提升小区安防水平与管理效率。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1004",
+      "style": "Normal",
+      "textPreview": "对未达标配建公共活动场地的小区，通过拆违增绿、边角地利用等方式提高人均绿地享有面积，同时通过复合功能改造，增设健身器材、儿童游乐设施及休闲座椅。项目由科技城新区住建局牵头，计划于2027-2028年实施，建成后将完善公共活动场地服务功能与景",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1006",
+      "style": "Normal",
+      "textPreview": "为未实施生活垃圾分类的小区配置分类垃圾亭（箱）、宣教栏，完善收运体系，建立社区督导员制度。项目由科技城新区城管局牵头，计划于2029-2030年实施，建成后将实现片区垃圾分类全覆盖。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1011",
+      "style": "Normal",
+      "textPreview": "针对张家营村、虹苑路社区东侧养老服务覆盖不足的情况，进行养老服务设施提升改造与增补，完善生活照料、康复护理、助餐助行、上门照护、文化娱乐等功能。项目由区民政局牵头，计划于2025-2026年实施，建成后将确保设施满足老年人多元化需求。",
+      "keywords": [
+        "虹苑路社区",
+        "张家营村",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1013",
+      "style": "Normal",
+      "textPreview": "在片区内城市幼儿园开设托班，设置托位30个，招收2-3岁幼儿。强化“普惠托育、科学育儿”宣传引导。项目由区教体局、区卫健局共同牵头，计划于2025-2026年完成，建成后将有效缓解双职工家庭婴幼儿照护难题。",
+      "keywords": [
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1017",
+      "style": "Normal",
+      "textPreview": "针对金祥寺社区、张家营村社区、虹苑路社区东侧小学缺位问题，新建小学1-2处。项目由科技城新区教体局牵头，计划于2027-2028年实施，建成后将保障居民子女就近入学需求。",
+      "keywords": [
+        "科技城新区",
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-1019",
+      "style": "Normal",
+      "textPreview": "针对小区内具备停车空间拓展条件的，利用内部空地、边角地等挖潜增设停车位，并在公共停车位增加充电桩。全面摸排社区内权属清晰的较宽裕土地，规划建设社区公共停车场，按“10-15个停车泊位配建1个充电桩”的比例建设交流慢充桩，同时在交通便利区域建",
+      "keywords": [
+        "科技城新区",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1021",
+      "style": "Normal",
+      "textPreview": "通过调剂用房、改扩建、新建等方式，对金祥寺社区、张家营村以及虹苑路社区的社区综合服务站进行布局调整及管辖范围优化，按照标准设置办公服务用房、居民议事厅等。项目由区民政局牵头，计划于2027-2028年实施，建成后将实现社区综合服务设施全覆盖",
+      "keywords": [
+        "虹苑路社区",
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-1023",
+      "style": "Normal",
+      "textPreview": "对虹苑路社区卫生服务站进行布局调整，功能完善，配齐基本医疗设备和专业人才。项目由区卫健局牵头，计划于2027-2028年实施，建成后将实现“15分钟医疗服务圈”全覆盖。",
+      "keywords": [
+        "虹苑路社区"
+      ]
+    },
+    {
+      "blockId": "p-1025",
+      "style": "Normal",
+      "textPreview": "结合社区生活圈布局，新建2-3处文化活动中心，每处建筑面积800-1200平方米，配置图书阅览、文艺排练、科普教育、老年活动、儿童游乐及多功能厅等功能，同步建设室外健身广场。项目由科技城新区文旅局牵头，计划于2027-2028年实施，建成后",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1028",
+      "style": "Normal",
+      "textPreview": "对片区内长虹厂、电控厂、玻钢厂、路南工业园等低效厂区进行资产梳理、更新改造、盘活利用。通过存量资产再造与新兴业态植入、引入专业运营团队，打造片区产业升级新引擎。项目由区住建局牵头，计划于2029-2030年实施。",
+      "keywords": [
+        "路南工业园",
+        "玻钢厂"
+      ]
+    },
+    {
+      "blockId": "p-1030",
+      "style": "Normal",
+      "textPreview": "对金祥寺社区二组商业街、理想城邦商业街进行改造。以“微更新、精提升”为思路，修缮沿街建筑立面和招牌，优化人行铺装与照明，增设口袋公园、公共停车位及充电桩等配套。引导“餐饮+体验+社交”复合业态升级。项目由区住建局牵头，计划于2029-203",
+      "keywords": [
+        "金祥寺社区"
+      ]
+    },
+    {
+      "blockId": "p-1032",
+      "style": "Normal",
+      "textPreview": "对金祥寺社区二组、张家营村自建房小区、虹苑西路23号院、虹苑路521、523、529号院四处城中村进行更新改造，主要包括市政管网改造、三线入地、道路改造、停车空间优化、亮化、监控等内容。项目由区住建局牵头，计划于2027-2028年实施，建",
+      "keywords": [
+        "金祥寺社区",
+        "张家营村"
+      ]
+    },
+    {
+      "blockId": "p-1035",
+      "style": "Normal",
+      "textPreview": "针对片区内无中学、外围中学覆盖严重不足的情况，新建一所标准化公办中学，建设教学楼、综合楼、风雨操场及运动场地等。项目由科技城新区教育局牵头，计划于2027-2028年实施，建成后将服务周边居住组团，统筹解决就近入学需求。",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1037",
+      "style": "Normal",
+      "textPreview": "盘活片区内空闲地、边角地、桥下空间及文体商养可复合利用场地，建设多功能运动场地，包括小型多功能运动场、健身广场、街头球场等，配套标识系统、监控、无障碍通道及照明。项目由科技城新区体育局牵头，计划于2027-2028年实施，建成后将满足居民便",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1039",
+      "style": "Normal",
+      "textPreview": "针对片区公共体育设施不足的短板，利用闲置用地与低效厂区更新，新建1处社区体育中心及3处嵌入式健身点。社区体育中心配置7人制足球场、篮球场、羽毛球场、乒乓球台及健身路径；健身点布设智能健身器材、拉伸区与儿童活动设施。项目由科技城新区体育局牵头",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1041",
+      "style": "Normal",
+      "textPreview": "在片区内选址新建2-3处综合性公园，用地约5000-10000平方米，配置环形健身步道、全龄活动区、林下休憩区及雨水花园。项目由科技城新区住建局牵头，计划于2029-2030年实施，建成后将服务周边15分钟绿色生活圈，改善微气候，提升片区生",
+      "keywords": [
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1044",
+      "style": "Normal",
+      "textPreview": "针对片区停车位缺口大、充电设施不足问题，统筹利用闲置用地、低效厂区及公园地下空间，新增3处公共停车场及路内夜间停车路段。同步配套建设新能源快充桩和慢充桩，充电车位占比不低于25%。完善智能停车诱导系统、无障碍车位与共享停车管理平台。项目由科",
+      "keywords": [
+        "科技城新区",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1046",
+      "style": "Normal",
+      "textPreview": "对现状虹苑南路、虹苑路等三条道路进行拓宽改造，由12米拓宽至20米，同步改造地下管线，计划于2025-2026年实施；实施道路网加密与连通工程：打通断头路，沿安昌河西岸完善滨河道路建设；加密次支路，结合闲置用地与低效厂区更新，新增城市支路，",
+      "keywords": [
+        "科技城新区",
+        "安昌河",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1048",
+      "style": "Normal",
+      "textPreview": "沿安昌河西岸新建滨河绿道，实现步行与骑行分离；打造社区慢行环，铺设透水步道并设置休憩驿站；利用加密次支路增设独立非机动车道；建设绿色慢行廊桥一座，桥长600米、宽8米，联通安昌河两岸；建设跨安昌河快速通行桥一座，满足人行和机动车通行。项目由",
+      "keywords": [
+        "科技城新区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-1050",
+      "style": "Normal",
+      "textPreview": "对片区内老旧给水、排水、燃气管网进行更新改造，管网长度32千米。重点改造雨污合流管、破损管段、超期服役铸铁管及腐蚀泄漏点，同步加装智能监测终端及安全阀门。项目由科技城新区住建局主要负责，计划于2025-2026年实施。",
+      "keywords": [
+        "科技城新区",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1052",
+      "style": "Normal",
+      "textPreview": "基于区域统筹增补消防救援站，并购置消防救援设备，确保5分钟内全区可达。项目由科技城新区应急管理局牵头，计划于2025-2026年实施，建成后将提升城市安全治理与应急管理水平。",
+      "keywords": [
+        "科技城新区",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1054",
+      "style": "Normal",
+      "textPreview": "（1）安昌河及草溪河生态修复",
+      "keywords": [
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-1055",
+      "style": "Normal",
+      "textPreview": "对安昌河（1800米）及草溪河（700米）进行生态修复，包括河道清淤疏浚、生态护岸及堤防修复、滨河植被恢复及缓冲带建设、水质净化设施（人工浮岛、曝气机）、滨河慢行步道、亲水平台及观景节点、滨河景观亮化等。项目由科技城新区住建局、自然资源局共",
+      "keywords": [
+        "科技城新区",
+        "安昌河"
+      ]
+    },
+    {
+      "blockId": "p-1059",
+      "style": "Normal",
+      "textPreview": "构建全流程闭环管理机制，确保问题精准识别与高效解决。为精准高效解决片区问题，绵阳科技城新区管委会紧密结合其“国家产城融合发展示范区”与“成渝地区双城经济圈创新引擎”的发展定位，持续优化特色体检指标体系，依托多源信息精准识别发展短板、民生痛点",
+      "keywords": [
+        "绵阳",
+        "科技城新区"
+      ]
+    },
+    {
+      "blockId": "p-1092",
+      "style": "Heading 3",
+      "textPreview": "6.3.1 2025年-2026年：安全筑基与急迫民生补缺",
+      "keywords": [
+        "2025年",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1093",
+      "style": "Normal",
+      "textPreview": "2026年-2027年计划建设完成项目共17项。其中包含加强既有建筑改造利用类7项、推进城镇老旧小区整治改造类1项、开展完整社区建设5项、完善城市功能类1项、加强城市基础设施建设改造3项。",
+      "keywords": [
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1094",
+      "style": "Caption",
+      "textPreview": "表6-3-1 2025年-2026年建设完成项目清单",
+      "keywords": [
+        "2025年",
+        "2026年"
+      ]
+    },
+    {
+      "blockId": "p-1109",
+      "style": "Normal",
+      "textPreview": "指绵阳市各级政府（市级、区县级）通过自有财力安排的用于支持城市体检相关项目的资金，本文该概念同时也包含四川省向下拨付的相关资金。地方财政支出包含三类，一般公共预算安排（市、区县财政在年度预算中直接安排的专项支出）、政府性基金预算安排（主要是",
+      "keywords": [
+        "绵阳",
+        "绵阳市"
+      ]
+    }
+  ]
+}

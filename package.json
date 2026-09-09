@@ -10,5 +10,8 @@
   "scripts": {
     "start": "set NODE_USE_ENV_PROXY=1&& node server.mjs",
     "check": "node --check server.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.7.1"
   }
 }

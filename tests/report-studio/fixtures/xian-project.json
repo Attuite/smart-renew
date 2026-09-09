@@ -1,0 +1,61 @@
+{
+  "id": "xian-yanta-001",
+  "name": "西安市雁塔区城市体检",
+  "administrativeArea": "陕西省西安市雁塔区",
+  "area": "residential",
+  "type": "综合更新",
+  "stage": "survey",
+  "scope": "雁塔区重点片区范围内住宅建筑及周边社区设施",
+  "scopeAreaSqKm": 3.2,
+  "desc": "对雁塔区重点片区进行城市体检，涵盖住房安全、社区配套和街区服务。",
+  "responsibleUnit": "西安市雁塔区住房和城乡建设局",
+  "plannedPeriod": "2026-2030",
+  "updatedAt": "2026-09-01T00:00:00Z",
+  "residentialInventory": {
+    "items": [
+      {
+        "id": "xian-comm-1", "name": "紫薇花园", "buildingCount": 8, "householdCount": 640,
+        "buildings": [
+          {"id": "xian-bld-1", "name": "1号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-2", "name": "2号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-3", "name": "3号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-4", "name": "4号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-5", "name": "5号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-6", "name": "6号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-7", "name": "7号楼", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-8", "name": "8号楼", "householdCount": 80, "status": "active"}
+        ]
+      },
+      {
+        "id": "xian-comm-2", "name": "世家星城", "buildingCount": 6, "householdCount": 480,
+        "buildings": [
+          {"id": "xian-bld-9", "name": "A1栋", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-10", "name": "A2栋", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-11", "name": "B1栋", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-12", "name": "B2栋", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-13", "name": "C1栋", "householdCount": 80, "status": "active"},
+          {"id": "xian-bld-14", "name": "C2栋", "householdCount": 80, "status": "active"}
+        ]
+      },
+      {
+        "id": "xian-comm-3", "name": "曲江华府", "buildingCount": 5, "householdCount": 400,
+        "buildings": []
+      },
+      {
+        "id": "xian-comm-deleted", "name": "已拆除小区", "status": "deleted", "buildingCount": 2, "householdCount": 160, "buildings": []
+      }
+    ]
+  },
+  "communityAnalysis": {
+    "categories": [
+      {"label": "养老服务", "count": 4, "names": ["雁塔区养老服务中心", "曲江老年公寓", "社区日间照料中心A", "社区日间照料中心B"]},
+      {"label": "幼儿园", "count": 6, "names": ["紫薇幼儿园", "世家幼儿园", "曲江第一幼儿园", "雁塔第二幼儿园", "社区幼儿园C", "社区幼儿园D"]},
+      {"label": "停车场", "count": 12, "names": ["紫薇地下车库", "世家停车场", "曲江停车场", "雁塔公共停车场", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12"]},
+      {"label": "新能源汽车充电", "count": 3, "names": ["紫薇充电站", "世家充电站", "曲江充电站"]},
+      {"label": "公共活动场地", "count": 5, "names": ["紫薇广场", "世家花园", "曲江公园", "雁塔广场", "社区活动中心"]}
+    ],
+    "conclusion": "雁塔区重点片区养老服务和公共活动场地配套较好，但新能源汽车充电设施存在缺口。",
+    "spaceTotal": 30,
+    "rawTotal": 35
+  }
+}

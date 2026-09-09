@@ -1,0 +1,125 @@
+/* report-studio.css — 报告工作台样式 */
+
+:root {
+  --rs-ink: #0d1b2d;
+  --rs-ink-800: #152238;
+  --rs-spice: #c8945b;
+  --rs-stone: #faf8f5;
+  --rs-surface: #ffffff;
+  --rs-border: #e8e0d5;
+  --rs-text: #1a1a1a;
+  --rs-text2: #5c5c5c;
+  --rs-muted: #999591;
+  --rs-green: #1a7a4c;
+  --rs-green-bg: #eaf5f0;
+  --rs-red: #c0392b;
+  --rs-red-bg: #fdf0ed;
+  --rs-amber: #b8860b;
+  --rs-amber-bg: #fef9e7;
+  --rs-radius: 6px;
+  --rs-font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.report-studio-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--rs-stone);
+  overflow-y: auto;
+  font-family: var(--rs-font);
+  color: var(--rs-text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* === 导航 === */
+.rs-nav { background: var(--rs-surface); border-bottom: 1px solid var(--rs-border); position: sticky; top: 0; z-index: 10; }
+.rs-nav-inner { display: flex; align-items: center; gap: 24px; padding: 0 32px; height: 52px; max-width: 1200px; margin: 0 auto; }
+.rs-nav-brand { font-weight: 700; font-size: 15px; color: var(--rs-ink); white-space: nowrap; }
+.rs-nav-steps { display: flex; gap: 4px; flex: 1; }
+.rs-nav-step { padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--rs-muted); border-radius: var(--rs-radius); white-space: nowrap; }
+.rs-nav-step-active { background: var(--rs-ink); color: #fff; }
+.rs-nav-step-done { color: var(--rs-green); }
+
+/* === 步骤内容 === */
+.rs-step-wrap { max-width: 1200px; margin: 0 auto; padding: 24px 32px 60px; }
+.rs-step-content { animation: rs-fadeIn .2s ease; }
+@keyframes rs-fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rs-step-title { font-size: 20px; font-weight: 700; color: var(--rs-ink); margin-bottom: 20px; }
+
+/* === 卡片 === */
+.rs-card { background: var(--rs-surface); border: 1px solid var(--rs-border); border-radius: var(--rs-radius); padding: 20px 24px; margin-bottom: 16px; }
+.rs-card-title { font-size: 14px; font-weight: 600; color: var(--rs-ink); margin-bottom: 12px; }
+.rs-card-warn { border-color: var(--rs-amber); background: var(--rs-amber-bg); }
+
+/* === 布局 === */
+.rs-grid { display: grid; gap: 16px; }
+.rs-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.rs-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.rs-flex { display: flex; }
+.rs-flex-between { display: flex; align-items: center; justify-content: space-between; }
+
+/* === 统计卡片 === */
+.rs-stat { padding: 12px 0; }
+.rs-stat-label { display: block; font-size: 12px; color: var(--rs-muted); margin-bottom: 4px; }
+.rs-stat-value { display: block; font-size: 20px; font-weight: 700; color: var(--rs-ink); }
+.rs-stat-high .rs-stat-value { color: var(--rs-red); }
+.rs-stat-medium .rs-stat-value { color: var(--rs-amber); }
+.rs-stat-low .rs-stat-value { color: var(--rs-green); }
+
+/* === 表格 === */
+.rs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rs-table th { text-align: left; padding: 8px 12px; background: var(--rs-stone); color: var(--rs-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--rs-border); }
+.rs-table td { padding: 8px 12px; border-bottom: 1px solid var(--rs-border); vertical-align: top; }
+.rs-table-sm td, .rs-table-sm th { padding: 6px 10px; }
+.rs-table-calc th { font-size: 11px; }
+.rs-table-calc .rs-calc-label { font-weight: 600; white-space: nowrap; }
+.rs-table-calc .rs-calc-formula { color: var(--rs-text2); font-size: 12px; }
+.rs-table-calc .rs-calc-input { font-size: 12px; color: var(--rs-muted); max-width: 180px; word-break: break-all; }
+.rs-table-calc .rs-calc-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 计算行状态 */
+tr.rs-calc-ok td { }
+tr.rs-calc-pending td { opacity: .55; }
+tr.rs-calc-warn td { background: var(--rs-amber-bg); }
+
+/* === 状态标签 === */
+.rs-badge { display: inline-block; padding: 2px 10px; font-size: 11px; font-weight: 600; background: var(--rs-stone); color: var(--rs-text2); border-radius: 10px; }
+.rs-status { display: inline-block; padding: 1px 8px; font-size: 11px; border-radius: 3px; font-weight: 500; }
+.rs-status.rs-calc-ok { background: var(--rs-green-bg); color: var(--rs-green); }
+.rs-status.rs-calc-pending { background: var(--rs-stone); color: var(--rs-muted); }
+.rs-status.rs-calc-warn { background: var(--rs-amber-bg); color: var(--rs-amber); }
+
+/* === 按钮 === */
+.rs-actions { display: flex; gap: 12px; margin-top: 16px; }
+.rs-btn { display: inline-flex; align-items: center; padding: 10px 24px; font-size: 13px; font-weight: 600; border: none; border-radius: var(--rs-radius); cursor: pointer; font-family: var(--rs-font); transition: all .15s; }
+.rs-btn:disabled { opacity: .5; cursor: not-allowed; }
+.rs-btn-primary { background: var(--rs-ink); color: #fff; }
+.rs-btn-primary:hover:not(:disabled) { background: var(--rs-ink-800); }
+.rs-btn-outline { background: transparent; color: var(--rs-text2); border: 1px solid var(--rs-border); }
+.rs-btn-outline:hover:not(:disabled) { border-color: var(--rs-spice); color: var(--rs-ink); }
+.rs-btn-sm { padding: 5px 14px; font-size: 12px; }
+
+/* === 列表 === */
+.rs-list { list-style: none; padding: 0; margin: 0; }
+.rs-list li { padding: 4px 0; font-size: 13px; }
+.rs-warn-item { color: var(--rs-amber); }
+.rs-miss-item { color: var(--rs-red); }
+.rs-muted { color: var(--rs-muted); }
+
+/* === 计算分段标题 === */
+.rs-calc-section { margin-top: 20px; }
+.rs-calc-section-title { font-size: 13px; font-weight: 600; color: var(--rs-ink); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--rs-spice); display: inline-block; }
+
+/* === 空状态 === */
+.rs-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--rs-muted); font-size: 14px; }
+
+/* === 加载 === */
+.rs-loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--rs-muted); font-size: 14px; }
+
+/* === 响应式 === */
+@media (max-width: 900px) {
+  .rs-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .rs-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .rs-nav-steps { display: none; }
+}
