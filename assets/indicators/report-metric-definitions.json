@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "社区与住房维度报告指标定义",
+  "sourceReference": "绵阳市2025年城市体检总报告",
+  "standardLibrary": "assets/data/city-health-standard-library-v1.js（项目07指标库）",
+  "scope": ["community", "housing"],
+  "statusPolicy": {
+    "ready": "来源完整，可直接用于报告",
+    "partial": "已有部分统计，只能按限定口径描述",
+    "unavailable": "缺少来源数据，不进入数值结论",
+    "invalid": "来源或口径异常，禁止用于报告"
+  },
+  "housing": [
+    { "id": "housing.structural_safety", "indicatorCode": "IND-HOUSE-001", "group": "安全耐久", "name": "存在结构安全隐患的住宅数量", "unit": "栋", "source": "officialIssues", "calculation": "按buildingId去重的正式问题楼栋数" },
+    { "id": "housing.gas_safety", "indicatorCode": "IND-HOUSE-002", "group": "安全耐久", "name": "存在燃气安全隐患的住宅数量", "unit": "栋", "source": "officialIssues", "calculation": "按buildingId去重的正式问题楼栋数" },
+    { "id": "housing.corridor_safety", "indicatorCode": "IND-HOUSE-003", "group": "安全耐久", "name": "存在楼道安全隐患的住宅数量", "unit": "栋", "source": "officialIssues", "calculation": "按buildingId去重的正式问题楼栋数" },
+    { "id": "housing.envelope_safety", "indicatorCode": "IND-HOUSE-004", "group": "安全耐久", "name": "存在围护安全隐患的住宅数量", "unit": "栋", "source": "officialIssues", "calculation": "按buildingId去重的正式问题楼栋数" },
+    { "id": "housing.non_self_contained", "indicatorCode": "IND-HOUSE-005", "group": "功能完备", "name": "非成套住宅数量", "unit": "套", "source": "officialIssues", "calculation": "当前问题记录尚无户级对象，只保留正式问题记录数，不推算套数" },
+    { "id": "housing.pipeline_damage", "indicatorCode": "IND-HOUSE-006", "group": "功能完备", "name": "存在管线管道破损的住宅数量", "unit": "栋", "source": "officialIssues", "calculation": "按buildingId去重的正式问题楼栋数" },
+    { "id": "housing.age_friendly_upgrade", "indicatorCode": "IND-HOUSE-007", "group": "功能完备", "name": "需要进行适老化改造的住宅数量", "unit": "栋", "source": "notCollected", "calculation": "当前问题识别目录尚未覆盖" },
+    { "id": "housing.water_quality", "indicatorCode": "IND-HOUSE-008", "group": "功能完备", "name": "入户水质不达标的住宅数量", "unit": "栋", "source": "notCollected", "calculation": "当前流程尚未接入水质统计数据" },
+    { "id": "housing.energy_upgrade", "indicatorCode": "IND-HOUSE-009", "group": "绿色智能", "name": "需要进行节能改造的住宅数量", "unit": "栋", "source": "notCollected", "calculation": "当前问题识别目录尚未覆盖" },
+    { "id": "housing.digital_upgrade", "indicatorCode": "IND-HOUSE-010", "group": "绿色智能", "name": "需要进行数字化改造的住宅数量", "unit": "栋", "source": "notCollected", "calculation": "当前问题识别目录尚未覆盖" }
+  ],
+  "community": [
+    { "id": "community.elderly_service", "categoryKey": "cat1", "referenceIndicatorCode": "IND-COMM-011", "group": "设施完善", "name": "地图检索到的养老服务设施空间数量", "standardName": "未达标配建养老服务设施的小区数量", "unit": "个" },
+    { "id": "community.childcare_service", "categoryKey": "cat2", "referenceIndicatorCode": "IND-COMM-012", "group": "设施完善", "name": "地图检索到的婴幼儿照护设施空间数量", "standardName": "未达标配建婴幼儿照护服务设施的小区数量", "unit": "个" },
+    { "id": "community.kindergarten", "categoryKey": "cat3", "referenceIndicatorCode": "IND-COMM-013", "group": "设施完善", "name": "地图检索到的幼儿园设施空间数量", "standardName": "未达标配建幼儿园的小区数量", "unit": "个" },
+    { "id": "community.primary_school", "categoryKey": "cat4", "referenceIndicatorCode": "IND-COMM-014", "group": "设施完善", "name": "地图检索到的小学设施空间数量", "standardName": "小学学位缺口数", "unit": "个" },
+    { "id": "community.parking", "categoryKey": "cat5", "referenceIndicatorCode": "IND-COMM-015", "group": "设施完善", "name": "地图检索到的停车设施空间数量", "standardName": "停车泊位缺口数", "unit": "个" },
+    { "id": "community.vehicle_charging", "categoryKey": "cat6", "referenceIndicatorCode": "IND-COMM-016", "group": "设施完善", "name": "地图检索到的新能源汽车充电设施空间数量", "standardName": "新能源汽车充电桩缺口数", "unit": "个" },
+    { "id": "community.bicycle_charging", "categoryKey": "cat7", "referenceIndicatorCode": "IND-COMM-017", "group": "设施完善", "name": "地图检索到的电动自行车充电设施空间数量", "standardName": "未配建电动自行车充电设施的小区数量", "unit": "个" },
+    { "id": "community.public_activity", "categoryKey": "cat8", "referenceIndicatorCode": "IND-COMM-018", "group": "环境宜居", "name": "地图检索到的公共活动场地数量", "standardName": "未达标配建的公共活动场地的小区数量", "unit": "个" },
+    { "id": "community.walking_space", "categoryKey": "cat9", "referenceIndicatorCode": "IND-COMM-019", "group": "环境宜居", "name": "地图检索到的步行空间数量", "standardName": "不达标的步行道长度", "unit": "个" },
+    { "id": "community.waste_sorting", "categoryKey": "cat10", "referenceIndicatorCode": "IND-COMM-020", "group": "环境宜居", "name": "地图检索到的垃圾分类设施空间数量", "standardName": "未实施生活垃圾分类的小区数量", "unit": "个" },
+    { "id": "community.property_management", "categoryKey": "cat11", "referenceIndicatorCode": "IND-COMM-021", "group": "管理健全", "name": "地图检索到的物业管理服务空间数量", "standardName": "未实施物业管理的小区数量", "unit": "个" },
+    { "id": "community.smart_facility", "categoryKey": "cat12", "referenceIndicatorCode": "IND-COMM-022", "group": "管理健全", "name": "地图检索到的智慧设施空间数量", "standardName": "需要进行智慧化改造的小区数量", "unit": "个" }
+  ]
+}

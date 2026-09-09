@@ -5,6 +5,7 @@ import { createDraft, createSection, saveSectionEdit, saveSectionGenerated, revi
 import { buildGenerationPrompt, parseGenerationOutput } from './report-generation-core.js';
 import { validateReportContent, validateCrossSectionConsistency } from './report-validation-core.js';
 import { generateDocx } from './report-docx-core.js';
+import { buildReportFactBundle, selectNarrativeBlocks, buildReportNarrativePrompt, parseNarrativeModelContent, validateReportNarrativeDraft, buildStoredReportDraft, assembleReportDraftDocument, REPORT_TEMPLATE } from './report-narrative-core.js';
 
 const DEFINITIONS = [
   ['cover', '封面'], ['chapter-1', '一、工作概述'], ['chapter-2', '二、构建指标体系与评价方法'], ['chapter-3', '三、总体结论'], ['chapter-4', '四、指标分析评价'], ['chapter-5', '五、城市治理建议'], ['chapter-6', '六、行动建议'], ['appendix-2', '附录2：指标分析评价结果统计表'], ['appendix-3', '附录3：问题清单及台账一览表'], ['appendix-4', '附录4：治理建议清单一览表'], ['appendix-5', '附录5：城市更新项目库']
@@ -85,6 +86,40 @@ export async function handleReportStudioRoute(deps) {
     }
     match = url.pathname.match(/^\/api\/report-studio\/artifacts\/([^/]+)\/content$/);
     if (req.method === 'GET' && match) { const artifact = await getArtifact(match[1]); if (!artifact) return respond(404, { message: 'Word 文件不存在' }); res.writeHead(200, { 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.fileName)}"` }); return res.end(artifact.buffer); }
+
+    // ============ AI 叙述生成接口 ============
+    match = url.pathname.match(/^\/api\/report-studio\/reports\/([^/]+)\/narrative\/generate$/);
+    if (req.method === 'POST' && match) {
+      const reportId = match[1];
+      const body = await readJson(req);
+      const subsectionIds = Array.isArray(body.subsectionIds) ? body.subsectionIds : [];
+      const loadReport = deps.loadReport || (async () => null);
+      const saveReport = deps.saveReport || (async () => {});
+      const report = await loadReport(reportId);
+      if (!report || !report.snapshot) return respond(404, { message: '报告快照不存在' });
+      if (typeof generateText !== 'function') return respond(503, { message: '文字模型服务尚未配置' });
+      const targetBlocks = selectNarrativeBlocks(REPORT_TEMPLATE, subsectionIds);
+      if (!targetBlocks.length) return respond(400, { message: '未找到需要生成的叙述区块' });
+      const prompt = buildReportNarrativePrompt({ report, template: REPORT_TEMPLATE, subsectionIds });
+      const rawOutput = await generateText(prompt);
+      const parsed = parseNarrativeModelContent(rawOutput);
+      const validatedDraft = validateReportNarrativeDraft({ draft: parsed, report, template: REPORT_TEMPLATE, subsectionIds });
+      const storedDraft = buildStoredReportDraft({ report, validatedDraft, model: body.model || 'qwen', requestId: body.requestId || '', usage: body.usage || null, subsectionIds });
+      report.draft = storedDraft;
+      report.draftUpdatedAt = new Date().toISOString();
+      await saveReport(report);
+      return respond(200, { draft: storedDraft, generatedBlocks: validatedDraft.sections.length });
+    }
+    match = url.pathname.match(/^\/api\/report-studio\/reports\/([^/]+)\/narrative\/document$/);
+    if (req.method === 'GET' && match) {
+      const reportId = match[1];
+      const loadReport = deps.loadReport || (async () => null);
+      const report = await loadReport(reportId);
+      if (!report || !report.snapshot) return respond(404, { message: '报告快照不存在' });
+      const document = assembleReportDraftDocument({ report, template: REPORT_TEMPLATE });
+      return respond(200, { document });
+    }
+
     return respond(404, { message: '报告工作台接口不存在' });
   } catch (error) { return respond(error.status || 400, { message: error.message || '报告工作台请求失败' }); }
 }
